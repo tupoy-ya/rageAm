@@ -63,7 +63,10 @@ uintptr_t Hooker::FindOffset(std::string name, uintptr_t origin)
 {
 	intptr_t result = FindOffset(origin);
 
-	g_logger->Log(std::format("FO [{}] - {:x}", name, result));
+	// Duplicate for logging
+	int offset = *(int*)origin;
+
+	g_logger->Log(std::format("FO [{}] - ({:x}, {:x})", name, offset, result));
 
 	return result;
 }

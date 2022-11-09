@@ -12,15 +12,72 @@ typedef bool(*SettingMgr__Save)();
 typedef bool(*SettingMgr__BeginSave)(uintptr_t a1);
 
 typedef int(*WriteDebugStateToFile)(const WCHAR* fileName);
+typedef int(*WriteDebugState)();
 
 SettingMgr__Save gimpl_SettingMgr__Save;
 WriteDebugStateToFile gimpl_WriteDebugStateToFile;
+WriteDebugStateToFile gimpl_WriteDebugState;
 
 uintptr_t save;
 uintptr_t beginSave;
 uintptr_t beginSave_setting_64;
 uintptr_t beginSave_settingDump;
+
 uintptr_t writeDebugStateToFile;
+uintptr_t writeDebugState;
+
+// Looks like a common structure
+uintptr_t numFramesRendered;
+uintptr_t isGamePaused;
+uintptr_t isDebugPaused;
+uintptr_t isPausedUnk1;
+uintptr_t isPausedUnk2;
+
+uintptr_t numStreamingRequests;
+
+bool IsGamePaused()
+{
+	return *(bool*)isDebugPaused |
+		*(bool*)isGamePaused |
+		*(bool*)isPausedUnk1 |
+		*(bool*)isPausedUnk2;
+}
+
+enum GameState
+{
+	SystemInit = 0,
+	GameInit = 1,
+	GameRunning = 2,
+	GameShutdown = 3,
+	SystemShutdown = 4,
+};
+
+struct CApp
+{
+	int8_t _gap0[0x10];
+	int8_t _gameState;
+
+	GameState GetGameState()
+	{
+		return (GameState)_gameState;
+	}
+
+	std::string GetGameStateStr()
+	{
+		// TODO: System init is not really possible to get,
+		// because game returns it when CGame pointer is set to null,
+		// meaning this class instance wont exist
+		switch (_gameState)
+		{
+		case 0: return "System Init";
+		case 1: return "Game Init";
+		case 2: return "Game Running";
+		case 3: return "Game ShutDown";
+		case 4: return "System Shutdown";
+		}
+		return "Unknown";
+	}
+};
 
 bool __fastcall aimpl_SettingMgr__BeginSave(uintptr_t a1)
 {
@@ -36,6 +93,16 @@ bool __fastcall aimpl_SettingMgr__BeginSave(uintptr_t a1)
 	return gimpl_SettingMgr__Save();
 }
 
+struct CPools
+{
+	int64_t qword0;
+	int8_t* pbyte8;
+	int32_t MaxPeds;
+	int int14;
+	int8_t gap18[8];
+	int32_t dword20;
+};
+
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
@@ -47,12 +114,78 @@ void Main()
 	beginSave = g_hook->FindPattern("SettingMgr::BeginSave", "40 53 48 83 EC 20 0F B7 41 40");
 	beginSave_setting_64 = g_hook->FindOffset("SettingMgr::BeginSave_setting64", beginSave + 0x1C);
 	beginSave_settingDump = g_hook->FindOffset("SettingMgr::BeginSave_settingDump", beginSave + 0x27);
+
 	writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
+	writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
 
 	gimpl_SettingMgr__Save = (SettingMgr__Save)save;
+	//g_hook->SetHook((LPVOID)beginSave, &aimpl_SettingMgr__BeginSave);
+
 	gimpl_WriteDebugStateToFile = (WriteDebugStateToFile)writeDebugStateToFile;
 
-	g_hook->SetHook((LPVOID)beginSave, &aimpl_SettingMgr__BeginSave);
+	// mov rax, cs:CApp
+	CApp* game = *(CApp**)g_hook->FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
+
+	// mov edx, dword ptr cs:numFramesRendered
+	numFramesRendered = g_hook->FindOffset("writeDebugState_currentFrame", writeDebugState + 0x159 + 0x2);
+
+	// or al, cs:isDebugPaused
+	isDebugPaused = g_hook->FindOffset("writeDebugState_isDebugPaused", writeDebugState + 0x179 + 0x2);
+	isGamePaused = isDebugPaused - 0x1;
+	isPausedUnk1 = isDebugPaused + 0x1;
+	isPausedUnk2 = isDebugPaused + 0x2;
+
+	// mov edx, cs:numStreamingRequests
+	numStreamingRequests = g_hook->FindOffset("writeDebugState_numStreamingRequests", writeDebugState + 0x18F + 0x2);
+
+	g_logger->Log(std::format("CApp - {:x}", (intptr_t)game));
+	if (game)
+		g_logger->Log(std::format("Game State: {}", game->GetGameStateStr()));
+	g_logger->Log(std::format("Frame: {} - Paused: {}", *(int*)numFramesRendered, IsGamePaused() ? "yes" : "no"));
+	g_logger->Log(std::format("Streaming Requests: {}", *(int*)numStreamingRequests));
+
+
+	// TODO:
+	// GetLocalizedString
+	// ReadGameVersion
+	// GetPlayerPosition
+
+	auto crap1 = (unsigned int) (*(intptr_t*)(0x7FF66B5112C0 + 0x20));
+	auto crap2 = (unsigned int)(4 * crap1);
+	auto crap3 = (unsigned int)(crap2 >> 2);
+	int numPeds = (unsigned int)((4 * *(intptr_t*)(0x7FF66B5112C0 + 0x20)) >> 2);
+
+	//g_logger->Log(std::format("Crap1: {:x} Crap2: {:x} Crap3: {} NumPeds: {}", crap1, crap2, crap3, numPeds));
+
+	CPools* pool = *(CPools**)0x7FF66B5112C0;
+
+	auto maxPeds = pool->MaxPeds;
+	auto ped_missions = 0;
+	auto ped_reused = 0;
+	auto ped_reuse_pool = 0;
+
+	auto __pedIndex = pool->pbyte8;
+	auto qword0 = pool->qword0;
+	auto pedIterator = (unsigned int)maxPeds;
+	do                                        // Foreach Ped
+	{
+		auto v31 = *__pedIndex & 128;
+		auto v32 = qword0 & ~((v31 | -v31) >> 0x3F);
+		if (!v32 || (*(int8_t*)((qword0 & ~((v31 | -(__int64)(*__pedIndex & 128)) >> 0x3F)) + 0x1091) & 0x10) != 0)
+			v32 = 0i64;
+		if (v32)
+		{
+			ped_missions += (*(int16_t*)(v32 + 218) & 0xFu) - 6 <= 1;
+			auto v33 = *(int32_t*)(v32 + 5224);
+			ped_reused += (v33 >> 5) & 1;
+			ped_reuse_pool += (v33 >> 4) & 1;
+		}
+		qword0 += pool->int14;
+		++__pedIndex;
+		--pedIterator;
+	} while (pedIterator);
+
+	g_logger->Log(std::format("missions: {} reused: {} reuse_pool: {}", ped_missions, ped_reused, ped_reuse_pool));
 
 	gimpl_WriteDebugStateToFile(L"victor.txt");
 }
