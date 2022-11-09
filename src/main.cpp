@@ -43,21 +43,15 @@ void Main()
 
 	g_logger->Log("Scanning patterns...");
 
-	save = g_hook->FindPattern("48 83 EC 48 48 83 3D");
-	beginSave = g_hook->FindPattern("40 53 48 83 EC 20 0F B7 41 40");
-	beginSave_setting_64 = g_hook->FindRelativeAddressWithOffset(beginSave + 0x1C);
-	beginSave_settingDump = g_hook->FindRelativeAddressWithOffset(beginSave + 0x27);
-	writeDebugStateToFile = g_hook->FindPattern("48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
-
-	g_logger->Log(std::format("SettingMgr::Save: {:x}", save));
-	g_logger->Log(std::format("SettingMgr::BeginSave: {:x}", beginSave));
-	g_logger->Log(std::format("SettingMgr::BeginSave_setting64: {:x}", beginSave_setting_64));
-	g_logger->Log(std::format("SettingMgr::BeginSave_settingDump: {:x}", beginSave_settingDump));
-	g_logger->Log(std::format("WriteDebugStateToFile: {:x}", writeDebugStateToFile));
+	save = g_hook->FindPattern("SettingMgr::Save", "48 83 EC 48 48 83 3D");
+	beginSave = g_hook->FindPattern("SettingMgr::BeginSave", "40 53 48 83 EC 20 0F B7 41 40");
+	beginSave_setting_64 = g_hook->FindOffset("SettingMgr::BeginSave_setting64", beginSave + 0x1C);
+	beginSave_settingDump = g_hook->FindOffset("SettingMgr::BeginSave_settingDump", beginSave + 0x27);
+	writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
 
 	gimpl_SettingMgr__Save = (SettingMgr__Save)save;
 	gimpl_WriteDebugStateToFile = (WriteDebugStateToFile)writeDebugStateToFile;
-		
+
 	g_hook->SetHook((LPVOID)beginSave, &aimpl_SettingMgr__BeginSave);
 
 	gimpl_WriteDebugStateToFile(L"victor.txt");
@@ -74,9 +68,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH: scriptRegister(hModule, Main); break;
-	case DLL_THREAD_ATTACH:break;
-	case DLL_THREAD_DETACH:break;
 	case DLL_PROCESS_DETACH: Abort(); scriptUnregister(hModule); break;
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:break;
 	}
 
 	return TRUE;

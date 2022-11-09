@@ -1,10 +1,10 @@
 #include "Hooking.h"
 #include <Psapi.h>
 #include <sstream>
+#include <format>
+#include "Logger.h"
 
 #include "../../vendor/minhook-1.3.3/include/MinHook.h"
-#include "Logger.h"
-#include <format>
 
 std::vector<std::string> Hooker::Split(const std::string& s, char delimiter)
 {
@@ -44,9 +44,28 @@ uintptr_t Hooker::FindPattern(const char* pattern)
 	return 0;
 }
 
-uintptr_t Hooker::FindRelativeAddressWithOffset(uintptr_t origin, int offset)
+uintptr_t Hooker::FindPattern(std::string name, const char* pattern)
 {
-	return origin + offset + *(int*)origin;
+	intptr_t result = FindPattern(pattern);
+
+	g_logger->Log(std::format("FP [{}] - {:x}", name, result));
+
+	return result;
+}
+
+uintptr_t Hooker::FindOffset(uintptr_t origin)
+{
+	// Offset address + size of offset (int) + offset value
+	return origin + 4 + *(int*)origin;
+}
+
+uintptr_t Hooker::FindOffset(std::string name, uintptr_t origin)
+{
+	intptr_t result = FindOffset(origin);
+
+	g_logger->Log(std::format("FO [{}] - {:x}", name, result));
+
+	return result;
 }
 
 void Hooker::SetHook(LPVOID target, LPVOID detour)
@@ -69,11 +88,11 @@ void Hooker::SetHook(const char* pattern, LPVOID detour, LPVOID* original)
 	Hooker::SetHook((LPVOID)FindPattern(pattern), detour, original);
 }
 
-void Hooker::UnHook(LPVOID func)
+void Hooker::UnHook(LPVOID target)
 {
-	MH_DisableHook(func);
+	MH_DisableHook(target);
 
-	g_logger->Log(std::format("UnHooking: {:x}", (long)func));
+	g_logger->Log(std::format("UnHooking: {:x}", (long)target));
 }
 
 void Hooker::UnHookAll()
