@@ -18,6 +18,8 @@ typedef bool(*SettingMgr__BeginSave)(uintptr_t a1);
 typedef int(*WriteDebugStateToFile)(const WCHAR* fileName);
 typedef int(*WriteDebugState)();
 
+typedef __int64 (*UpdateCamFrame)(intptr_t* frame, __int64 a2, __int64 a3);
+
 SettingMgr__Save gimpl_SettingMgr__Save;
 WriteDebugStateToFile gimpl_WriteDebugStateToFile;
 WriteDebugStateToFile gimpl_WriteDebugState;
@@ -97,6 +99,24 @@ bool __fastcall aimpl_SettingMgr__BeginSave(uintptr_t a1)
 	return gimpl_SettingMgr__Save();
 }
 
+float cam_x = 0;
+float cam_y = 0;
+float cam_z = 0;
+
+UpdateCamFrame gimpl_UpdateCamFrame = NULL;
+__int64 __fastcall aimpl_UpdateCamFrame(intptr_t* frame, __int64 a2, __int64 a3)
+{
+	if (*(bool*)isDebugPaused)
+	{
+		*(float*)(a2 + 0x40) = cam_x;
+		*(float*)(a2 + 0x44) = cam_y;
+		*(float*)(a2 + 0x48) = cam_z;
+	}
+
+	return gimpl_UpdateCamFrame(frame, a2, a3);
+}
+
+
 struct CPools
 {
 	int64_t qword0;
@@ -110,6 +130,54 @@ struct CPools
 enum PoolType
 {
 	POOL_PED = 128,
+};
+
+struct camFrame
+{
+	float FrontX;
+	float FrontY;
+	float FrontZ;
+	float FrontW;
+	float UpX;
+	float UpY;
+	float UpZ;
+	float UpW;
+	int8_t gap0[32];
+	int32_t PositionX;
+	int32_t PositionY;
+	int32_t PositionZ;
+	int32_t PositionW;
+	int32_t dword50;
+	int32_t dword54;
+	int32_t dword58;
+	int32_t dword5C;
+	int64_t qword60;
+	int64_t qword68;
+	float float70;
+	float float74;
+	int32_t dword78;
+	int32_t dword7C;
+	float float80;
+	int32_t dword84;
+	int32_t dword88;
+	int32_t dword8C;
+	int32_t dword90;
+	int32_t dword94;
+	int32_t dword98;
+	int32_t dword9C;
+	int32_t dwordA0;
+	int32_t dwordA4;
+	int32_t dwordA8;
+	int32_t dwordAC;
+	int32_t dwordB0;
+	int32_t dwordB4;
+	int32_t dwordB8;
+	int32_t dwordBC;
+	int32_t dwordC0;
+	int32_t dwordC4;
+	int32_t dwordC8;
+	int32_t dwordCC;
+	int8_t wordD0;
 };
 
 void Main()
@@ -126,6 +194,9 @@ void Main()
 
 	writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
 	writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
+
+	auto cam = g_hook->FindPattern("UpdateCamFrame", "48 89 5C 24 08 57 48 83 EC 20 8B 42 40 F3");
+	g_hook->SetHook((LPVOID)cam, aimpl_UpdateCamFrame, (LPVOID*)&gimpl_UpdateCamFrame);
 
 	gimpl_SettingMgr__Save = (SettingMgr__Save)save;
 	//g_hook->SetHook((LPVOID)beginSave, &aimpl_SettingMgr__BeginSave);
@@ -181,7 +252,7 @@ void Main()
 
 	for (int i = 0; i < pedIterator; i++)
 	{
-		auto v31 = *__pedIndex & POOL_PED; // flag check?
+		auto v31 = *(__pedIndex + i) & 0b10000000;//& POOL_PED; // flag check?
 
 		auto pedPtr = qword0 & ~((v31 | -v31) >> 0x3F);
 		//g_logger->Log(std::format("{} \t {:x}", v31, pedPtr));
@@ -218,14 +289,66 @@ void Main()
 
 	gimpl_WriteDebugStateToFile(L"victor.txt");
 
-
 	// Main loop
 	while (true)
 	{
 		if (IsKeyJustUp(VK_F9))
 		{
 			*(bool*)isDebugPaused = !*(bool*)isDebugPaused;
+			gimpl_WriteDebugStateToFile(L"victor.txt");
 		}
+
+		auto camFrameP = (camFrame*)0x7FF66AF80750;
+		auto camFrameA = (intptr_t)0x7FF66AF80750;
+
+		Vector3 pos = ENTITY::GET_ENTITY_COORDS(PLAYER::GET_PLAYER_PED(0), true);
+		ENTITY::SET_ENTITY_ALPHA(PLAYER::GET_PLAYER_PED(0), 100, false);
+
+		// Front
+		float f_x = pos.x + camFrameP->FrontX;// *(float*)(camFrameA + 0) * 5;
+		float f_y = pos.y + camFrameP->FrontY;// *(float*)(camFrameA + 4) * 5;
+		float f_z = pos.z + camFrameP->FrontZ;// *(float*)(camFrameA + 8) * 5;
+
+		// Up
+		float u_x = pos.x + camFrameP->UpX;// *(float*)(camFrameA + 16) * 1;
+		float u_y = pos.y + camFrameP->UpY;// *(float*)(camFrameA + 20) * 1;
+		float u_z = pos.z + camFrameP->UpZ;// *(float*)(camFrameA + 24) * 1;
+
+		GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, f_x, f_y, f_z, 255, 255, 255, 255);
+		GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, u_x, u_y, u_z, 255, 255, 255, 255);
+
+		if (*(bool*)isDebugPaused)
+		{
+			float moveVertical = 0.0f;
+			float moveHorizontal = 0.0f;
+
+			moveVertical += IsKeyDown(0x57) ? 1 : 0;
+			moveVertical -= IsKeyDown(0x53) ? 1 : 0;
+			moveHorizontal += IsKeyDown(0x41) ? 1 : 0;
+			moveHorizontal -= IsKeyDown(0x44) ? 1 : 0;
+
+			float dt = SYSTEM::TIMESTEP();
+			if (moveHorizontal != 0.0f || moveVertical != 0.0f)
+			{
+				float length = 1 / sqrt(moveVertical * moveVertical + moveHorizontal * moveHorizontal);
+				moveVertical *= length;
+				moveHorizontal *= length;
+
+				moveVertical *= dt;
+				moveHorizontal *= dt;
+
+				cam_x += moveHorizontal * 50;
+				cam_y += moveVertical * 50;
+			}
+
+			cam_z += IsKeyDown(VK_SPACE) ? dt * 50 : 0.0f;
+			cam_z -= IsKeyDown(VK_CONTROL) ? dt * 50 : 0.0f;
+		}
+
+		//if(IsKeyJustUp(VK_SCROLL))
+		//{
+		//	gimpl_WriteDebugStateToFile(L"victor.txt");
+		//}
 
 		WAIT(0);
 	}
@@ -241,7 +364,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	switch (dwReason)
 	{
-	case DLL_PROCESS_ATTACH: 
+	case DLL_PROCESS_ATTACH:
 		scriptRegister(hModule, Main);
 		keyboardHandlerRegister(OnKeyboardMessage);
 		break;
