@@ -7,6 +7,10 @@
 #include "Logger.h"
 #include "../vendor/minhook-1.3.3/include/MinHook.h"
 #include "../vendor/scripthook/include/main.h"
+#include "../vendor/scripthook/include/keyboard.h"
+#include "../vendor/scripthook/include/natives.h"
+#include "../vendor/scripthook/include/types.h"
+#include "../vendor/scripthook/include/enums.h"
 
 typedef bool(*SettingMgr__Save)();
 typedef bool(*SettingMgr__BeginSave)(uintptr_t a1);
@@ -103,6 +107,11 @@ struct CPools
 	int32_t dword20;
 };
 
+enum PoolType
+{
+	POOL_PED = 128,
+};
+
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
@@ -150,7 +159,7 @@ void Main()
 	// ReadGameVersion
 	// GetPlayerPosition
 
-	auto crap1 = (unsigned int) (*(intptr_t*)(0x7FF66B5112C0 + 0x20));
+	auto crap1 = (unsigned int)(*(intptr_t*)(0x7FF66B5112C0 + 0x20));
 	auto crap2 = (unsigned int)(4 * crap1);
 	auto crap3 = (unsigned int)(crap2 >> 2);
 	int numPeds = (unsigned int)((4 * *(intptr_t*)(0x7FF66B5112C0 + 0x20)) >> 2);
@@ -167,27 +176,59 @@ void Main()
 	auto __pedIndex = pool->pbyte8;
 	auto qword0 = pool->qword0;
 	auto pedIterator = (unsigned int)maxPeds;
-	do                                        // Foreach Ped
+
+	g_logger->Log(std::format("qword0: {:x}", qword0));
+
+	for (int i = 0; i < pedIterator; i++)
 	{
-		auto v31 = *__pedIndex & 128;
-		auto v32 = qword0 & ~((v31 | -v31) >> 0x3F);
-		if (!v32 || (*(int8_t*)((qword0 & ~((v31 | -(__int64)(*__pedIndex & 128)) >> 0x3F)) + 0x1091) & 0x10) != 0)
-			v32 = 0i64;
-		if (v32)
-		{
-			ped_missions += (*(int16_t*)(v32 + 218) & 0xFu) - 6 <= 1;
-			auto v33 = *(int32_t*)(v32 + 5224);
-			ped_reused += (v33 >> 5) & 1;
-			ped_reuse_pool += (v33 >> 4) & 1;
-		}
-		qword0 += pool->int14;
-		++__pedIndex;
-		--pedIterator;
-	} while (pedIterator);
+		auto v31 = *__pedIndex & POOL_PED; // flag check?
+
+		auto pedPtr = qword0 & ~((v31 | -v31) >> 0x3F);
+		//g_logger->Log(std::format("{} \t {:x}", v31, pedPtr));
+		g_logger->Log(std::format("{:x}", pedPtr));
+	}
+
+	//do                                        // Foreach Ped
+	//{
+	//	//g_logger->Log(std::format("{}", ((uint8_t)*__pedIndex) & 0b10000000));
+
+	//	auto v31 = *__pedIndex & POOL_PED; // flag check?
+
+	//	auto pedPtr = qword0 & ~((v31 | -v31) >> 0x3F);
+	//	//g_logger->Log(std::format("{} \t {:x}", v31, pedPtr));
+	//	g_logger->Log(std::format("{:x}",pedPtr));
+
+	//	continue;
+
+	//	if (!pedPtr || (*(int8_t*)((qword0 & ~((v31 | -(__int64)(*__pedIndex & 128)) >> 0x3F)) + 0x1091) & 0x10) != 0)
+	//		pedPtr = 0i64;
+	//	if (pedPtr)
+	//	{
+	//		ped_missions += (*(int16_t*)(pedPtr + 218) & 0xFu) - 6 <= 1;
+	//		auto v33 = *(int32_t*)(pedPtr + 5224);
+	//		ped_reused += (v33 >> 5) & 1;
+	//		ped_reuse_pool += (v33 >> 4) & 1;
+	//	}
+	//	qword0 += pool->int14;
+	//	++__pedIndex;
+	//	--pedIterator;
+	//} while (pedIterator);
 
 	g_logger->Log(std::format("missions: {} reused: {} reuse_pool: {}", ped_missions, ped_reused, ped_reuse_pool));
 
 	gimpl_WriteDebugStateToFile(L"victor.txt");
+
+
+	// Main loop
+	while (true)
+	{
+		if (IsKeyJustUp(VK_F9))
+		{
+			*(bool*)isDebugPaused = !*(bool*)isDebugPaused;
+		}
+
+		WAIT(0);
+	}
 }
 
 void Abort()
@@ -200,8 +241,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	switch (dwReason)
 	{
-	case DLL_PROCESS_ATTACH: scriptRegister(hModule, Main); break;
-	case DLL_PROCESS_DETACH: Abort(); scriptUnregister(hModule); break;
+	case DLL_PROCESS_ATTACH: 
+		scriptRegister(hModule, Main);
+		keyboardHandlerRegister(OnKeyboardMessage);
+		break;
+	case DLL_PROCESS_DETACH:
+		Abort();
+		scriptUnregister(hModule);
+		keyboardHandlerUnregister(OnKeyboardMessage);
+		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:break;
 	}
