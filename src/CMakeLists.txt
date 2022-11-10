@@ -20,9 +20,9 @@ set(CMAKE_CXX20_EXTENSION_COMPILE_OPTION "-std:c++latest")
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.dll 
-        "S:/SteamLibrary/steamapps/common/Grand Theft Auto V/rageAm.asi")
+        "$ENV{GTAPath}/rageAm.asi")
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.pdb 
-        "S:/SteamLibrary/steamapps/common/Grand Theft Auto V/rageAm.pdb")
+        "$ENV{GTAPath}/rageAm.pdb")
