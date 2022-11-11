@@ -229,6 +229,8 @@ void Main()
 	// GetLocalizedString
 	// ReadGameVersion
 	// GetPlayerPosition
+	// CTheScripts::GetEntityToModifyFromGUID__Ped
+	// DirectX Math
 
 	auto crap1 = (unsigned int)(*(intptr_t*)(0x7FF66B5112C0 + 0x20));
 	auto crap2 = (unsigned int)(4 * crap1);
@@ -248,7 +250,23 @@ void Main()
 	auto qword0 = pool->qword0;
 	auto pedIterator = (unsigned int)maxPeds;
 
+	g_logger->Log(std::format("dword20: {}",pool->dword20));
+	g_logger->Log(std::format("numPeds: {}", 4 * pool->dword20));
+	g_logger->Log(std::format("numPeds: {}", (4 * pool->dword20) >> 2));
+	g_logger->Log(std::format("numPeds: {}", 1073741882 >> 2));
 	g_logger->Log(std::format("qword0: {:x}", qword0));
+
+
+	// From task_commands.cpp
+	/*
+	 *  CPed::Pool* pool = CPed::GetPool();
+		const int maxPeds = pool->GetSize();
+		for(int i = 0; i < maxPeds; i++)
+		{
+			CPed* pPed = pool->GetSlot(i);
+			...
+		}
+	*/
 
 	for (int i = 0; i < pedIterator; i++)
 	{
@@ -256,19 +274,23 @@ void Main()
 
 		auto pedPtr = qword0 & ~((v31 | -v31) >> 0x3F);
 		//g_logger->Log(std::format("{} \t {:x}", v31, pedPtr));
-		g_logger->Log(std::format("{:x}", pedPtr));
+		g_logger->Log(std::format("{} {:x}", *(__pedIndex + i), pedPtr));
+		qword0 += pool->int14;
 	}
 
 	//do                                        // Foreach Ped
 	//{
 	//	//g_logger->Log(std::format("{}", ((uint8_t)*__pedIndex) & 0b10000000));
 
-	//	auto v31 = *__pedIndex & POOL_PED; // flag check?
+	//	auto v31 = *__pedIndex & 0b10000000; // flag check?
 
 	//	auto pedPtr = qword0 & ~((v31 | -v31) >> 0x3F);
 	//	//g_logger->Log(std::format("{} \t {:x}", v31, pedPtr));
 	//	g_logger->Log(std::format("{:x}",pedPtr));
 
+	//	qword0 += pool->int14;
+	//	++__pedIndex;
+	//	--pedIterator;
 	//	continue;
 
 	//	if (!pedPtr || (*(int8_t*)((qword0 & ~((v31 | -(__int64)(*__pedIndex & 128)) >> 0x3F)) + 0x1091) & 0x10) != 0)
