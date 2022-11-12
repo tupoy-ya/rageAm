@@ -11,10 +11,16 @@ private:
 public:
 	void Log(std::string msg, bool truncate = false)
 	{
-		std::ofstream fs;
-		fs.open(logFile, truncate ? std::ios::trunc : std::ios::app);
+		auto fs = Open(truncate);
 		fs << msg << std::endl;
 		fs.close();
+	}
+
+	std::ofstream Open(bool truncate = false)
+	{
+		std::ofstream fs;
+		fs.open(logFile, truncate ? std::ios::trunc : std::ios::app);
+		return fs;
 	}
 };
 

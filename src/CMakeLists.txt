@@ -2,14 +2,20 @@
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
+# Boost Libary
+set(BOOST_ROOT $ENV{Boost_ROOT})
+# set(Boost_USE_STATIC_LIBS OFF) 
+find_package(Boost REQUIRED COMPONENTS stacktrace_noop REQUIRED)
+
 # Definde dynamic library
 add_library(rageAm SHARED 
 	"main.cpp" "main.h" "Memory/Hooking.h" "Memory/Hooking.cpp" "Logger.h" "Logger.cpp")
 
 # Link static libraries
-target_link_libraries(rageAm 
+target_link_libraries(rageAm PUBLIC
     "${CMAKE_SOURCE_DIR}/vendor/minhook-1.3.3/lib/libMinHook-x64-v141-md.lib" 
-    "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib")
+    "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib" 
+    Boost::stacktrace_noop)
 
 # Set latest c++ standard
 set_property(TARGET rageAm PROPERTY CXX_STANDARD 20)

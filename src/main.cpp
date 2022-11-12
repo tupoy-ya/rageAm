@@ -7,11 +7,16 @@
 #include "Logger.h"
 #include "../vendor/minhook-1.3.3/include/MinHook.h"
 #include "../vendor/scripthook/include/main.h"
+
+#include <iostream>
+
 #include "../vendor/scripthook/include/keyboard.h"
 #include "../vendor/scripthook/include/natives.h"
 #include "../vendor/scripthook/include/types.h"
 #include "../vendor/scripthook/include/enums.h"
+#include <boost/stacktrace/stacktrace.hpp>
 
+// #include <boost/program_options/option.hpp>
 typedef bool(*SettingMgr__Save)();
 typedef bool(*SettingMgr__BeginSave)(uintptr_t a1);
 
@@ -180,6 +185,28 @@ struct camFrame
 	int8_t wordD0;
 };
 
+typedef int64_t _QWORD;
+
+typedef __int64 (*GtaThread__RunScript)(
+	__int64 a1,
+	int a2,
+	const void* a3,
+	int a4);
+
+intptr_t gtaThread__RunScript;
+
+GtaThread__RunScript gimpl_GtaThread__RunScript;
+
+__int64 aimpl_GtaThread__RunScript(
+	__int64 a1,
+	int a2,
+	const void* a3,
+	int a4)
+{
+	g_logger->Log(std::format("GtaThread__RunScript: {:x}, {}, {}, {}", a1, a2, a3, a4));
+	return gimpl_GtaThread__RunScript(a1, a2, a3, a4);
+}
+
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
@@ -195,6 +222,36 @@ void Main()
 	writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
 	writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
 
+	gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
+	g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
+
+	while(true)
+	{
+		if(IsKeyJustUp(VK_F9))
+		{
+			auto fs = g_logger->Open();
+			fs << boost::stacktrace::stacktrace();
+			fs.close();
+
+
+			// boost::stacktrace::safe_dump_to("Hello.dump");
+			//std::cout << boost::stacktrace::stacktrace();
+			//auto bs = boost::stacktrace::stacktrace().as_vector();
+			//for (auto b : bs)
+			//{
+			//	g_logger->Log(b.name());
+			//}
+
+			//SCRIPT::REQUEST_SCRIPT("emergencycall");
+			//SYSTEM::START_NEW_SCRIPT("emergencycall", 512);
+			//invoke<int>(0xB8BA7F44DF1575E1, "victor", 0x1, 12390, 5235);
+		}
+
+		WAIT(0);
+	}
+
+
+	return;
 	auto cam = g_hook->FindPattern("UpdateCamFrame", "48 89 5C 24 08 57 48 83 EC 20 8B 42 40 F3");
 	g_hook->SetHook((LPVOID)cam, aimpl_UpdateCamFrame, (LPVOID*)&gimpl_UpdateCamFrame);
 
@@ -205,6 +262,7 @@ void Main()
 
 	// mov rax, cs:CApp
 	CApp* game = *(CApp**)g_hook->FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
+
 
 	// mov edx, dword ptr cs:numFramesRendered
 	numFramesRendered = g_hook->FindOffset("writeDebugState_currentFrame", writeDebugState + 0x159 + 0x2);
@@ -223,7 +281,6 @@ void Main()
 		g_logger->Log(std::format("Game State: {}", game->GetGameStateStr()));
 	g_logger->Log(std::format("Frame: {} - Paused: {}", *(int*)numFramesRendered, IsGamePaused() ? "yes" : "no"));
 	g_logger->Log(std::format("Streaming Requests: {}", *(int*)numStreamingRequests));
-
 
 	// TODO:
 	// GetLocalizedString
@@ -250,7 +307,7 @@ void Main()
 	auto qword0 = pool->qword0;
 	auto pedIterator = (unsigned int)maxPeds;
 
-	g_logger->Log(std::format("dword20: {}",pool->dword20));
+	g_logger->Log(std::format("dword20: {}", pool->dword20));
 	g_logger->Log(std::format("numPeds: {}", 4 * pool->dword20));
 	g_logger->Log(std::format("numPeds: {}", (4 * pool->dword20) >> 2));
 	g_logger->Log(std::format("numPeds: {}", 1073741882 >> 2));
@@ -320,52 +377,52 @@ void Main()
 			gimpl_WriteDebugStateToFile(L"victor.txt");
 		}
 
-		auto camFrameP = (camFrame*)0x7FF66AF80750;
-		auto camFrameA = (intptr_t)0x7FF66AF80750;
+		//auto camFrameP = (camFrame*)0x7FF66AF80750;
+		//auto camFrameA = (intptr_t)0x7FF66AF80750;
 
-		Vector3 pos = ENTITY::GET_ENTITY_COORDS(PLAYER::GET_PLAYER_PED(0), true);
-		ENTITY::SET_ENTITY_ALPHA(PLAYER::GET_PLAYER_PED(0), 100, false);
+		//Vector3 pos = ENTITY::GET_ENTITY_COORDS(PLAYER::GET_PLAYER_PED(0), true);
+		//ENTITY::SET_ENTITY_ALPHA(PLAYER::GET_PLAYER_PED(0), 100, false);
 
-		// Front
-		float f_x = pos.x + camFrameP->FrontX;// *(float*)(camFrameA + 0) * 5;
-		float f_y = pos.y + camFrameP->FrontY;// *(float*)(camFrameA + 4) * 5;
-		float f_z = pos.z + camFrameP->FrontZ;// *(float*)(camFrameA + 8) * 5;
+		//// Front
+		//float f_x = pos.x + camFrameP->FrontX;// *(float*)(camFrameA + 0) * 5;
+		//float f_y = pos.y + camFrameP->FrontY;// *(float*)(camFrameA + 4) * 5;
+		//float f_z = pos.z + camFrameP->FrontZ;// *(float*)(camFrameA + 8) * 5;
 
-		// Up
-		float u_x = pos.x + camFrameP->UpX;// *(float*)(camFrameA + 16) * 1;
-		float u_y = pos.y + camFrameP->UpY;// *(float*)(camFrameA + 20) * 1;
-		float u_z = pos.z + camFrameP->UpZ;// *(float*)(camFrameA + 24) * 1;
+		//// Up
+		//float u_x = pos.x + camFrameP->UpX;// *(float*)(camFrameA + 16) * 1;
+		//float u_y = pos.y + camFrameP->UpY;// *(float*)(camFrameA + 20) * 1;
+		//float u_z = pos.z + camFrameP->UpZ;// *(float*)(camFrameA + 24) * 1;
 
-		GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, f_x, f_y, f_z, 255, 255, 255, 255);
-		GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, u_x, u_y, u_z, 255, 255, 255, 255);
+		//GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, f_x, f_y, f_z, 255, 255, 255, 255);
+		//GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, u_x, u_y, u_z, 255, 255, 255, 255);
 
-		if (*(bool*)isDebugPaused)
-		{
-			float moveVertical = 0.0f;
-			float moveHorizontal = 0.0f;
+		//if (*(bool*)isDebugPaused)
+		//{
+		//	float moveVertical = 0.0f;
+		//	float moveHorizontal = 0.0f;
 
-			moveVertical += IsKeyDown(0x57) ? 1 : 0;
-			moveVertical -= IsKeyDown(0x53) ? 1 : 0;
-			moveHorizontal += IsKeyDown(0x41) ? 1 : 0;
-			moveHorizontal -= IsKeyDown(0x44) ? 1 : 0;
+		//	moveVertical += IsKeyDown(0x57) ? 1 : 0;
+		//	moveVertical -= IsKeyDown(0x53) ? 1 : 0;
+		//	moveHorizontal += IsKeyDown(0x41) ? 1 : 0;
+		//	moveHorizontal -= IsKeyDown(0x44) ? 1 : 0;
 
-			float dt = SYSTEM::TIMESTEP();
-			if (moveHorizontal != 0.0f || moveVertical != 0.0f)
-			{
-				float length = 1 / sqrt(moveVertical * moveVertical + moveHorizontal * moveHorizontal);
-				moveVertical *= length;
-				moveHorizontal *= length;
+		//	float dt = SYSTEM::TIMESTEP();
+		//	if (moveHorizontal != 0.0f || moveVertical != 0.0f)
+		//	{
+		//		float length = 1 / sqrt(moveVertical * moveVertical + moveHorizontal * moveHorizontal);
+		//		moveVertical *= length;
+		//		moveHorizontal *= length;
 
-				moveVertical *= dt;
-				moveHorizontal *= dt;
+		//		moveVertical *= dt;
+		//		moveHorizontal *= dt;
 
-				cam_x += moveHorizontal * 50;
-				cam_y += moveVertical * 50;
-			}
+		//		cam_x += moveHorizontal * 50;
+		//		cam_y += moveVertical * 50;
+		//	}
 
-			cam_z += IsKeyDown(VK_SPACE) ? dt * 50 : 0.0f;
-			cam_z -= IsKeyDown(VK_CONTROL) ? dt * 50 : 0.0f;
-		}
+		//	cam_z += IsKeyDown(VK_SPACE) ? dt * 50 : 0.0f;
+		//	cam_z -= IsKeyDown(VK_CONTROL) ? dt * 50 : 0.0f;
+		//}
 
 		//if(IsKeyJustUp(VK_SCROLL))
 		//{
