@@ -142,7 +142,7 @@ void main(int argc, char* argv[])
 {
 	if(gtaPid == 0)
 	{
-		printf("GTA5.exe is not running.");
+		printf("GTA5.exe is not running.\n");
 		return;
 	}
 
