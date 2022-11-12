@@ -2,3 +2,4 @@
 
 project ("rageAm")
 add_subdirectory ("src")
+add_subdirectory ("injector")

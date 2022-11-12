@@ -4,7 +4,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})
-# set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_STATIC_LIBS OFF) 
 find_package(Boost REQUIRED COMPONENTS stacktrace_noop REQUIRED)
 
 # Definde dynamic library
@@ -22,13 +22,30 @@ set_property(TARGET rageAm PROPERTY CXX_STANDARD 20)
 set(CMAKE_CXX20_STANDARD_COMPILE_OPTION "-std:c++latest")
 set(CMAKE_CXX20_EXTENSION_COMPILE_OPTION "-std:c++latest")
 
-# Copy to GTA V directory
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.dll 
-        "$ENV{GTAPath}/rageAm.asi")
+# Eject DLL if already loaded
+add_custom_command(TARGET ${PROJECT_NAME} 
+    PRE_BUILD
+    COMMAND 
+    
+    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
+    -e rageAm.dll 
+)
 
+# Copy to temp directory, otherwise we can't compile DLL because its used by GTA
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.pdb 
-        "$ENV{GTAPath}/rageAm.pdb")
+     COMMAND ${CMAKE_COMMAND} -E copy
+         ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.dll 
+         ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll )
+
+# Inject DLL
+add_custom_command(TARGET ${PROJECT_NAME} 
+    POST_BUILD
+    COMMAND
+    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
+    -i ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll 
+)
+
+# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy
+#         ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.pdb 
+#         "$ENV{GTAPath}/rageAm.pdb")

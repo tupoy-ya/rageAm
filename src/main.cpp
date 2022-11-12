@@ -207,9 +207,21 @@ __int64 aimpl_GtaThread__RunScript(
 	return gimpl_GtaThread__RunScript(a1, a2, a3, a4);
 }
 
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved);
+
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
+	
+	//HMODULE hModule;
+	//GetModuleHandleEx
+	//(
+	//	GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+	//	(LPCTSTR)DllMain,
+	//	&hModule
+	//);
+	//FreeLibraryAndExitThread(hModule, 0);
+
 	g_logger->Log(std::format("MH_Initialize: {}", MH_Initialize() == MH_OK));
 
 	g_logger->Log("Scanning patterns...");
@@ -225,31 +237,30 @@ void Main()
 	gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
 	g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
 
-	while(true)
-	{
-		if(IsKeyJustUp(VK_F9))
-		{
-			auto fs = g_logger->Open();
-			fs << boost::stacktrace::stacktrace();
-			fs.close();
 
+	//while (true)
+	//{
+	//	if (IsKeyJustUp(VK_F9))
+	//	{
+	//		/*auto fs = g_logger->Open();
+	//		fs << boost::stacktrace::stacktrace();
+	//		fs.close();*/
 
-			// boost::stacktrace::safe_dump_to("Hello.dump");
-			//std::cout << boost::stacktrace::stacktrace();
-			//auto bs = boost::stacktrace::stacktrace().as_vector();
-			//for (auto b : bs)
-			//{
-			//	g_logger->Log(b.name());
-			//}
+	//		// boost::stacktrace::safe_dump_to("Hello.dump");
+	//		//std::cout << boost::stacktrace::stacktrace();
+	//		//auto bs = boost::stacktrace::stacktrace().as_vector();
+	//		//for (auto b : bs)
+	//		//{
+	//		//	g_logger->Log(b.name());
+	//		//}
 
-			//SCRIPT::REQUEST_SCRIPT("emergencycall");
-			//SYSTEM::START_NEW_SCRIPT("emergencycall", 512);
-			//invoke<int>(0xB8BA7F44DF1575E1, "victor", 0x1, 12390, 5235);
-		}
+	//		//SCRIPT::REQUEST_SCRIPT("emergencycall");
+	//		//SYSTEM::START_NEW_SCRIPT("emergencycall", 512);
+	//		//invoke<int>(0xB8BA7F44DF1575E1, "victor", 0x1, 12390, 5235);
+	//	}
 
-		WAIT(0);
-	}
-
+	//	WAIT(0);
+	//}
 
 	return;
 	auto cam = g_hook->FindPattern("UpdateCamFrame", "48 89 5C 24 08 57 48 83 EC 20 8B 42 40 F3");
@@ -444,13 +455,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
-		scriptRegister(hModule, Main);
-		keyboardHandlerRegister(OnKeyboardMessage);
+		Main();
+		//scriptRegister(hModule, Main);
+		//keyboardHandlerRegister(OnKeyboardMessage);
 		break;
 	case DLL_PROCESS_DETACH:
 		Abort();
-		scriptUnregister(hModule);
-		keyboardHandlerUnregister(OnKeyboardMessage);
+		//scriptUnregister(hModule);
+		//keyboardHandlerUnregister(OnKeyboardMessage);
 		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:break;
