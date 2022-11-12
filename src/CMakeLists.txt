@@ -31,21 +31,35 @@ add_custom_command(TARGET ${PROJECT_NAME}
     -e rageAm.dll 
 )
 
-# Copy to temp directory, otherwise we can't compile DLL because its used by GTA
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-     COMMAND ${CMAKE_COMMAND} -E copy
-         ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.dll 
-         ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll )
+# Copy to temp directory, otherwise we can't compile DLL because its used by GTA.
 
-# Inject DLL
-add_custom_command(TARGET ${PROJECT_NAME} 
+# DLL
+add_custom_command(TARGET ${PROJECT_NAME}
+    POST_BUILD
+    COMMAND 
+    ${CMAKE_COMMAND} -E 
+   
+    copy
+    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.dll 
+    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll
+)
+
+# PDB
+add_custom_command(TARGET ${PROJECT_NAME}
     POST_BUILD
     COMMAND
+    ${CMAKE_COMMAND} -E 
+   
+    copy
+    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.pdb 
+    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.pdb
+)
+
+# Inject DLL
+add_custom_command(TARGET ${PROJECT_NAME}
+    POST_BUILD
+    COMMAND
+   
     ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
     -i ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll 
 )
-
-# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-#     COMMAND ${CMAKE_COMMAND} -E copy
-#         ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.pdb 
-#         "$ENV{GTAPath}/rageAm.pdb")
