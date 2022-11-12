@@ -48,9 +48,9 @@ uintptr_t numStreamingRequests;
 
 bool IsGamePaused()
 {
-	return *(bool*)isDebugPaused |
-		*(bool*)isGamePaused |
-		*(bool*)isPausedUnk1 |
+	return *(bool*)isDebugPaused ||
+		*(bool*)isGamePaused ||
+		*(bool*)isPausedUnk1 ||
 		*(bool*)isPausedUnk2;
 }
 
@@ -212,7 +212,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved);
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
-	
+
 	//HMODULE hModule;
 	//GetModuleHandleEx
 	//(
@@ -236,6 +236,21 @@ void Main()
 
 	gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
 	g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
+
+	intptr_t movieStore = *(intptr_t*)0x7FF72097CF70;
+	short movieSlots = *(short*)(0x7FF72097CF78);
+
+	// TODO: Test boost stacktrace
+
+	g_logger->Log(std::format("Action Movie Slots: {}", movieSlots));
+
+	for (int i = 0; i < movieSlots; i++)
+	{
+		uint movieId = *(uint *) (movieStore + 176 + 480 * i);
+		auto movieFileName = (const char *) (movieStore + 184 + 480 * i);
+
+		g_logger->Log(std::format(" - MovieId({}), MovieFileName({})", movieId, movieFileName));
+	}
 
 
 	//while (true)
