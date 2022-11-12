@@ -13,14 +13,7 @@ DWORD GetGtaProcessId();
 HMODULE GetGtaModuleHandle(const std::string& name);
 
 DWORD gtaPid = GetGtaProcessId();
-HANDLE hGta = OpenProcess(
-	PROCESS_QUERY_INFORMATION |
-	PROCESS_CREATE_THREAD |
-	PROCESS_VM_OPERATION |
-	PROCESS_VM_WRITE |
-	PROCESS_VM_READ,
-	FALSE,
-	gtaPid);
+HANDLE hGta;
 
 DWORD GetGtaProcessId()
 {
@@ -147,6 +140,21 @@ void EjectDll(const std::string& path)
 
 void main(int argc, char* argv[])
 {
+	if(gtaPid == 0)
+	{
+		printf("GTA5.exe is not running.");
+		return;
+	}
+
+	hGta = OpenProcess(
+		PROCESS_QUERY_INFORMATION |
+		PROCESS_CREATE_THREAD |
+		PROCESS_VM_OPERATION |
+		PROCESS_VM_WRITE |
+		PROCESS_VM_READ,
+		FALSE,
+		gtaPid);
+
 	for (int i = 0; i < argc; i++)
 	{
 		std::string arg = argv[i];
