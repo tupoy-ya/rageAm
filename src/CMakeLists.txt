@@ -9,12 +9,24 @@ find_package(Boost REQUIRED COMPONENTS stacktrace_noop REQUIRED)
 
 # Definde dynamic library
 add_library(rageAm SHARED 
-	"main.cpp" "main.h" "Memory/Hooking.h" "Memory/Hooking.cpp" "Logger.h" "Logger.cpp")
+	"main.cpp" "main.h" 
+    "Memory/Hooking.h" "Memory/Hooking.cpp" 
+    "Logger.h" "Logger.cpp" 
+    "Component.h"
+    "ComponentMgr.h" "ComponentMgr.cpp"
+    "Platform/GtaWindow.h" 
+    "ImGui/imgui_impl_gta.cpp" "ImGui/imgui_impl_gta.h" 
+    "ImGui/ImGuiGta.h" "ImGui/ImGuiGta.cpp" 
+    "Graphics/GtaDirectX.h")
+
+# target_include_directories(rageAm PUBLIC "../vendor/imgui-1.88")
 
 # Link static libraries
 target_link_libraries(rageAm PUBLIC
     "${CMAKE_SOURCE_DIR}/vendor/minhook-1.3.3/lib/libMinHook-x64-v141-md.lib" 
     "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib" 
+    d3d11.lib
+    imgui
     Boost::stacktrace_noop)
 
 # Set latest c++ standard

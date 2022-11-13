@@ -3,3 +3,4 @@
 project ("rageAm")
 add_subdirectory ("src")
 add_subdirectory ("injector")
+add_subdirectory ("vendor")

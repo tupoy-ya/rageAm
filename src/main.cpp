@@ -1,5 +1,5 @@
 ﻿#include "main.h"
-#include <windows.h>
+#include <Windows.h>
 #include <fstream>
 #include <format>
 
@@ -15,6 +15,10 @@
 #include "../vendor/scripthook/include/types.h"
 #include "../vendor/scripthook/include/enums.h"
 #include <boost/stacktrace/stacktrace.hpp>
+
+#include <d3d11.h>
+
+#include "ComponentMgr.h"
 
 // #include <boost/program_options/option.hpp>
 typedef bool(*SettingMgr__Save)();
@@ -209,48 +213,206 @@ __int64 aimpl_GtaThread__RunScript(
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved);
 
+class MovieEntry
+{
+	char pad_01[176];
+	uint _id;
+	char pad_02[4];
+	uintptr_t _fileName;
+	char pad_03[246];
+	uint _state;
+	char pad_04[36];
+
+public:
+	uint GetId()
+	{
+		return _id;
+	}
+
+	const char* GetFileName()
+	{
+		return (const char*)&_fileName;
+	}
+
+	int GetState()
+	{
+		return _state;
+	}
+};
+static_assert(sizeof(MovieEntry) == 480);
+
+class MovieStore
+{
+	MovieEntry* _slots;
+	short _slotCount;
+
+public:
+	MovieEntry* GetSlot(int index)
+	{
+		return &_slots[index];
+	}
+
+	short GetNumSlots()
+	{
+		return _slotCount;
+	}
+
+	// TODO: Hook
+	bool IsSlotActive(int index)
+	{
+		if (index < 0 || index > 50)
+			return false;
+
+		if (index > GetNumSlots())
+			return false;
+
+		return GetSlot(index)->GetState() == 3;
+	}
+};
+
+typedef intptr_t(*GetEntityToQueryFromGUID)(int index);
+
+__int64 __fastcall GetEntityFromGUID(int index)
+{
+	__int64 v1; // r8
+	__int64 v2; // rax
+
+	if (index == -1)
+		return 0i64;
+	v1 = (unsigned int)index / 256;
+
+	auto u0 = *(_QWORD*)(0x273A3D80A60 + 8);
+	auto u1 = *(int8_t*)(v1 + u0);
+	g_logger->Log(std::format("{}", u0));
+	g_logger->Log(std::format("{}", u1));
+
+	if (u1 == (int8_t)index)
+	{
+		auto unk1 = *(int*)(0x273A3D80A60 + 20); // 16
+		auto unk2 = (unsigned int)(v1 * unk1);
+		g_logger->Log(std::format("{}", unk2));
+		v2 = *(_QWORD*)0x273A3D80A60 + unk2;
+	}
+	else
+	{
+		return 0;
+	}
+	return *(_QWORD*)(v2 + 8);
+}
+
+#include "imgui.h"
+#include "imgui_impl_dx11.h"
+#include "imgui/Imgui_impl_gta.h"
+
+typedef _QWORD(*PresentImage)();
+
+void Abort()
+{
+	g_imgui->Destroy();
+	g_hook->UnHookAll();
+	MH_Uninitialize();
+}
+PresentImage gimplPresentImage = NULL;
+std::mutex m;
+_QWORD aimplPresentImage()
+{
+	if (g_imgui->IsInitialized())
+	{
+		m.lock();
+		g_imgui->NewFrame();
+
+		ImGui::Begin("Hello, world!");
+		ImGui::Text("This is some useful text.");
+
+		//bool isPaused = *(bool*)isDebugPaused;
+		//*(bool*)isDebugPaused = ImGui::Checkbox("Debug Pause", &isPaused);
+
+		if(ImGui::Button("Switch Debug Mode"))
+		{
+			*(bool*)isDebugPaused = !*(bool*)isDebugPaused;
+		}
+		
+			
+		ImGui::End();
+
+		g_imgui->Render();
+		m.unlock();
+	}
+
+	//g_gtaDirectX->GetSwapChain()->Present(1, 0);
+
+	return gimplPresentImage();
+	//return  gimplPresentImage();
+}
+
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
 
-	//HMODULE hModule;
-	//GetModuleHandleEx
-	//(
-	//	GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-	//	(LPCTSTR)DllMain,
-	//	&hModule
-	//);
-	//FreeLibraryAndExitThread(hModule, 0);
-
 	g_logger->Log(std::format("MH_Initialize: {}", MH_Initialize() == MH_OK));
+
+	g_componentMgr->RegisterComponents();
+
+	//g_hook->SetHook((LPVOID)0x7FF71FBF512C, aimplPresentImage, (LPVOID*)&gimplPresentImage);
+	g_hook->SetHook((LPVOID)0x7FF71FBFD1BC, aimplPresentImage, (LPVOID*)&gimplPresentImage);
+
+	//g_hook->SetHook((LPVOID)&OutputDebugStringA, _aimplOutputDebugString, (LPVOID*)&_kimplOutputDebugString);
+
+	//return;
+
+	//D3D11CreateDeviceAndSwapChain()
+	//g_hook->SetHook((LPVOID)&D3D11CreateDeviceAndSwapChain, _aImplD3D11CreateDeviceAndSwapChain, (LPVOID*)&_nImplD3D11CreateDeviceAndSwapChain);
+
+
+
+
+	//while(true)
+	//{
+	//	// Start the Dear ImGui frame
+
+
+	//	//g_pSwapChain->Present(1, 0); // Present with vsync
+
+	//	WAIT(0);
+	//}
+
 
 	g_logger->Log("Scanning patterns...");
 
-	save = g_hook->FindPattern("SettingMgr::Save", "48 83 EC 48 48 83 3D");
-	beginSave = g_hook->FindPattern("SettingMgr::BeginSave", "40 53 48 83 EC 20 0F B7 41 40");
-	beginSave_setting_64 = g_hook->FindOffset("SettingMgr::BeginSave_setting64", beginSave + 0x1C);
-	beginSave_settingDump = g_hook->FindOffset("SettingMgr::BeginSave_settingDump", beginSave + 0x27);
+	//save = g_hook->FindPattern("SettingMgr::Save", "48 83 EC 48 48 83 3D");
+	//beginSave = g_hook->FindPattern("SettingMgr::BeginSave", "40 53 48 83 EC 20 0F B7 41 40");
+	//beginSave_setting_64 = g_hook->FindOffset("SettingMgr::BeginSave_setting64", beginSave + 0x1C);
+	//beginSave_settingDump = g_hook->FindOffset("SettingMgr::BeginSave_settingDump", beginSave + 0x27);
 
 	writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
 	writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
 
-	gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
-	g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
+	//gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
+	//g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
 
-	intptr_t movieStore = *(intptr_t*)0x7FF72097CF70;
-	short movieSlots = *(short*)(0x7FF72097CF78);
+	//intptr_t movieStore = *(intptr_t*)0x7FF72097CF70;
+	//short movieSlots = *(short*)(0x7FF72097CF78);
 
 	// TODO: Test boost stacktrace
 
-	g_logger->Log(std::format("Action Movie Slots: {}", movieSlots));
+	//const auto movieStore = (MovieStore*)(0x7FF72097CF70);
+	//g_logger->Log(std::format("Movie Slots: {}", movieStore->GetNumSlots()));
+	//for (int i = 0; i < movieStore->GetNumSlots(); i++)
+	//{
+	//	if (!movieStore->IsSlotActive(i))
+	//		continue;
 
-	for (int i = 0; i < movieSlots; i++)
-	{
-		uint movieId = *(uint *) (movieStore + 176 + 480 * i);
-		auto movieFileName = (const char *) (movieStore + 184 + 480 * i);
+	//	const auto entry = movieStore->GetSlot(i);
+	//	uint movieId = entry->GetId();
+	//	auto movieFileName = entry->GetFileName();
 
-		g_logger->Log(std::format(" - MovieId({}), MovieFileName({})", movieId, movieFileName));
-	}
+	//	g_logger->Log(std::format(" - Id({}), FileName({})", movieId, movieFileName));
+	//}
+
+	//int pHandle = PLAYER::GET_PLAYER_PED(0);
+	////auto getEntityToQuertyFromGuid = reinterpret_cast<GetEntityToQueryFromGUID>(0x7FF71F307EF0);
+	//g_logger->Log(std::format("Player Entity: {:x}", GetEntityFromGUID(pHandle)));
+
 
 
 	//while (true)
@@ -277,18 +439,16 @@ void Main()
 	//	WAIT(0);
 	//}
 
-	return;
-	auto cam = g_hook->FindPattern("UpdateCamFrame", "48 89 5C 24 08 57 48 83 EC 20 8B 42 40 F3");
-	g_hook->SetHook((LPVOID)cam, aimpl_UpdateCamFrame, (LPVOID*)&gimpl_UpdateCamFrame);
+	//auto cam = g_hook->FindPattern("UpdateCamFrame", "48 89 5C 24 08 57 48 83 EC 20 8B 42 40 F3");
+	//g_hook->SetHook((LPVOID)cam, aimpl_UpdateCamFrame, (LPVOID*)&gimpl_UpdateCamFrame);
 
-	gimpl_SettingMgr__Save = (SettingMgr__Save)save;
-	//g_hook->SetHook((LPVOID)beginSave, &aimpl_SettingMgr__BeginSave);
+	//gimpl_SettingMgr__Save = (SettingMgr__Save)save;
+	////g_hook->SetHook((LPVOID)beginSave, &aimpl_SettingMgr__BeginSave);
 
-	gimpl_WriteDebugStateToFile = (WriteDebugStateToFile)writeDebugStateToFile;
+	//gimpl_WriteDebugStateToFile = (WriteDebugStateToFile)writeDebugStateToFile;
 
 	// mov rax, cs:CApp
 	CApp* game = *(CApp**)g_hook->FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
-
 
 	// mov edx, dword ptr cs:numFramesRendered
 	numFramesRendered = g_hook->FindOffset("writeDebugState_currentFrame", writeDebugState + 0x159 + 0x2);
@@ -314,6 +474,7 @@ void Main()
 	// GetPlayerPosition
 	// CTheScripts::GetEntityToModifyFromGUID__Ped
 	// DirectX Math
+	return;
 
 	auto crap1 = (unsigned int)(*(intptr_t*)(0x7FF66B5112C0 + 0x20));
 	auto crap2 = (unsigned int)(4 * crap1);
@@ -457,12 +618,6 @@ void Main()
 
 		WAIT(0);
 	}
-}
-
-void Abort()
-{
-	Hooker::GetInstance()->UnHookAll();
-	MH_Uninitialize();
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)

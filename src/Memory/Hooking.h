@@ -20,6 +20,18 @@ public:
 	// Searches for call relative offset (mov [gta5.exe+offset], 0x0) and logs result.
 	uintptr_t FindOffset(std::string name, uintptr_t origin);
 
+	template <typename T>
+	void SetHook(intptr_t target, LPVOID detour, T** original)
+	{
+		SetHook((LPVOID)target, detour, (LPVOID*)original);
+	}
+
+	template <typename T>
+	void SetHook(LPVOID target, LPVOID detour, T** original)
+	{
+		SetHook(target, detour, (LPVOID*)original);
+	}
+
 	// Hooks target func with detour. Suitable for function replacement.
 	void SetHook(LPVOID target, LPVOID detour);
 	// Hooks target func with detour and keeping original entry point.
