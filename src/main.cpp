@@ -1,4 +1,6 @@
-﻿#include "main.h"
+﻿#define BOOST_STACKTRACE_USE_NOOP
+
+#include "main.h"
 #include <Windows.h>
 #include <fstream>
 #include <format>
@@ -312,40 +314,48 @@ void Abort()
 	g_hook->UnHookAll();
 	MH_Uninitialize();
 }
+
+bool logOpen = true;
 PresentImage gimplPresentImage = NULL;
-std::mutex m;
 _QWORD aimplPresentImage()
 {
 	if (g_imgui->IsInitialized())
 	{
-		m.lock();
 		g_imgui->NewFrame();
 
-		ImGui::Begin("Hello, world!");
-		ImGui::Text("This is some useful text.");
+		ImGui::Begin("rageAm");
 
-		//bool isPaused = *(bool*)isDebugPaused;
-		//*(bool*)isDebugPaused = ImGui::Checkbox("Debug Pause", &isPaused);
+		ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
+		//ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
 
-		ImGui::Checkbox("Debug Pause", (bool*)isDebugPaused);
-		//if(ImGui::Button("Switch Debug Mode"))
-		//{
-		//	*(bool*)isDebugPaused = !*(bool*)isDebugPaused;
-		//}
-		
-			
+		if (ImGui::TreeNode("Action Movies"))
+		{
+			//const auto movieStore = reinterpret_cast<MovieStore*>(0x7FF72097CF70);
+			//for (int i = 0; i < movieStore->GetNumSlots(); i++)
+			//{
+			//	if (!movieStore->IsSlotActive(i))
+			//		continue;
+
+			//	const auto entry = movieStore->GetSlot(i);
+			//	const uint movieId = entry->GetId();
+			//	const auto movieFileName = entry->GetFileName();
+
+			//	ImGui::TextWrapped(" - Id(%i), FileName(%s)", movieId, movieFileName);
+			//}
+
+			ImGui::TreePop();
+		}
+
 		ImGui::End();
 
 		g_imgui->Render();
-		m.unlock();
 	}
 
-	//g_gtaDirectX->GetSwapChain()->Present(1, 0);
-
 	return gimplPresentImage();
-	//return  gimplPresentImage();
 }
 
+// TODO: Caching
+#include <excpt.h>
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
@@ -354,29 +364,9 @@ void Main()
 
 	g_componentMgr->RegisterComponents();
 
-	//g_hook->SetHook((LPVOID)0x7FF71FBF512C, aimplPresentImage, (LPVOID*)&gimplPresentImage);
 	g_hook->SetHook((LPVOID)0x7FF71FBFD1BC, aimplPresentImage, (LPVOID*)&gimplPresentImage);
 
-	//g_hook->SetHook((LPVOID)&OutputDebugStringA, _aimplOutputDebugString, (LPVOID*)&_kimplOutputDebugString);
-
-	//return;
-
-	//D3D11CreateDeviceAndSwapChain()
-	//g_hook->SetHook((LPVOID)&D3D11CreateDeviceAndSwapChain, _aImplD3D11CreateDeviceAndSwapChain, (LPVOID*)&_nImplD3D11CreateDeviceAndSwapChain);
-
-
-
-
-	//while(true)
-	//{
-	//	// Start the Dear ImGui frame
-
-
-	//	//g_pSwapChain->Present(1, 0); // Present with vsync
-
-	//	WAIT(0);
-	//}
-
+	g_imgui->Init(g_gtaWindow->GetHwnd());
 
 	g_logger->Log("Scanning patterns...");
 
@@ -394,7 +384,7 @@ void Main()
 	//intptr_t movieStore = *(intptr_t*)0x7FF72097CF70;
 	//short movieSlots = *(short*)(0x7FF72097CF78);
 
-	// TODO: Test boost stacktrace
+	//// TODO: Test boost stacktrace
 
 	//const auto movieStore = (MovieStore*)(0x7FF72097CF70);
 	//g_logger->Log(std::format("Movie Slots: {}", movieStore->GetNumSlots()));
@@ -409,6 +399,8 @@ void Main()
 
 	//	g_logger->Log(std::format(" - Id({}), FileName({})", movieId, movieFileName));
 	//}
+
+
 
 	//int pHandle = PLAYER::GET_PLAYER_PED(0);
 	////auto getEntityToQuertyFromGuid = reinterpret_cast<GetEntityToQueryFromGUID>(0x7FF71F307EF0);
@@ -448,33 +440,33 @@ void Main()
 
 	//gimpl_WriteDebugStateToFile = (WriteDebugStateToFile)writeDebugStateToFile;
 
-	// mov rax, cs:CApp
-	CApp* game = *(CApp**)g_hook->FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
+	//// mov rax, cs:CApp
+	//CApp* game = *(CApp**)g_hook->FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
 
-	// mov edx, dword ptr cs:numFramesRendered
-	numFramesRendered = g_hook->FindOffset("writeDebugState_currentFrame", writeDebugState + 0x159 + 0x2);
+	//// mov edx, dword ptr cs:numFramesRendered
+	//numFramesRendered = g_hook->FindOffset("writeDebugState_currentFrame", writeDebugState + 0x159 + 0x2);
 
-	// or al, cs:isDebugPaused
-	isDebugPaused = g_hook->FindOffset("writeDebugState_isDebugPaused", writeDebugState + 0x179 + 0x2);
-	isGamePaused = isDebugPaused - 0x1;
-	isPausedUnk1 = isDebugPaused + 0x1;
-	isPausedUnk2 = isDebugPaused + 0x2;
+	//// or al, cs:isDebugPaused
+	//isDebugPaused = g_hook->FindOffset("writeDebugState_isDebugPaused", writeDebugState + 0x179 + 0x2);
+	//isGamePaused = isDebugPaused - 0x1;
+	//isPausedUnk1 = isDebugPaused + 0x1;
+	//isPausedUnk2 = isDebugPaused + 0x2;
 
-	// mov edx, cs:numStreamingRequests
-	numStreamingRequests = g_hook->FindOffset("writeDebugState_numStreamingRequests", writeDebugState + 0x18F + 0x2);
+	//// mov edx, cs:numStreamingRequests
+	//numStreamingRequests = g_hook->FindOffset("writeDebugState_numStreamingRequests", writeDebugState + 0x18F + 0x2);
 
-	g_logger->Log(std::format("CApp - {:x}", (intptr_t)game));
-	if (game)
-		g_logger->Log(std::format("Game State: {}", game->GetGameStateStr()));
-	g_logger->Log(std::format("Frame: {} - Paused: {}", *(int*)numFramesRendered, IsGamePaused() ? "yes" : "no"));
-	g_logger->Log(std::format("Streaming Requests: {}", *(int*)numStreamingRequests));
+	//g_logger->Log(std::format("CApp - {:x}", (intptr_t)game));
+	//if (game)
+	//	g_logger->Log(std::format("Game State: {}", game->GetGameStateStr()));
+	//g_logger->Log(std::format("Frame: {} - Paused: {}", *(int*)numFramesRendered, IsGamePaused() ? "yes" : "no"));
+	//g_logger->Log(std::format("Streaming Requests: {}", *(int*)numStreamingRequests));
 
-	// TODO:
-	// GetLocalizedString
-	// ReadGameVersion
-	// GetPlayerPosition
-	// CTheScripts::GetEntityToModifyFromGUID__Ped
-	// DirectX Math
+	//// TODO:
+	//// GetLocalizedString
+	//// ReadGameVersion
+	//// GetPlayerPosition
+	//// CTheScripts::GetEntityToModifyFromGUID__Ped
+	//// DirectX Math
 	return;
 
 	auto crap1 = (unsigned int)(*(intptr_t*)(0x7FF66B5112C0 + 0x20));
@@ -623,6 +615,7 @@ void Main()
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
+
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:

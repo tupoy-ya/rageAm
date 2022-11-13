@@ -1,41 +1,56 @@
 #pragma once
 #include <dxgi.h>
 #include <d3d11.h>
+#include <format>
+#include "../Memory/Hooking.h"
 #include "../Component.h"
-#include "ImGui/ImGuiGta.h"
-#include "Memory/Hooking.h"
+#include "../Logger.h"
+#include "../ComponentMgr.h"
+#include "../GtaCommon.h"
+
+extern std::shared_ptr<GtaCommon> g_gtaCommon;
 
 class GtaDirectX : public Component
 {
-	ID3D11Device* pDevice;
-	ID3D11DeviceContext* pImmediateContext;
-	IDXGISwapChain* pSwapChain;
+	typedef IDXGISwapChain* (*gDef_GetSwapChain)();
+
+	ID3D11Device* gPtr_Device;
+	ID3D11DeviceContext* gPtr_Context;
+	gDef_GetSwapChain gImpl_GetSwapChain;
 
 public:
-	void Init() override
+	GtaDirectX()
 	{
-		pDevice = *(ID3D11Device**)0x7FF721601C48;
-		pImmediateContext = *(ID3D11DeviceContext**)0x7FF721601C50;
-		pSwapChain = *(IDXGISwapChain**)0x7FF7215D0770;
+		// lea rax, ppImmediateContext
+		// ..
+		// lea rax, ppDevice
+		// ..
+		// call cs:D3D11CreateDeviceAndSwapChain
+		
+		const intptr_t createWndAndGfx = g_gtaCommon->gPtr_CreateGameWindowAndGraphics;
 
-		//g_logger->Log(std::format("DxFeatureLevel: {:x}", (int)pDevice->GetFeatureLevel()));
-		//g_hook->SetHook((LPVOID)0x7FF71FBF512C, aimplPresentImage, (LPVOID*)&gimplPresentImage);
+		gPtr_Device = *g_hook->FindOffset<ID3D11Device**>("CreateGameWindowAndGraphics_ID3D11Device", createWndAndGfx + 0x5B5 + 0x3);
+		gPtr_Context = *g_hook->FindOffset<ID3D11DeviceContext**>("CreateGameWindowAndGraphics_ID3D11DeviceContext", createWndAndGfx + 0x597 + 0x3);
 
-		//g_hook->SetHook(0x7FF71FBEB6E4, aImpl_WndProc, &gImpl_WndProc);
+		// Both device and context are stored in RageDirect3DDevice11 + 0x8 and RageDirect3DDeviceContext11 + 0x8
+		// but swap chain is in global variable for some reason
+		gImpl_GetSwapChain = g_hook->FindPattern<gDef_GetSwapChain>("GetSwapChain", "E8 ?? ?? ?? ?? 48 8D 55 67 4C 8B 08");
+
+		g_logger->Log(std::format("DxFeatureLevel: {:x}", static_cast<int>(GetDevice()->GetFeatureLevel())));
 	}
 
 	ID3D11Device* GetDevice() const
 	{
-		return pDevice;
+		return gPtr_Device;
 	}
 
 	ID3D11DeviceContext* GetContext() const
 	{
-		return pImmediateContext;
+		return gPtr_Context;
 	}
 
 	IDXGISwapChain* GetSwapChain() const
 	{
-		return pSwapChain;
+		return gImpl_GetSwapChain();
 	}
 };

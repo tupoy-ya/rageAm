@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include <Windows.h>
-#include "Template/atSingleton.h"
+#include "../Template/atSingleton.h"
 
 class Hooker : public atSingleton<Hooker>
 {
@@ -14,6 +14,18 @@ public:
 	uintptr_t FindPattern(const char* pattern);
 	// Searches for call relative offset (mov [gta5.exe+offset], 0x0).
 	uintptr_t FindOffset(uintptr_t origin);
+
+	template <typename T>
+	T FindPattern(std::string name, const char* pattern)
+	{
+		return (T)(FindPattern(name, pattern));
+	}
+
+	template <typename T>
+	T FindOffset(std::string name, uintptr_t origin)
+	{
+		return (T)(FindOffset(name, origin));
+	}
 
 	// Searches for IDA style pattern address and logs result.
 	uintptr_t FindPattern(std::string name, const char* pattern);

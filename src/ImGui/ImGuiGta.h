@@ -9,11 +9,11 @@ class ImGuiGta : public atSingleton<ImGuiGta>
 public:
 	// TODO: Events
 	void Init(HANDLE hWnd);
-	void Destroy();
+	void Destroy() const;
 	void NewFrame();
 	void Render();
 
-	bool IsInitialized();
+	bool IsInitialized() const;
 };
 
 extern ImGuiGta* g_imgui;

@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR})
+# include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})
@@ -14,10 +14,12 @@ add_library(rageAm SHARED
     "Logger.h" "Logger.cpp" 
     "Component.h"
     "ComponentMgr.h" "ComponentMgr.cpp"
-    "Platform/GtaWindow.h" 
     "ImGui/imgui_impl_gta.cpp" "ImGui/imgui_impl_gta.h" 
     "ImGui/ImGuiGta.h" "ImGui/ImGuiGta.cpp" 
-    "Graphics/GtaDirectX.h")
+    "GtaCommon.h"
+    "Graphics/GtaDirectX.h" 
+    "Platform/GtaWindow.h" 
+)
 
 # target_include_directories(rageAm PUBLIC "../vendor/imgui-1.88")
 
@@ -68,10 +70,12 @@ add_custom_command(TARGET ${PROJECT_NAME}
 )
 
 # Inject DLL
-add_custom_command(TARGET ${PROJECT_NAME}
-    POST_BUILD
-    COMMAND
+if(NOT ${CMAKE_PRESET_NAME} MATCHES "x64-debug-unload-noinject")
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND
    
-    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
-    -i ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll 
-)
+        ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
+        -i ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll 
+    )
+endif()

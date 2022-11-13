@@ -1,7 +1,9 @@
 #include "ImGuiGta.h"
-#include "ComponentMgr.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
+#include "../ComponentMgr.h"
+
+struct ImGui_ImplDX11_Data;
 
 void ImGuiGta::Init(HANDLE hWnd)
 {
@@ -15,7 +17,7 @@ void ImGuiGta::Init(HANDLE hWnd)
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
-
+	
 	// Setup Platform/Renderer backends
 	ImGui_ImplGta_Init(hWnd);
 	ImGui_ImplDX11_Init(g_gtaDirectX->GetDevice(), g_gtaDirectX->GetContext());
@@ -25,14 +27,16 @@ void ImGuiGta::Init(HANDLE hWnd)
 	g_logger->Log("ImGuiGta::Init");
 }
 
-void ImGuiGta::Destroy()
+void ImGuiGta::Destroy() const
 {
 	if (!IsInitialized())
 		return;
 
-	ImGui_ImplDX11_Shutdown();
-	ImGui_ImplGta_Shutdown();
-	ImGui::DestroyContext();
+	// This is bad but otherwise game crashes...
+	// I think its related to thread safety
+	//ImGui_ImplDX11_Shutdown();
+	//ImGui_ImplGta_Shutdown();
+	//ImGui::DestroyContext();
 
 	g_logger->Log("ImGuiGta::Destroy");
 }
@@ -62,7 +66,7 @@ void ImGuiGta::Render()
 	//g_logger->Log("ImGuiGta::Render");
 }
 
-bool ImGuiGta::IsInitialized()
+bool ImGuiGta::IsInitialized() const
 {
 	return _isInitialized;
 }

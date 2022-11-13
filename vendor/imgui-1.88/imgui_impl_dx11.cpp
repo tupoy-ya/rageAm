@@ -364,8 +364,8 @@ static void ImGui_ImplDX11_CreateFontsTexture()
         bd->pd3dDevice->CreateSamplerState(&desc, &bd->pFontSampler);
     }
 }
-
-bool    ImGui_ImplDX11_CreateDeviceObjects()
+	
+bool ImGui_ImplDX11_CreateDeviceObjects()
 {
     ImGui_ImplDX11_Data* bd = ImGui_ImplDX11_GetBackendData();
     if (!bd->pd3dDevice)
@@ -519,7 +519,7 @@ bool    ImGui_ImplDX11_CreateDeviceObjects()
     return true;
 }
 
-void    ImGui_ImplDX11_InvalidateDeviceObjects()
+void ImGui_ImplDX11_InvalidateDeviceObjects()
 {
     ImGui_ImplDX11_Data* bd = ImGui_ImplDX11_GetBackendData();
     if (!bd->pd3dDevice)
@@ -577,9 +577,12 @@ void ImGui_ImplDX11_Shutdown()
     ImGuiIO& io = ImGui::GetIO();
 
     ImGui_ImplDX11_InvalidateDeviceObjects();
-    if (bd->pFactory)             { bd->pFactory->Release(); }
-    if (bd->pd3dDevice)           { bd->pd3dDevice->Release(); }
-    if (bd->pd3dDeviceContext)    { bd->pd3dDeviceContext->Release(); }
+
+    // We don't want to crash GTA
+    //if (bd->pFactory)             { bd->pFactory->Release(); }
+    //if (bd->pd3dDevice)           { bd->pd3dDevice->Release(); }
+    //if (bd->pd3dDeviceContext)    { bd->pd3dDeviceContext->Release(); }
+
     io.BackendRendererName = NULL;
     io.BackendRendererUserData = NULL;
     IM_DELETE(bd);

@@ -5,9 +5,11 @@
 #include <tchar.h>
 #include <dwmapi.h>
 
+#ifndef IMGUI_IMPL_Gta_DISABLE_GAMEPAD
 #include <xinput.h>
 typedef DWORD(WINAPI* PFN_XInputGetCapabilities)(DWORD, DWORD, XINPUT_CAPABILITIES*);
 typedef DWORD(WINAPI* PFN_XInputGetState)(DWORD, XINPUT_STATE*);
+#endif
 
 struct ImGui_ImplGta_Data
 {

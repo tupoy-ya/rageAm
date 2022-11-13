@@ -3,7 +3,7 @@
 class Component
 {
 public:
-	virtual void Init()
+	Component()
 	{
 		
 	}

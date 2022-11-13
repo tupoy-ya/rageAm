@@ -2,8 +2,8 @@
 #include <Psapi.h>
 #include <sstream>
 #include <format>
-#include "Logger.h"
 
+#include "../Logger.h"
 #include "../../vendor/minhook-1.3.3/include/MinHook.h"
 
 std::vector<std::string> Hooker::Split(const std::string& s, char delimiter)
