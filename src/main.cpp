@@ -316,6 +316,7 @@ void Abort()
 bool logOpen = true;
 bool menuOpen = true;
 PresentImage gimplPresentImage = NULL;
+MovieStore* gPtr_MovieStore;
 _QWORD aimplPresentImage()
 {
 	if(menuOpen)
@@ -339,14 +340,12 @@ _QWORD aimplPresentImage()
 
 			if (ImGui::TreeNode("Action Movies"))
 			{
-				const auto movieStore = reinterpret_cast<MovieStore*>(0x7FF72097CF70);
-				for (int i = 0; i < movieStore->GetNumSlots(); i++)
+				for (int i = 0; i < gPtr_MovieStore->GetNumSlots(); i++)
 				{
-					if (!movieStore->IsSlotActive(i))
+					if (!gPtr_MovieStore->IsSlotActive(i))
 						continue;
 
-
-					const auto entry = movieStore->GetSlot(i);
+					const auto entry = gPtr_MovieStore->GetSlot(i);
 					const uint movieId = entry->GetId();
 					const auto movieFileName = entry->GetFileName();
 
@@ -399,6 +398,8 @@ void Main()
 
 	gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
 	g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
+
+	gPtr_MovieStore = g_hook->FindOffset<MovieStore*>("WriteDebugState_ScaleformMovieStore", writeDebugState + 0x1091 + 0x3);
 
 	//while(true)
 	//{
