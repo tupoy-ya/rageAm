@@ -2,18 +2,24 @@
 #include "Template/atSingleton.h"
 #include <string>
 #include <fstream>
+#include <vector>
 
 class Logger : public atSingleton<Logger>
 {
-private:
 	std::string logFile = "rageAm.txt";
-
+	std::vector<std::string> entries;
 public:
-	void Log(std::string msg, bool truncate = false)
+	void Log(const std::string& msg, bool truncate = false)
 	{
 		auto fs = Open(truncate);
 		fs << msg << std::endl;
+		entries.push_back(msg);
 		fs.close();
+	}
+
+	std::vector<std::string> GetEntries()
+	{
+		return entries;
 	}
 
 	std::ofstream Open(bool truncate = false)

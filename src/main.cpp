@@ -330,19 +330,28 @@ _QWORD aimplPresentImage()
 
 		if (ImGui::TreeNode("Action Movies"))
 		{
-			//const auto movieStore = reinterpret_cast<MovieStore*>(0x7FF72097CF70);
-			//for (int i = 0; i < movieStore->GetNumSlots(); i++)
-			//{
-			//	if (!movieStore->IsSlotActive(i))
-			//		continue;
+			const auto movieStore = reinterpret_cast<MovieStore*>(0x7FF72097CF70);
+			for (int i = 0; i < movieStore->GetNumSlots(); i++)
+			{
+				if (!movieStore->IsSlotActive(i))
+					continue;
 
-			//	const auto entry = movieStore->GetSlot(i);
-			//	const uint movieId = entry->GetId();
-			//	const auto movieFileName = entry->GetFileName();
 
-			//	ImGui::TextWrapped(" - Id(%i), FileName(%s)", movieId, movieFileName);
-			//}
+				const auto entry = movieStore->GetSlot(i);
+				const uint movieId = entry->GetId();
+				const auto movieFileName = entry->GetFileName();
 
+				ImGui::Text("%lu - %s", movieId, movieFileName);
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Log"))
+		{
+			for(std::string entry : g_logger->GetEntries())
+			{
+				ImGui::Text(entry.c_str());
+			}
 			ImGui::TreePop();
 		}
 
