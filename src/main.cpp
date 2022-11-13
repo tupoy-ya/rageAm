@@ -327,10 +327,11 @@ _QWORD aimplPresentImage()
 		//bool isPaused = *(bool*)isDebugPaused;
 		//*(bool*)isDebugPaused = ImGui::Checkbox("Debug Pause", &isPaused);
 
-		if(ImGui::Button("Switch Debug Mode"))
-		{
-			*(bool*)isDebugPaused = !*(bool*)isDebugPaused;
-		}
+		ImGui::Checkbox("Debug Pause", (bool*)isDebugPaused);
+		//if(ImGui::Button("Switch Debug Mode"))
+		//{
+		//	*(bool*)isDebugPaused = !*(bool*)isDebugPaused;
+		//}
 		
 			
 		ImGui::End();
