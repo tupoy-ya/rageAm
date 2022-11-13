@@ -303,8 +303,6 @@ __int64 __fastcall GetEntityFromGUID(int index)
 }
 
 #include "imgui.h"
-#include "imgui_impl_dx11.h"
-#include "imgui/Imgui_impl_gta.h"
 
 typedef _QWORD(*PresentImage)();
 
@@ -348,9 +346,9 @@ _QWORD aimplPresentImage()
 
 		if (ImGui::TreeNode("Log"))
 		{
-			for(std::string entry : g_logger->GetEntries())
+			for(const std::string& entry : g_logger->GetEntries())
 			{
-				ImGui::Text(entry.c_str());
+				ImGui::Text("%s", entry.c_str());
 			}
 			ImGui::TreePop();
 		}
@@ -373,7 +371,8 @@ void Main()
 
 	g_componentMgr->RegisterComponents();
 
-	g_hook->SetHook((LPVOID)0x7FF71FBFD1BC, aimplPresentImage, (LPVOID*)&gimplPresentImage);
+	auto gPtr_PresentImage = g_hook->FindPattern("PresentImage", "40 55 53 56 57 41 54 41 56 41 57 48 8B EC 48 83 EC 40 48 8B 0D");
+	g_hook->SetHook(gPtr_PresentImage, aimplPresentImage, &gimplPresentImage);
 
 	g_imgui->Init(g_gtaWindow->GetHwnd());
 
@@ -387,8 +386,8 @@ void Main()
 	writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
 	writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
 
-	//gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
-	//g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
+	gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
+	g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
 
 	//intptr_t movieStore = *(intptr_t*)0x7FF72097CF70;
 	//short movieSlots = *(short*)(0x7FF72097CF78);
