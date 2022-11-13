@@ -42,7 +42,7 @@ static ImGui_ImplGta_Data* ImGui_ImplGta_GetBackendData()
 }
 
 // Functions
-bool    ImGui_ImplGta_Init(void* hwnd)
+bool ImGui_ImplGta_Init(void* hwnd)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	IM_ASSERT(io.BackendPlatformUserData == NULL && "Already initialized a platform backend!");

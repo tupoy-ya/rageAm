@@ -314,46 +314,57 @@ void Abort()
 }
 
 bool logOpen = true;
+bool menuOpen = true;
 PresentImage gimplPresentImage = NULL;
 _QWORD aimplPresentImage()
 {
+	if(menuOpen)
+		PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
+
+	if (IsKeyJustUp(VK_SCROLL))
+		menuOpen = !menuOpen;
+
 	if (g_imgui->IsInitialized())
 	{
 		g_imgui->NewFrame();
 
-		ImGui::Begin("rageAm");
+		ImGui::GetIO().MouseDrawCursor = menuOpen; // Until we have SetCursor hook
 
-		ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
-		//ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
-
-		if (ImGui::TreeNode("Action Movies"))
+		if(menuOpen)
 		{
-			const auto movieStore = reinterpret_cast<MovieStore*>(0x7FF72097CF70);
-			for (int i = 0; i < movieStore->GetNumSlots(); i++)
+			ImGui::Begin("rageAm", &menuOpen);
+
+			ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
+			//ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
+
+			if (ImGui::TreeNode("Action Movies"))
 			{
-				if (!movieStore->IsSlotActive(i))
-					continue;
+				const auto movieStore = reinterpret_cast<MovieStore*>(0x7FF72097CF70);
+				for (int i = 0; i < movieStore->GetNumSlots(); i++)
+				{
+					if (!movieStore->IsSlotActive(i))
+						continue;
 
 
-				const auto entry = movieStore->GetSlot(i);
-				const uint movieId = entry->GetId();
-				const auto movieFileName = entry->GetFileName();
+					const auto entry = movieStore->GetSlot(i);
+					const uint movieId = entry->GetId();
+					const auto movieFileName = entry->GetFileName();
 
-				ImGui::Text("%lu - %s", movieId, movieFileName);
+					ImGui::Text("%lu - %s", movieId, movieFileName);
+				}
+				ImGui::TreePop();
 			}
-			ImGui::TreePop();
-		}
 
-		if (ImGui::TreeNode("Log"))
-		{
-			for(const std::string& entry : g_logger->GetEntries())
+			if (ImGui::TreeNode("Log"))
 			{
-				ImGui::Text("%s", entry.c_str());
+				for (const std::string& entry : g_logger->GetEntries())
+				{
+					ImGui::Text("%s", entry.c_str());
+				}
+				ImGui::TreePop();
 			}
-			ImGui::TreePop();
+			ImGui::End();
 		}
-
-		ImGui::End();
 
 		g_imgui->Render();
 	}
@@ -388,6 +399,17 @@ void Main()
 
 	gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
 	g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
+
+	//while(true)
+	//{
+	//	if(menuOpen)
+	//	{
+	//		//PAD::DISABLE_CONTROL_ACTION(0, 0, true);
+	//		PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
+	//	}
+
+	//	WAIT(0);
+	//}
 
 	//intptr_t movieStore = *(intptr_t*)0x7FF72097CF70;
 	//short movieSlots = *(short*)(0x7FF72097CF78);
@@ -629,12 +651,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 	case DLL_PROCESS_ATTACH:
 		Main();
 		//scriptRegister(hModule, Main);
-		//keyboardHandlerRegister(OnKeyboardMessage);
+		keyboardHandlerRegister(OnKeyboardMessage);
 		break;
 	case DLL_PROCESS_DETACH:
 		Abort();
 		//scriptUnregister(hModule);
-		//keyboardHandlerUnregister(OnKeyboardMessage);
+		keyboardHandlerUnregister(OnKeyboardMessage);
 		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:break;
