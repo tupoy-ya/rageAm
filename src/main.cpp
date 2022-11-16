@@ -313,25 +313,115 @@ void Abort()
 	MH_Uninitialize();
 }
 
+#include "Rage/fwFsm.h"
+#include "Rage/CVehicleFactory.h"
+
+enum ePoolFlags
+{
+	POOL_ACTIVE = 0x2,
+};
+
+typedef int32_t _DWORD;
+typedef int8_t _BYTE;
+
+class CPool;
+
+class CPed
+{
+public:
+	static CPool* GetPool()
+	{
+		return *reinterpret_cast<CPool**>(0x7FF69F7B12C0);
+	}
+};
+
+class __declspec(align(8)) CPool
+{
+	intptr_t _entryList;
+	intptr_t _flagsList;
+	_DWORD _poolSize;
+	int64_t _sizeOfEntry;
+	_BYTE gap18[8];
+	_DWORD dword20;
+
+public:
+	uint8_t GetSlotFlags(int index) const
+	{
+		return *reinterpret_cast<uint8_t*>(_flagsList + index);
+	}
+
+	int GetSize() const
+	{
+		return _poolSize;
+	}
+
+	bool IsSlotActive(int index) const
+	{
+		return GetSlotFlags(index) & POOL_ACTIVE;
+	}
+
+	int GetNumActiveSlots() const
+	{
+		int count = 0;
+		for (int i = 0; i < GetSize(); i++)
+		{
+			if (!IsSlotActive(i))
+				continue;
+			count++;
+		}
+		return count;
+	}
+
+	template<typename T>
+	T* GetSlot(int index) const
+	{
+		if (!IsSlotActive(index))
+			return nullptr;
+
+		return reinterpret_cast<T*>(_entryList + _sizeOfEntry * index);
+	}
+};
+
+void DumpPool()
+{
+	const CPool* pool = CPed::GetPool();
+	for (int i = 0; i < pool->GetSize(); i++)
+	{
+		CPed* pPed = pool->GetSlot<CPed>(i);
+
+		if (!pPed)
+			continue;
+
+		
+
+		//g_logger->Log(std::format("CPed at slot [{}] : {:X}", i, reinterpret_cast<intptr_t>(pPed)));
+	}
+}
+//
+//typedef __int64(*Crap)(__int64 a2, __int64 a2)
+//{
+//	0x7FF69DE56B5C
+//}
+
 bool logOpen = true;
 bool menuOpen = true;
 PresentImage gimplPresentImage = NULL;
 MovieStore* gPtr_MovieStore;
 _QWORD aimplPresentImage()
 {
-	if(menuOpen)
-		PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
+	//if(menuOpen)
+	//	PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
 
-	if (IsKeyJustUp(VK_SCROLL))
-		menuOpen = !menuOpen;
+	//if (IsKeyJustUp(VK_SCROLL))
+	//	menuOpen = !menuOpen;
 
-	if (g_imgui->IsInitialized())
+	if (g_imgui->IsInitialized() && false)
 	{
 		g_imgui->NewFrame();
 
 		ImGui::GetIO().MouseDrawCursor = menuOpen; // Until we have SetCursor hook
 
-		if(menuOpen)
+		if (menuOpen)
 		{
 			ImGui::Begin("rageAm", &menuOpen);
 
@@ -354,52 +444,133 @@ _QWORD aimplPresentImage()
 				ImGui::TreePop();
 			}
 
-			if (ImGui::TreeNode("Log"))
+			//if (ImGui::TreeNode("Log"))
+			//{
+			//	for (const std::string& entry : g_logger->GetEntries())
+			//	{
+			//		ImGui::Text("%s", entry.c_str());
+			//	}
+			//	ImGui::TreePop();
+			//}
+			// Temporarely not tree because mouse doesn't work
+			for (const std::string& entry : g_logger->GetEntries())
 			{
-				for (const std::string& entry : g_logger->GetEntries())
-				{
-					ImGui::Text("%s", entry.c_str());
-				}
-				ImGui::TreePop();
+				ImGui::Text("%s", entry.c_str());
 			}
+
 			ImGui::End();
 		}
 
 		g_imgui->Render();
 	}
 
+	if (IsKeyJustUp(VK_F9))
+	{
+		float pos[] = { -74.0f, 0.0f, -820.0f, 0.0f, 327.0f };
+		rage::aImpl_CreateVehicleCommand(0xB779A091, pos, 0, true, false, false);
+		g_logger->Log("Spawning vehicle...");
+	}
+
+	if (IsKeyJustUp(VK_SCROLL))
+	{
+
+		const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
+
+		g_logger->Log(std::format("Current Vehicle Handle: {}", PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true)));
+		//invoke<Void>(0x16C2C89DF3A1E544, vehicle, 1.0f);
+	}
+
+	DumpPool();
+
 	return gimplPresentImage();
 }
 
 // TODO: Caching
 #include <excpt.h>
+//
+//int16_t unkHash(int32_t key)
+//{
+//	int v30 = 0xFFFF;
+//	int v31 = 0xFFFFFFF;
+//	sub_7FF71FEC4DE8(ModelHashKey, &v30);
+//	LOWORD(v31) = v30;
+//	v31 = v31 & 0xE000FFFF | 0xFFF0000;
+//	if (v30 != 0xFFFF)
+//	{
+//		LOWORD(v30) = sub_7FF71FEC5278(&v31);
+//		v30 = ((v31 ^ ((v31 ^ v30) & 0xFFF0000 ^ v30) & 0xDFFFFFFF) & 0x10000000 ^ ((v31 ^ v30) & 0xFFF0000 ^ v30) & 0xDFFFFFFF) & 0x3FFFFFFF;
+//}
+
+
+typedef uint(*GetHash)(int type, const char* str);
+typedef intptr_t(*GetModelInfo)(int hash);
+
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
 
 	g_logger->Log(std::format("MH_Initialize: {}", MH_Initialize() == MH_OK));
 
-	g_componentMgr->RegisterComponents();
+	//g_componentMgr->RegisterComponents();
 
-	auto gPtr_PresentImage = g_hook->FindPattern("PresentImage", "40 55 53 56 57 41 54 41 56 41 57 48 8B EC 48 83 EC 40 48 8B 0D");
-	g_hook->SetHook(gPtr_PresentImage, aimplPresentImage, &gimplPresentImage);
-
-	g_imgui->Init(g_gtaWindow->GetHwnd());
+	//g_imgui->Init(g_gtaWindow->GetHwnd());
 
 	g_logger->Log("Scanning patterns...");
+
+
 
 	//save = g_hook->FindPattern("SettingMgr::Save", "48 83 EC 48 48 83 3D");
 	//beginSave = g_hook->FindPattern("SettingMgr::BeginSave", "40 53 48 83 EC 20 0F B7 41 40");
 	//beginSave_setting_64 = g_hook->FindOffset("SettingMgr::BeginSave_setting64", beginSave + 0x1C);
 	//beginSave_settingDump = g_hook->FindOffset("SettingMgr::BeginSave_settingDump", beginSave + 0x27);
 
-	writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
-	writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
+	//writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
+	//writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
 
-	gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
-	g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
+	//gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
+	//g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
 
-	gPtr_MovieStore = g_hook->FindOffset<MovieStore*>("WriteDebugState_ScaleformMovieStore", writeDebugState + 0x1091 + 0x3);
+	//gPtr_MovieStore = g_hook->FindOffset<MovieStore*>("WriteDebugState_ScaleformMovieStore", writeDebugState + 0x1091 + 0x3);
+
+
+
+
+
+	//rage::SetHooks();
+	//rage::HookFactories();
+
+	auto gPtr_PresentImage = g_hook->FindPattern("PresentImage", "40 55 53 56 57 41 54 41 56 41 57 48 8B EC 48 83 EC 40 48 8B 0D");
+	g_hook->SetHook(gPtr_PresentImage, aimplPresentImage, &gimplPresentImage);
+
+
+
+
+
+
+
+	//GetHash getHash = g_hook->FindPattern<GetHash>("GetHash", "48 63 C1 48 8B CA");
+	//auto getModel = g_hook->FindPattern<GetModelInfo>("GetModelInfo", "40 53 48 83 EC 20 48 8B D9 E8 ?? ?? ?? ?? 8B 13 66 89 44 24 30 8B 44 24 30 8B CA 33 C8 81 E1 00 00 FF 0F 33 C1 48 8D 4C 24 30 0F BA F0 1D 33 D0 81 E2 00 00 00 10 33 C2 25 FF FF FF 3F 89 44 24 30 E8 ?? ?? ?? ?? 45");
+
+
+	//g_logger->Log(std::format("Model: {:X}", getModel(getHash(0, "adder"))));
+
+
+
+
+	//g_logger->Log(std::format("Hash0: {:X}", getHash(0, "Prop_Screen_VW_InsideTrack")));
+	//g_logger->Log(std::format("Hash1: {:X}", getHash(1, "Prop_Screen_VW_InsideTrack")));
+	//g_logger->Log(std::format("Hash2: {:X}", getHash(2, "Prop_Screen_VW_InsideTrack")));
+	//g_logger->Log(std::format("Hash3: {:X}", getHash(3, "Prop_Screen_VW_InsideTrack")));
+
+	//while (true)
+	//{
+	//	if (IsKeyJustUp(VK_F9))
+	//	{
+	//		VEHICLE::CREATE_VEHICLE(0xB779A091, 0, 0, 100, 0, 0, 0, 0);
+	//	}
+
+	//	WAIT(1);
+	//}
 
 	//while(true)
 	//{
@@ -471,7 +642,7 @@ void Main()
 
 	//gimpl_WriteDebugStateToFile = (WriteDebugStateToFile)writeDebugStateToFile;
 
-	//// mov rax, cs:CApp
+	// mov rax, cs:CApp
 	//CApp* game = *(CApp**)g_hook->FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
 
 	//// mov edx, dword ptr cs:numFramesRendered
@@ -522,7 +693,7 @@ void Main()
 	g_logger->Log(std::format("numPeds: {}", 4 * pool->dword20));
 	g_logger->Log(std::format("numPeds: {}", (4 * pool->dword20) >> 2));
 	g_logger->Log(std::format("numPeds: {}", 1073741882 >> 2));
-	g_logger->Log(std::format("qword0: {:x}", qword0));
+	g_logger->Log(std::format("_entryList: {:x}", qword0));
 
 
 	// From task_commands.cpp
@@ -552,16 +723,16 @@ void Main()
 
 	//	auto v31 = *__pedIndex & 0b10000000; // flag check?
 
-	//	auto pedPtr = qword0 & ~((v31 | -v31) >> 0x3F);
+	//	auto pedPtr = _entryList & ~((v31 | -v31) >> 0x3F);
 	//	//g_logger->Log(std::format("{} \t {:x}", v31, pedPtr));
 	//	g_logger->Log(std::format("{:x}",pedPtr));
 
-	//	qword0 += pool->int14;
+	//	_entryList += pool->int14;
 	//	++__pedIndex;
 	//	--pedIterator;
 	//	continue;
 
-	//	if (!pedPtr || (*(int8_t*)((qword0 & ~((v31 | -(__int64)(*__pedIndex & 128)) >> 0x3F)) + 0x1091) & 0x10) != 0)
+	//	if (!pedPtr || (*(int8_t*)((_entryList & ~((v31 | -(__int64)(*__pedIndex & 128)) >> 0x3F)) + 0x1091) & 0x10) != 0)
 	//		pedPtr = 0i64;
 	//	if (pedPtr)
 	//	{
@@ -570,7 +741,7 @@ void Main()
 	//		ped_reused += (v33 >> 5) & 1;
 	//		ped_reuse_pool += (v33 >> 4) & 1;
 	//	}
-	//	qword0 += pool->int14;
+	//	_entryList += pool->int14;
 	//	++__pedIndex;
 	//	--pedIterator;
 	//} while (pedIterator);

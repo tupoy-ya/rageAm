@@ -19,7 +19,8 @@ add_library(rageAm SHARED
     "GtaCommon.h"
     "Graphics/GtaDirectX.h" 
     "Platform/GtaWindow.h" 
-)
+    "Rage/fwFsm.h"
+     "Rage/CVehicleFactory.h")
 
 # target_include_directories(rageAm PUBLIC "../vendor/imgui-1.88")
 
