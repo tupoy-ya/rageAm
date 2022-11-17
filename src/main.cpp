@@ -22,6 +22,7 @@
 
 #include "ComponentMgr.h"
 
+struct CExtraContentManager;
 // #include <boost/program_options/option.hpp>
 typedef bool(*SettingMgr__Save)();
 typedef bool(*SettingMgr__BeginSave)(uintptr_t a1);
@@ -274,6 +275,8 @@ public:
 
 typedef intptr_t(*GetEntityToQueryFromGUID)(int index);
 
+GetEntityToQueryFromGUID gImpl_GetEntityToQueryFromGUID;
+
 __int64 __fastcall GetEntityFromGUID(int index)
 {
 	__int64 v1; // r8
@@ -392,7 +395,7 @@ void DumpPool()
 		if (!pPed)
 			continue;
 
-		
+
 
 		//g_logger->Log(std::format("CPed at slot [{}] : {:X}", i, reinterpret_cast<intptr_t>(pPed)));
 	}
@@ -402,6 +405,82 @@ void DumpPool()
 //{
 //	0x7FF69DE56B5C
 //}
+
+
+typedef int _WORD;
+
+struct CExtraContentManager
+{
+	_QWORD vftable;
+	_QWORD qword8;
+	_DWORD dword10;
+	_BYTE gap14[4];
+	_QWORD qword18;
+	_DWORD dword20;
+	_BYTE gap24[4];
+	_QWORD dlcList;
+	_DWORD numDlc_andWord32;
+	_BYTE gap34[4];
+	_QWORD qword38;
+	_DWORD dword40;
+	_BYTE gap44[4];
+	_QWORD qword48;
+	_DWORD dword50;
+	_BYTE gap54[4];
+	_BYTE byte58;
+	_BYTE gap59[7];
+	_QWORD qword60;
+	_DWORD dword68;
+	_BYTE gap6C[4];
+	_QWORD qword70;
+	_BYTE gap78[232];
+	_DWORD dword160;
+	_BYTE gap164[20];
+	_BYTE byte178;
+};
+
+typedef intptr_t CBaseModelInfo;
+
+constexpr uint16_t hashSetMaxIndex = 65167;
+constexpr uint16_t hashSetSize = 64000;
+
+intptr_t modelKeyHashes = *reinterpret_cast<intptr_t*>(0x7FF69F0BEC20);
+intptr_t modelValues = *reinterpret_cast<intptr_t*>(0x7FF69F0BEBC0);
+
+struct atHashEntry
+{
+	uint hash;
+	uint16_t index;
+	atHashEntry* nextEntry;
+};
+
+struct atHashMap
+{
+	
+};
+
+CBaseModelInfo* GetBaseModelInfoFromNameHash(uint modelHash, uint16_t* outModelIndex)
+{
+	const uint slotIndex = modelHash % hashSetMaxIndex;
+	const atHashEntry* hashEntry = *reinterpret_cast<atHashEntry**>(modelKeyHashes + sizeof(void*) * slotIndex);
+	while (hashEntry != nullptr)
+	{
+		if (hashEntry->hash == modelHash)
+			break;
+
+		hashEntry = hashEntry->nextEntry;
+	}
+
+	if (hashEntry == nullptr)
+		return nullptr;
+
+	if (hashEntry->index > hashSetSize)
+		return nullptr;
+
+	*outModelIndex = hashEntry->index;
+
+	return *reinterpret_cast<CBaseModelInfo**>(modelValues + sizeof(void*) * hashEntry->index);
+}
 
 bool logOpen = true;
 bool menuOpen = true;
@@ -476,11 +555,40 @@ _QWORD aimplPresentImage()
 
 		const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
 
-		g_logger->Log(std::format("Current Vehicle Handle: {}", PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true)));
+		gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
+
+		g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
 		//invoke<Void>(0x16C2C89DF3A1E544, vehicle, 1.0f);
+
+
+
+		CExtraContentManager* contentMgr = *(CExtraContentManager**)(0x7FF69F176D40);
+
+		for (int i = 0; i < LOWORD(contentMgr->numDlc_andWord32); i += 1)
+		{
+			intptr_t dlcPtr = contentMgr->dlcList + 0xF0 * i;
+
+			const char* dlcName = *reinterpret_cast<const char**>(dlcPtr + 0x30);
+			const char* createDate = *reinterpret_cast<const char**>(dlcPtr + 0x50);
+			const char* rpfPath = *reinterpret_cast<const char**>(dlcPtr + 0xB8);
+			uint dlcHash = *reinterpret_cast<uint*>(dlcPtr + 0x60);
+
+			//g_logger->Log(std::format("[{}] DLC : {:X} Hash: {:X} Name: {}", i, dlcPtr, dlcHash, dlcName));
+		}
+
+
+		uint16_t index = 0;
+		g_logger->Log(std::format("GetBaseModelInfoFromNameHash: {:X} , {:X}", (intptr_t)GetBaseModelInfoFromNameHash(0xB779A091, &index), index));
+
+
+
 	}
 
-	DumpPool();
+	//DumpPool();
+
+
+	reinterpret_cast<void (*)(Vector3, Vector3, int, int, int, int)>(0x7FF69DBBB3D8)(
+		Vector3(0, 0, 0, 0, 0, 0), Vector3(0, 0, 0, 0, 1000, 0), 255, 255, 255, 255);
 
 	return gimplPresentImage();
 }
@@ -502,6 +610,8 @@ _QWORD aimplPresentImage()
 //}
 
 
+
+
 typedef uint(*GetHash)(int type, const char* str);
 typedef intptr_t(*GetModelInfo)(int hash);
 
@@ -516,6 +626,16 @@ void Main()
 	//g_imgui->Init(g_gtaWindow->GetHwnd());
 
 	g_logger->Log("Scanning patterns...");
+
+	//g_logger->Log(std::format("bttf present: {}", reinterpret_cast<bool(*)(int hash)>(0x7FF69DBC1CA0)(0xDE76416E)));
+	//g_logger->Log(std::format("tttf present: {}", reinterpret_cast<bool(*)(int hash)>(0x7FF69DBC1CA0)(0x6C0D278C)));
+
+
+
+
+
+
+
 
 
 
