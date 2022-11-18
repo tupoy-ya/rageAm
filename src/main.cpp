@@ -447,22 +447,26 @@ constexpr uint16_t hashSetSize = 64000;
 intptr_t modelKeyHashes = *reinterpret_cast<intptr_t*>(0x7FF69F0BEC20);
 intptr_t modelValues = *reinterpret_cast<intptr_t*>(0x7FF69F0BEBC0);
 
-struct atHashEntry
+constexpr uint16_t HASH_INDEX_INVALID = 0xFFFF; // -1
+
+struct atHashKeyEntry
 {
 	uint hash;
 	uint16_t index;
-	atHashEntry* nextEntry;
+	atHashKeyEntry* nextEntry;
 };
 
 struct atHashMap
 {
-	
+
 };
 
 CBaseModelInfo* GetBaseModelInfoFromNameHash(uint modelHash, uint16_t* outModelIndex)
 {
+	*outModelIndex = HASH_INDEX_INVALID;
+
 	const uint slotIndex = modelHash % hashSetMaxIndex;
-	const atHashEntry* hashEntry = *reinterpret_cast<atHashEntry**>(modelKeyHashes + sizeof(void*) * slotIndex);
+	const atHashKeyEntry* hashEntry = *reinterpret_cast<atHashKeyEntry**>(modelKeyHashes + sizeof(void*) * slotIndex);
 	while (hashEntry != nullptr)
 	{
 		if (hashEntry->hash == modelHash)
@@ -482,10 +486,108 @@ CBaseModelInfo* GetBaseModelInfoFromNameHash(uint modelHash, uint16_t* outModelI
 	return *reinterpret_cast<CBaseModelInfo**>(modelValues + sizeof(void*) * hashEntry->index);
 }
 
+intptr_t g_streamingModules = *reinterpret_cast<intptr_t*>(0x7FF6A0052F30);
+intptr_t g_streamingEntryKeys = *reinterpret_cast<intptr_t*>(0x7FF6A0052D60);
+
+enum eStreamingModule
+{
+	STREAMING_MODELS = 0x15,
+};
+
+enum eEntryFlags
+{
+	MODEL_UNK0 = 0x0,
+	MODEL_LOADED = 0x1,
+};
+
+struct strStreamingModule
+{
+	intptr_t vftable;
+	uint32_t keysOffset;
+};
+
+struct streamingKeyEntry
+{
+	uint32_t unk0;
+	uint32_t flags;
+};
+
+strStreamingModule* GetStreamingModule(const eStreamingModule module)
+{
+	return *reinterpret_cast<strStreamingModule**>(
+		g_streamingModules + sizeof(void*) * static_cast<int>(module));
+}
+
+streamingKeyEntry* GetStreamingKeyEntry(const strStreamingModule* streamingModule, uint32_t index)
+{
+	return reinterpret_cast<streamingKeyEntry*>(
+		g_streamingEntryKeys + sizeof(void*) * (streamingModule->keysOffset + static_cast<uint64_t>(index)));
+}
+
+bool HasModelLoaded(unsigned int hashName)
+{
+	uint16_t modelIndex;
+	const CBaseModelInfo* modelInfo = GetBaseModelInfoFromNameHash(hashName, &modelIndex);
+
+	if (modelInfo && modelIndex != HASH_INDEX_INVALID)
+	{
+		//if ((*(modelInfo + 157) & 0x1F) == 2)
+		//{
+		//	return true;
+		//}
+
+		const strStreamingModule* models = GetStreamingModule(STREAMING_MODELS);
+		const streamingKeyEntry* modelEntry = GetStreamingKeyEntry(models, modelIndex);
+
+		return (modelEntry->flags & (MODEL_UNK0 | MODEL_LOADED)) == 1;
+	}
+	return false;
+}
+
+bool IsModelExists(unsigned int hashName)
+{
+	uint16_t modelIndex;
+	const CBaseModelInfo* modelInfo = GetBaseModelInfoFromNameHash(hashName, &modelIndex);
+
+	return modelInfo && modelIndex != HASH_INDEX_INVALID;
+}
+
+
+
+struct txdStoreEntry
+{
+	intptr_t pgDictionary;
+	int64_t unk0x8;
+	int64_t unk0x10;
+};
+static_assert(sizeof(txdStoreEntry) == 0x18);
+
+class CTxdStore
+{
+public:
+	static CPool* GetPool()
+	{
+		return *reinterpret_cast<CPool**>(0x7FF6A010E428);
+	}
+};
+
 bool logOpen = true;
 bool menuOpen = true;
 PresentImage gimplPresentImage = NULL;
 MovieStore* gPtr_MovieStore;
+
+bool init = false;
+float r = 0;
+float g = 0;
+float b = 0;
+
+//ID3D11Texture2D* refTex;
+ID3D11Resource* refTex;
+ID3D11RenderTargetView* refRen;
+ID3D11ShaderResourceView* refRes;
+
+#include "../vendor/directxtk/include/DDSTextureLoader.h"
+
 _QWORD aimplPresentImage()
 {
 	//if(menuOpen)
@@ -577,15 +679,179 @@ _QWORD aimplPresentImage()
 		}
 
 
-		uint16_t index = 0;
-		g_logger->Log(std::format("GetBaseModelInfoFromNameHash: {:X} , {:X}", (intptr_t)GetBaseModelInfoFromNameHash(0xB779A091, &index), index));
+		uint16_t index = HASH_INDEX_INVALID;
+
+		uint bmx = 0x43779C54;
+		uint adder = 0xB779A091;
+
+		g_logger->Log(std::format("GetBaseModelInfoFromNameHash: {:X} , {:X}", (intptr_t)GetBaseModelInfoFromNameHash(bmx, &index), index));
+		g_logger->Log(std::format("HasModelLoaded(adder): {}", HasModelLoaded(adder)));
+		g_logger->Log(std::format("HasModelLoaded(0x0): {}", HasModelLoaded(0x0)));
 
 
+		const auto outVector = new float[10] {};
+
+		intptr_t texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("vehshare", "plate01");
+		g_logger->Log(std::format("Texture Ptr: {:X}", texture));
+
+		texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("blimp", "blimp_sign_1");
+		g_logger->Log(std::format("Texture Ptr: {:X}", texture));
+
+		reinterpret_cast<void(*)(float*, const char*, const char*)>(0x7FF69DBC0010)(outVector, "adder", "adder_badges");
+
+		float x = outVector[0];
+		float y = outVector[1];
+		float z = outVector[2];
+
+		delete outVector;
+
+		CPool* txds = CTxdStore::GetPool();
+		for (int i = 0; i < txds->GetSize(); i++)
+		{
+			const auto txdEntry = txds->GetSlot<txdStoreEntry>(i);
+
+
+		}
+
+
+		//sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&txd);
+
+		auto device = *(ID3D11Device**)(0x7ff69fea1c48);
+		auto devcon = *(ID3D11DeviceContext**)(0x7ff69fea1c50);
+
+		ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
+
+		D3D11_TEXTURE2D_DESC desc{};
+		txd->GetDesc(&desc);
+
+		if (txd)
+		{
+			//g_logger->Log(std::format("{:X}", (intptr_t)txd));
+
+			ID3D11RenderTargetView* backbuffer;
+			//HRESULT hResult = (Id3d) //device->CreateRenderTargetView(txd, NULL, &backbuffer);
+
+			//g_logger->Log(std::format("hresult: {:X}", (uint)hResult));
+
+
+
+
+
+			//backbuffer = *(ID3D11RenderTargetView**)(texture + 0x78);
+
+			//D3D11_RENDER_TARGET_VIEW_DESC desc2{};
+			//backbuffer->GetDesc(&desc2);
+
+
+
+
+			//auto b = *(ID3D11ShaderResourceView**)(texture + 0x78);
+			//D3D11_SHADER_RESOURCE_VIEW_DESC desc;
+			//b->GetDesc(&desc);
+
+			//g_logger->Log("CRAP");
+
+
+
+			//auto devcon = g_gtaDirectX->GetContext();
+
+
+			//// Set the viewport
+			//D3D11_VIEWPORT viewport;
+			//ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
+
+			//viewport.TopLeftX = 0;
+			//viewport.TopLeftY = 0;
+			//viewport.Width = 800;
+			//viewport.Height = 600;
+
+			//devcon->RSSetViewports(1, &viewport);
+
+			//devcon->OMSetRenderTargets(1, &backbuffer, NULL);
+
+
+
+
+			//float color[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
+
+			//devcon->ClearRenderTargetView(backbuffer, color);
+
+
+
+
+			//backbuffer->Release();
+		}
 
 	}
+	auto texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("blimp", "blimp_sign_1");
+	auto device = *(ID3D11Device**)(0x7ff69fea1c48);
+	auto devcon = *(ID3D11DeviceContext**)(0x7ff69fea1c50);
+
+	if(texture)
+	{
+		// ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
+
+		if (!init)
+		{
+			init = true;
+			//D3D11_TEXTURE2D_DESC textureDesc;
+			//ZeroMemory(&textureDesc, sizeof(textureDesc));
+
+			//textureDesc.Width = 512;
+			//textureDesc.Height = 512;
+			//textureDesc.MipLevels = 1;
+			//textureDesc.ArraySize = 1;
+			//textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			//textureDesc.SampleDesc.Count = 1;
+			//textureDesc.Usage = D3D11_USAGE_DEFAULT;
+			//textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+			//textureDesc.CPUAccessFlags = 0;
+			//textureDesc.MiscFlags = 0;
+
+
+			//device->CreateTexture2D(&textureDesc, NULL, &refTex);
+
+			DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/rageAm.dds", &refTex, &refRes);
+
+			D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+			renderTargetViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			renderTargetViewDesc.Texture2D.MipSlice = 0;
+
+		/*	device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);*/
+
+			//D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+			//shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			//shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			//shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+			//shaderResourceViewDesc.Texture2D.MipLevels = 1;
+
+			//device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
+		}
+
+		//r += 0.005f;
+		//g += 0.001f;
+		//b += 0.0005f;
+
+		//if (r > 1.0f)
+		//	r = 0.0f;
+
+		//if (g > 1.0f)
+		//	g = 0.0f;
+
+		//if (b > 1.0f)
+		//	b = 0.0f;
+
+		//devcon->OMSetRenderTargets(1, &refRen, NULL);
+		//float ClearColor[4] = { r, g, b, 1.0f };
+		//devcon->ClearRenderTargetView(refRen, ClearColor);
+
+		*(ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
+		*(ID3D11ShaderResourceView**)(texture + 0x78) = refRes;
+	}
+	
 
 	//DumpPool();
-
 
 	reinterpret_cast<void (*)(Vector3, Vector3, int, int, int, int)>(0x7FF69DBBB3D8)(
 		Vector3(0, 0, 0, 0, 0, 0), Vector3(0, 0, 0, 0, 1000, 0), 255, 255, 255, 255);
@@ -621,11 +887,12 @@ void Main()
 
 	g_logger->Log(std::format("MH_Initialize: {}", MH_Initialize() == MH_OK));
 
-	//g_componentMgr->RegisterComponents();
 
 	//g_imgui->Init(g_gtaWindow->GetHwnd());
 
 	g_logger->Log("Scanning patterns...");
+
+	g_componentMgr->RegisterComponents();
 
 	//g_logger->Log(std::format("bttf present: {}", reinterpret_cast<bool(*)(int hash)>(0x7FF69DBC1CA0)(0xDE76416E)));
 	//g_logger->Log(std::format("tttf present: {}", reinterpret_cast<bool(*)(int hash)>(0x7FF69DBC1CA0)(0x6C0D278C)));

@@ -28,6 +28,7 @@ add_library(rageAm SHARED
 target_link_libraries(rageAm PUBLIC
     "${CMAKE_SOURCE_DIR}/vendor/minhook-1.3.3/lib/libMinHook-x64-v141-md.lib" 
     "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib" 
+    "${CMAKE_SOURCE_DIR}/vendor/directxtk/lib/DirectXTK.lib" 
     d3d11.lib
     imgui
     Boost::stacktrace_noop)
