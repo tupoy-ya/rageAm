@@ -31,11 +31,12 @@ public:
 		// CreateGameWindow
 		// 40 55 41 54 41 55 41 56 41 57 48 81 EC D0 00 00 00 48 8D 6C 24 60
 
-		const intptr_t createWndAndGfx = g_gtaCommon->gPtr_CreateGameWindowAndGraphics;
+		intptr_t createWndAndGfx = g_gtaCommon->gPtr_CreateGameWindowAndGraphics;
 
 		hWnd = *g_hook->FindOffset<HWND*>("CreateGameWindowAndGraphics_hWnd", createWndAndGfx + 0x46A + 0x3);
 
-		g_hook->SetHook(0x7FF71FBEB6E4, &aImpl_WndProc, &gImpl_WndProc);
+		intptr_t gPtr_WndProc = g_hook->FindPattern("WndProc", "48 8B C4 48 89 58 08 4C 89 48 20 55 56 57 41 54 41 55 41 56 41 57 48 8D 68 A1 48 81 EC F0");
+		g_hook->SetHook(gPtr_WndProc, aImpl_WndProc, &gImpl_WndProc);
 
 		g_logger->Log(std::format("GTA5.exe hWND: {:x}",(int) hWnd));
 	}

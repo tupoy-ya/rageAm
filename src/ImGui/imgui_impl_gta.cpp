@@ -434,11 +434,12 @@ static ImGuiKey ImGui_ImplGta_VirtualKeyToImGuiKey(WPARAM wParam)
 // Copy this line into your .cpp file to forward declare the function.
 extern IMGUI_IMPL_API LRESULT ImGui_ImplGta_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
+#include "../Logger.h"
+#include <format>
 IMGUI_IMPL_API LRESULT ImGui_ImplGta_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui::GetCurrentContext() == NULL)
 		return 0;
-
 	ImGuiIO& io = ImGui::GetIO();
 	ImGui_ImplGta_Data* bd = ImGui_ImplGta_GetBackendData();
 
@@ -475,6 +476,7 @@ IMGUI_IMPL_API LRESULT ImGui_ImplGta_WndProcHandler(HWND hwnd, UINT msg, WPARAM 
 			::SetCapture(hwnd);
 		bd->MouseButtonsDown |= 1 << button;
 		io.AddMouseButtonEvent(button, true);
+		//g_logger->Log(std::format("Mouse: {}", button));
 		return 0;
 	}
 	case WM_LBUTTONUP:

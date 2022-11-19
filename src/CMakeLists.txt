@@ -23,7 +23,9 @@ add_library(rageAm SHARED
     "Rage/fwFsm.h"
     "Rage/CVehicleFactory.h"
     "Rage/Streaming.h"
-    "Rage/Pool.h")
+    "Rage/Pool.h" 
+    "Rage/pgDictionary.h" 
+    "Rage/grcTexture.h")
 
 # target_include_directories(rageAm PUBLIC "../vendor/imgui-1.88")
 

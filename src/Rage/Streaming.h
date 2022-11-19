@@ -1,10 +1,78 @@
 #pragma once
 #include "Pool.h"
+#include "pgDictionary.h"
+#include "grcTexture.h"
 
 namespace rage
 {
 	class strStreamingModule;
-	typedef intptr_t atIndexMap;
+
+	struct atLinkedNode
+	{
+		int nameHash;
+		int index;
+		int nextIndex;
+	};
+
+	class atLinkedList
+	{
+		atLinkedNode* indexNodes;
+		int* hashToIndeces;
+		unsigned int hashToIndecesSize;
+		_DWORD size_1;
+		_DWORD size_2;
+
+	public:
+		int GetNodeIndex(int nameHash) const
+		{
+			return hashToIndeces[nameHash % hashToIndecesSize];
+		}
+
+		int FindNodeFromNodeIndexAndHashKey(int nodeIndex, int nameHash)
+		{
+			const atLinkedNode& indexNode = indexNodes[nodeIndex];
+
+			if (indexNode.nameHash == nameHash)
+				return indexNode.index;
+
+			if (indexNode.nextIndex == -1)
+				return -1;
+
+			return FindNodeFromNodeIndexAndHashKey(indexNode.nextIndex, nameHash);
+		}
+
+		int FindNodeFromHashKey(int nameHash)
+		{
+			return FindNodeFromNodeIndexAndHashKey(GetNodeIndex(nameHash), nameHash);
+		}
+	};
+
+	struct fwTxdDef
+	{
+		int32_t unk0;
+		uint32_t nameHash;
+		int32_t unk10;
+		int32_t unk18;
+	}; //Size: 0x0018
+	static_assert(sizeof(fwTxdDef) == 0x10);
+
+	template<typename T1, typename T2>
+	class fwAssetKeyValuePair
+	{
+		T1* value;
+		T2 key;
+
+	public:
+		T1* GetValue()
+		{
+			return value;
+		}
+
+		T2 GetKey()
+		{
+			return key;
+		}
+	};
 
 	enum eStreamingModule
 	{
@@ -33,10 +101,10 @@ namespace rage
 
 	};
 
-	template<typename T>
+
+	template<typename T1, typename T2>
 	class fwAssetStore : public strStreamingModule
 	{
-	public:
 		int64_t vftable;
 		int64_t unk8;
 		int32_t poolSize;
@@ -50,23 +118,73 @@ namespace rage
 		int32_t N00005ABB;
 		int32_t fileTypeId;
 		char pad_0034[4];
+		// This is not used like ped pool,
+		// key list is unused, meaning IsSlotActive() cannot be used.
+		// Additionally in RDR2 symbols fwAssetStore don't have
+		// GetPool() or any other way to iterate through each items,
+		// it's functionality is based fully on getting entry by hash key.
+		// For modding purposes, we extend that with few additional methods.
 		fwBasePool pool;
 		int64_t pFileType;
 		int32_t N0000447E;
 		char pad_006C[4];
-		atIndexMap hashset;
+		// Serves purpose of hash look-up table for pool, as pool by default
+		// doesn't have such functionality.
+		atLinkedList linkedList;
 		char pad_008C[4];
 		int8_t IsPoolInitialized;
 
 	public:
-		T* FindSlotByHashKey(int& outIndex, int nameHash)
+		typedef fwAssetKeyValuePair<T1, T2> fwAssetStoreValue;
+
+		fwAssetStoreValue* FindSlotByHashKey(int& outIndex, int nameHash)
 		{
-			return nullptr;
+			const int index = linkedList.FindNodeFromHashKey(nameHash);
+
+			outIndex = index;
+
+			if (index == -1)
+				return nullptr;
+
+			return pool.GetSlot<fwAssetStoreValue>(index);
 		}
 
-		fwBasePool GetPool() const
+		int GetSize() const
 		{
-			return pool;
+			return pool.GetSize();
+		}
+
+		intptr_t GetSlotPtr(int index) const
+		{
+			return pool.GetSlotPtr(index);
+		}
+
+		fwAssetStoreValue* GetSlot(int index) const
+		{
+			return reinterpret_cast<fwAssetStoreValue*>(pool.GetSlotPtr(index));
+		}
+
+		bool IsSlotActive(int index) const
+		{
+			// Game still does this key check even though keys are untouched...
+			// Could be inlined fwBasePool function.
+			// Need to look more into this
+			if (!pool.IsSlotActive(index))
+				return false;
+
+			const intptr_t templateEntryPtr = GetSlotPtr(index);
+			if (templateEntryPtr <= 0xFFFFFFFFFi64)
+				return false;
+
+			// Might be not the best way to check it, but it works.
+			// Around index 30,000 of TxdStore empty entries start appearing that trigger this
+			const intptr_t templateEntry = *reinterpret_cast<intptr_t*>(templateEntryPtr);
+			if (templateEntry <= 0xFFFFFFFFFi64)
+				return false;
+
+			return true;
 		}
 	};
+
+	typedef fwAssetStore<pgDictionary<grcTexture>, fwTxdDef> TxdStore;
 }

@@ -52,7 +52,7 @@ namespace rage
 			if (!IsSlotActive(index))
 				return 0;
 
-			return *reinterpret_cast<intptr_t*>(_entryList + _sizeOfEntry * index);
+			return _entryList + _sizeOfEntry * index;
 		}
 
 		template<typename T>
@@ -61,7 +61,7 @@ namespace rage
 			if (!IsSlotActive(index))
 				return nullptr;
 
-			return reinterpret_cast<T*>(_entryList + _sizeOfEntry * index);
+			return reinterpret_cast<T*>(GetSlotPtr(index));
 		}
 	};
 }

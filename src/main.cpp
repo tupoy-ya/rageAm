@@ -512,7 +512,8 @@ float g = 0;
 float b = 0;
 
 //ID3D11Texture2D* refTex;
-ID3D11Resource* refTex;
+//ID3D11Resource* refTex;
+ID3D11Texture2D* refTex;
 ID3D11RenderTargetView* refRen;
 ID3D11ShaderResourceView* refRes;
 
@@ -550,79 +551,56 @@ void InvokeWithExceptionHandler(void* func)
 	}
 }
 
-struct pgDictionary
-{
-	_QWORD vftable;
-	_BYTE gap8[8];
-	_QWORD qword10;
-	_DWORD dword18;
-	_BYTE gap1C[4];
-	_QWORD qword20;
-	int16_t count;
-	int16_t word2A;
-	_BYTE gap2C[4];
-	_QWORD array;
-	_DWORD dword38;
-};
+#include "rage/pgDictionary.h"
 
 void ReadTxds()
 {
-	const auto txdStore = reinterpret_cast<rage::fwAssetStore<intptr_t>*>(rage::strStreamingModuleMgr::GetStreamingModule(rage::STORE_TXD));
-	const auto pool = txdStore->GetPool();
-
-	// TODO: Replace all textures with gray
+	const auto txdStore = reinterpret_cast<rage::TxdStore*>(rage::strStreamingModuleMgr::GetStreamingModule(rage::STORE_TXD));
 
 	g_logger->Log("Texture Dictionaries:");
 	int countDict = 0;
 	int countText = 0;
-	for (int i = 0; i < pool.GetSize(); i++)
+	for (int i = 0; i < txdStore->GetSize(); i++)
 	{
-		// For some reason fwPoolBase::IsSlotActive() doesn't work here... have to check for null pointer
-		pgDictionary** dictEntry = pool.GetSlot<pgDictionary*>(i);
-		if (dictEntry == nullptr)
-			continue;
-
-		pgDictionary* dict = *dictEntry;
-		if (reinterpret_cast<intptr_t>(dict) <= 0xFFFFFFFFFi64)
-			continue;
-
 		countDict++;
 
-		g_logger->Log(std::format("[{}] at {:X} with {} items:", i, reinterpret_cast<intptr_t>(dict), dict->count));
+		if (!txdStore->IsSlotActive(i))
+			continue;
 
-		for (int k = 0; k < dict->count; k++)
+		const auto value = txdStore->GetSlot(i);
+
+		rage::pgDictionary<rage::grcTexture>* dict = value->GetValue();
+		rage::fwTxdDef def = value->GetKey();
+
+		auto dictPtr = reinterpret_cast<intptr_t>(dict);
+
+		g_logger->Log(std::format("[{}] at {:X} ({:X}) with {} textures:", i, dictPtr, def.nameHash, dict->GetCount()));
+
+		for (int k = 0; k < dict->GetCount(); k++)
 		{
 			countText++;
 
-			intptr_t texture = *(intptr_t*)(dict->array + k * sizeof(void*));
+			rage::grcTexture* texture = dict->GetValue(k);
 
-			const char* name;
-			if (*(intptr_t*)(texture + 0x28)) // Some texture's has no name
-			{
-				name = *(const char**)(texture + 0x28);
+			const char* name = texture->GetName();
+			auto texturePtr = reinterpret_cast<intptr_t>(texture);
 
-				//*(ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
-				//*(ID3D11ShaderResourceView**)(texture + 0x78) = refRes;
-			}
-			else
-				name = "";
-
-			g_logger->Log(std::format(" - [{}] at {:X} - {}", k, texture, name));
+			g_logger->Log(std::format(" - [{}] at {:X} - {}", k, texturePtr, name));
 		}
 	}
 
 	g_logger->Log(std::format("{} dictionaries total, {} textures.", countDict, countText));
 }
 
-_QWORD aimplPresentImage()
+void OnPresentImage()
 {
-	//if(menuOpen)
-	//	PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
+	if (menuOpen)
+		PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
 
-	//if (IsKeyJustUp(VK_SCROLL))
-	//	menuOpen = !menuOpen;
+	if (IsKeyJustUp(VK_SCROLL))
+		menuOpen = !menuOpen;
 
-	if (g_imgui->IsInitialized() && false)
+	if (g_imgui->IsInitialized())
 	{
 		g_imgui->NewFrame();
 
@@ -635,21 +613,26 @@ _QWORD aimplPresentImage()
 			ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
 			//ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
 
-			if (ImGui::TreeNode("Action Movies"))
-			{
-				for (int i = 0; i < gPtr_MovieStore->GetNumSlots(); i++)
-				{
-					if (!gPtr_MovieStore->IsSlotActive(i))
-						continue;
 
-					const auto entry = gPtr_MovieStore->GetSlot(i);
-					const uint movieId = entry->GetId();
-					const auto movieFileName = entry->GetFileName();
 
-					ImGui::Text("%lu - %s", movieId, movieFileName);
-				}
-				ImGui::TreePop();
-			}
+			//if (ImGui::TreeNode("Action Movies"))
+			//{
+			//	for (int i = 0; i < gPtr_MovieStore->GetNumSlots(); i++)
+			//	{
+			//		if (!gPtr_MovieStore->IsSlotActive(i))
+			//			continue;
+
+			//		const auto entry = gPtr_MovieStore->GetSlot(i);
+			//		const uint movieId = entry->GetId();
+			//		const auto movieFileName = entry->GetFileName();
+
+			//		ImGui::Text("%lu - %s", movieId, movieFileName);
+			//	}
+			//	ImGui::TreePop();
+			//}
+
+
+
 
 			//if (ImGui::TreeNode("Log"))
 			//{
@@ -670,6 +653,12 @@ _QWORD aimplPresentImage()
 
 		g_imgui->Render();
 	}
+}
+
+_QWORD aimplPresentImage()
+{
+	InvokeWithExceptionHandler(OnPresentImage);
+
 
 	if (IsKeyJustUp(VK_F9))
 	{
@@ -678,7 +667,7 @@ _QWORD aimplPresentImage()
 		g_logger->Log("Spawning vehicle...");
 	}
 
-	if (IsKeyJustUp(VK_SCROLL))
+	if (IsKeyJustUp(VK_SCROLL) && false)
 	{
 		//ReadTextureDictionaries();
 		InvokeWithExceptionHandler(ReadTxds);
@@ -812,66 +801,78 @@ _QWORD aimplPresentImage()
 	if (!init)
 	{
 		init = true;
-		//D3D11_TEXTURE2D_DESC textureDesc;
-		//ZeroMemory(&textureDesc, sizeof(textureDesc));
-
-		//textureDesc.Width = 512;
-		//textureDesc.Height = 512;
-		//textureDesc.MipLevels = 1;
-		//textureDesc.ArraySize = 1;
-		//textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		//textureDesc.SampleDesc.Count = 1;
-		//textureDesc.Usage = D3D11_USAGE_DEFAULT;
-		//textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-		//textureDesc.CPUAccessFlags = 0;
-		//textureDesc.MiscFlags = 0;
 
 
-		//device->CreateTexture2D(&textureDesc, NULL, &refTex);
 
-		DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/gray.dds", &refTex, &refRes);
+
+		D3D11_TEXTURE2D_DESC textureDesc;
+		ZeroMemory(&textureDesc, sizeof(textureDesc));
+
+		textureDesc.Width = 512;
+		textureDesc.Height = 512;
+		textureDesc.MipLevels = 1;
+		textureDesc.ArraySize = 1;
+		textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		textureDesc.CPUAccessFlags = 0;
+		textureDesc.MiscFlags = 0;
+
+
+		device->CreateTexture2D(&textureDesc, NULL, &refTex);
+
+
+
+
+
+		//DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/gray.dds", &refTex, &refRes);
+
+
+
+
 
 		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
 		renderTargetViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 		renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-		/*	device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);*/
+		device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);
 
-			//D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
-			//shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			//shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			//shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-			//shaderResourceViewDesc.Texture2D.MipLevels = 1;
+		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+		shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+		shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
-			//device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
+		device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
 	}
 
 	if (texture)
 	{
 		// ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
 
-		
 
-		//r += 0.005f;
-		//g += 0.001f;
-		//b += 0.0005f;
 
-		//if (r > 1.0f)
-		//	r = 0.0f;
+		r += 0.005f;
+		g += 0.008f;
+		b += 0.002f;
 
-		//if (g > 1.0f)
-		//	g = 0.0f;
+		if (r > 1.0f)
+			r = 0.4f;
 
-		//if (b > 1.0f)
-		//	b = 0.0f;
+		if (g > 1.0f)
+			g = 0.4f;
 
-		//devcon->OMSetRenderTargets(1, &refRen, NULL);
-		//float ClearColor[4] = { r, g, b, 1.0f };
-		//devcon->ClearRenderTargetView(refRen, ClearColor);
+		if (b > 1.0f)
+			b = 0.4f;
 
-		* (ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
-		*(ID3D11ShaderResourceView**)(texture + 0x78) = refRes;
+		devcon->OMSetRenderTargets(1, &refRen, NULL);
+		float ClearColor[4] = { r, g, b, 1.0f };
+		devcon->ClearRenderTargetView(refRen, ClearColor);
+
+		//* (ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
+		//*(ID3D11ShaderResourceView**)(texture + 0x78) = refRes;
 	}
 
 
@@ -926,11 +927,11 @@ void Main()
 	g_logger->Log(std::format("MH_Initialize: {}", MH_Initialize() == MH_OK));
 
 
-	//g_imgui->Init(g_gtaWindow->GetHwnd());
-
 	g_logger->Log("Scanning patterns...");
 
 	g_componentMgr->RegisterComponents();
+
+	g_imgui->Init(g_gtaWindow->GetHwnd());
 
 	intptr_t gPtr_GameBacktraceConfig_WriteToFile = g_hook->FindPattern("GameBacktraceConfig::WriteToFile", "40 53 48 83 EC 30 48 8B CA E8");
 	g_hook->SetHook(gPtr_GameBacktraceConfig_WriteToFile, aImpl_GameBacktraceConfig_WriteToFile, &gImpl_GameBacktraceConfig_WriteToFile);
@@ -1243,12 +1244,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
-		Main();
+		InvokeWithExceptionHandler(Main);
 		//scriptRegister(hModule, Main);
 		keyboardHandlerRegister(OnKeyboardMessage);
 		break;
 	case DLL_PROCESS_DETACH:
-		Abort();
+		InvokeWithExceptionHandler(Abort);
 		//scriptUnregister(hModule);
 		keyboardHandlerUnregister(OnKeyboardMessage);
 		break;
