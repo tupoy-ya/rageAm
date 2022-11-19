@@ -525,9 +525,11 @@ ID3D11ShaderResourceView* refRes;
 
 void LogStackTrace()
 {
-	std::stringstream ss;
-	ss << boost::stacktrace::stacktrace();
-	g_logger->Log(ss.str());
+	g_logger->Log("- stack trace was disabled.");
+	//std::stringstream ss;
+
+	//ss << boost::stacktrace::stacktrace();
+	//g_logger->Log(ss.str());
 }
 
 void OnException()
@@ -535,20 +537,6 @@ void OnException()
 	g_logger->Log(std::format("Exception occurred. Stack Trace:"));
 	LogStackTrace();
 }
-
-//void ReadTextureDictionaries()
-//{
-//	__try
-//	{
-//		CrapImpl();
-//	}
-//	__except (EXCEPTION_EXECUTE_HANDLER)
-//	{
-//		OnException();
-//	}
-//}
-
-#include <functional>
 
 void InvokeWithExceptionHandler(void* func)
 {
@@ -581,35 +569,49 @@ void ReadTxds()
 {
 	const auto txdStore = reinterpret_cast<rage::fwAssetStore<intptr_t>*>(rage::strStreamingModuleMgr::GetStreamingModule(rage::STORE_TXD));
 	const auto pool = txdStore->GetPool();
+
+	// TODO: Replace all textures with gray
+
+	g_logger->Log("Texture Dictionaries:");
+	int countDict = 0;
+	int countText = 0;
 	for (int i = 0; i < pool.GetSize(); i++)
 	{
-		bool isNotActive = (~((*(int8_t*)(txdStore->pool._flagsList + i) & 128 | 
-			-(*(int8_t*)(txdStore->pool._flagsList + i) & 128)) >> 63) & (txdStore->pool._entryList + i * txdStore->pool._sizeOfEntry)) == 0;
-
-		if (!pool.IsSlotActive(i) || isNotActive)
+		// For some reason fwPoolBase::IsSlotActive() doesn't work here... have to check for null pointer
+		pgDictionary** dictEntry = pool.GetSlot<pgDictionary*>(i);
+		if (dictEntry == nullptr)
 			continue;
 
-		intptr_t dictPtr = pool.GetSlotPtr(i);
-		//pgDictionary* dict = pool.GetSlot<pgDictionary>(i);
+		pgDictionary* dict = *dictEntry;
+		if (reinterpret_cast<intptr_t>(dict) <= 0xFFFFFFFFFi64)
+			continue;
 
-		//if (dict)
-		g_logger->Log(std::format("[{}] at {:X}", i, dictPtr));
+		countDict++;
 
-		/*int16_t numTextures = *(int16_t*)dict + 0x28;
-		intptr_t* textures = *(intptr_t**)dict + 0x30;
+		g_logger->Log(std::format("[{}] at {:X} with {} items:", i, reinterpret_cast<intptr_t>(dict), dict->count));
 
-		g_logger->Log(std::format("{} textures:", numTextures));*/
+		for (int k = 0; k < dict->count; k++)
+		{
+			countText++;
 
-		//for (int k = 0; k < numTextures; k++)
-		//{
-		//	const char* name = *(const char**)(k + 0x28);
-		//	g_logger->Log(std::format(" - [{}]: {}", k, name));
-		//}
+			intptr_t texture = *(intptr_t*)(dict->array + k * sizeof(void*));
 
+			const char* name;
+			if (*(intptr_t*)(texture + 0x28)) // Some texture's has no name
+			{
+				name = *(const char**)(texture + 0x28);
 
-		if (i > 5)
-			break;
+				//*(ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
+				//*(ID3D11ShaderResourceView**)(texture + 0x78) = refRes;
+			}
+			else
+				name = "";
+
+			g_logger->Log(std::format(" - [{}] at {:X} - {}", k, texture, name));
+		}
 	}
+
+	g_logger->Log(std::format("{} dictionaries total, {} textures.", countDict, countText));
 }
 
 _QWORD aimplPresentImage()
@@ -807,47 +809,49 @@ _QWORD aimplPresentImage()
 	auto device = *(ID3D11Device**)(0x7ff69fea1c48);
 	auto devcon = *(ID3D11DeviceContext**)(0x7ff69fea1c50);
 
+	if (!init)
+	{
+		init = true;
+		//D3D11_TEXTURE2D_DESC textureDesc;
+		//ZeroMemory(&textureDesc, sizeof(textureDesc));
+
+		//textureDesc.Width = 512;
+		//textureDesc.Height = 512;
+		//textureDesc.MipLevels = 1;
+		//textureDesc.ArraySize = 1;
+		//textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		//textureDesc.SampleDesc.Count = 1;
+		//textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		//textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		//textureDesc.CPUAccessFlags = 0;
+		//textureDesc.MiscFlags = 0;
+
+
+		//device->CreateTexture2D(&textureDesc, NULL, &refTex);
+
+		DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/gray.dds", &refTex, &refRes);
+
+		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+		renderTargetViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		renderTargetViewDesc.Texture2D.MipSlice = 0;
+
+		/*	device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);*/
+
+			//D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+			//shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			//shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			//shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+			//shaderResourceViewDesc.Texture2D.MipLevels = 1;
+
+			//device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
+	}
+
 	if (texture)
 	{
 		// ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
 
-		if (!init)
-		{
-			init = true;
-			//D3D11_TEXTURE2D_DESC textureDesc;
-			//ZeroMemory(&textureDesc, sizeof(textureDesc));
-
-			//textureDesc.Width = 512;
-			//textureDesc.Height = 512;
-			//textureDesc.MipLevels = 1;
-			//textureDesc.ArraySize = 1;
-			//textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			//textureDesc.SampleDesc.Count = 1;
-			//textureDesc.Usage = D3D11_USAGE_DEFAULT;
-			//textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-			//textureDesc.CPUAccessFlags = 0;
-			//textureDesc.MiscFlags = 0;
-
-
-			//device->CreateTexture2D(&textureDesc, NULL, &refTex);
-
-			DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/tony.dds", &refTex, &refRes);
-
-			D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-			renderTargetViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-			renderTargetViewDesc.Texture2D.MipSlice = 0;
-
-			/*	device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);*/
-
-				//D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
-				//shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-				//shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-				//shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-				//shaderResourceViewDesc.Texture2D.MipLevels = 1;
-
-				//device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
-		}
+		
 
 		//r += 0.005f;
 		//g += 0.001f;

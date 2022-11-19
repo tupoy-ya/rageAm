@@ -15,8 +15,8 @@ namespace rage
 		intptr_t _entryList;
 		intptr_t _flagsList;
 		int _poolSize;
-		int64_t _sizeOfEntry;
-		int8_t gap18[8];
+		int32_t _sizeOfEntry;
+		int8_t gap18[12];
 		int flags;
 
 	public:
