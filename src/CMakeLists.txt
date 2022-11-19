@@ -52,13 +52,6 @@ add_custom_command(TARGET ${PROJECT_NAME}
     ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
     -e rageAm.dll 
 )
-add_custom_command(TARGET ${PROJECT_NAME} 
-    PRE_BUILD
-    COMMAND 
-    
-    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
-    -e rageAm.pdb 
-)
 
 # Copy to temp directory, otherwise we can't compile DLL because its used by GTA.
 
