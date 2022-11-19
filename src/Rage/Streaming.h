@@ -80,13 +80,14 @@ namespace rage
 		STORE_MODELS = 0x15,
 	};
 
+
 	class strStreamingModuleMgr
 	{
 	public:
-		static strStreamingModule* GetStreamingModule(const eStreamingModule module)
+		strStreamingModule* GetStreamingModule(const eStreamingModule module)
 		{
 			return *reinterpret_cast<strStreamingModule**>(
-				g_streamingModules + sizeof(void*) * static_cast<int>(module));
+				*(intptr_t*)(this + 0x18) + sizeof(void*) * static_cast<int>(module));
 		}
 
 		//strStreamingModule* GetStreamingKeyEntry(const strStreamingModule* streamingModule, uint32_t index)
@@ -94,6 +95,18 @@ namespace rage
 		//	return reinterpret_cast<streamingKeyEntry*>(
 		//		g_streamingEntryKeys + sizeof(void*) * (streamingModule->keysOffset + static_cast<uint64_t>(index)));
 		//}
+	};
+
+	class CStreaming
+	{
+		char pad_0000[440]; //0x0000
+		strStreamingModuleMgr strStreamingMgr; //0x01B8
+
+	public:
+		strStreamingModuleMgr GetStreamingModuleMgr()
+		{
+			return strStreamingMgr;
+		}
 	};
 
 	class strStreamingModule

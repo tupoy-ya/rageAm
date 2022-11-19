@@ -20,289 +20,289 @@
 #include <sstream>
 
 #include "ComponentMgr.h"
-
-struct CExtraContentManager;
-// #include <boost/program_options/option.hpp>
-typedef bool(*SettingMgr__Save)();
-typedef bool(*SettingMgr__BeginSave)(uintptr_t a1);
-
-typedef int(*WriteDebugStateToFile)(const WCHAR* fileName);
-typedef int(*WriteDebugState)();
-
-typedef __int64 (*UpdateCamFrame)(intptr_t* frame, __int64 a2, __int64 a3);
-
-SettingMgr__Save gimpl_SettingMgr__Save;
-WriteDebugStateToFile gimpl_WriteDebugStateToFile;
-WriteDebugStateToFile gimpl_WriteDebugState;
-
-uintptr_t save;
-uintptr_t beginSave;
-uintptr_t beginSave_setting_64;
-uintptr_t beginSave_settingDump;
-
-uintptr_t writeDebugStateToFile;
-uintptr_t writeDebugState;
-
-// Looks like a common structure
-uintptr_t numFramesRendered;
-uintptr_t isGamePaused;
-uintptr_t isDebugPaused;
-uintptr_t isPausedUnk1;
-uintptr_t isPausedUnk2;
-
-uintptr_t numStreamingRequests;
-
-bool IsGamePaused()
-{
-	return *(bool*)isDebugPaused ||
-		*(bool*)isGamePaused ||
-		*(bool*)isPausedUnk1 ||
-		*(bool*)isPausedUnk2;
-}
-
-enum GameState
-{
-	SystemInit = 0,
-	GameInit = 1,
-	GameRunning = 2,
-	GameShutdown = 3,
-	SystemShutdown = 4,
-};
-
-struct CApp
-{
-	int8_t _gap0[0x10];
-	int8_t _gameState;
-
-	GameState GetGameState()
-	{
-		return (GameState)_gameState;
-	}
-
-	std::string GetGameStateStr()
-	{
-		// TODO: System init is not really possible to get,
-		// because game returns it when CGame pointer is set to null,
-		// meaning this class instance wont exist
-		switch (_gameState)
-		{
-		case 0: return "System Init";
-		case 1: return "Game Init";
-		case 2: return "Game Running";
-		case 3: return "Game ShutDown";
-		case 4: return "System Shutdown";
-		}
-		return "Unknown";
-	}
-};
-
-bool __fastcall aimpl_SettingMgr__BeginSave(uintptr_t a1)
-{
-	g_logger->Log(std::format("SettingMgr::Save({:x})", a1));
-
-	int v1; // edx
-
-	v1 = 203;
-	if (*(unsigned __int16*)(a1 + 64) < 203u) // a1 + 64 seems to be always on 350
-		v1 = *(unsigned __int16*)(a1 + 64);
-	*(int*)beginSave_setting_64 = v1;
-	memmove((void*)beginSave_settingDump, *(const void**)(a1 + 56), 8i64 * v1);
-	return gimpl_SettingMgr__Save();
-}
-
-float cam_x = 0;
-float cam_y = 0;
-float cam_z = 0;
-
-UpdateCamFrame gimpl_UpdateCamFrame = NULL;
-__int64 __fastcall aimpl_UpdateCamFrame(intptr_t* frame, __int64 a2, __int64 a3)
-{
-	if (*(bool*)isDebugPaused)
-	{
-		*(float*)(a2 + 0x40) = cam_x;
-		*(float*)(a2 + 0x44) = cam_y;
-		*(float*)(a2 + 0x48) = cam_z;
-	}
-
-	return gimpl_UpdateCamFrame(frame, a2, a3);
-}
-
-
-struct CPools
-{
-	int64_t qword0;
-	int8_t* pbyte8;
-	int32_t MaxPeds;
-	int int14;
-	int8_t gap18[8];
-	int32_t dword20;
-};
-
-enum PoolType
-{
-	POOL_PED = 128,
-};
-
-struct camFrame
-{
-	float FrontX;
-	float FrontY;
-	float FrontZ;
-	float FrontW;
-	float UpX;
-	float UpY;
-	float UpZ;
-	float UpW;
-	int8_t gap0[32];
-	int32_t PositionX;
-	int32_t PositionY;
-	int32_t PositionZ;
-	int32_t PositionW;
-	int32_t dword50;
-	int32_t dword54;
-	int32_t dword58;
-	int32_t dword5C;
-	int64_t qword60;
-	int64_t qword68;
-	float float70;
-	float float74;
-	int32_t dword78;
-	int32_t dword7C;
-	float float80;
-	int32_t dword84;
-	int32_t dword88;
-	int32_t dword8C;
-	int32_t dword90;
-	int32_t dword94;
-	int32_t dword98;
-	int32_t dword9C;
-	int32_t dwordA0;
-	int32_t dwordA4;
-	int32_t dwordA8;
-	int32_t dwordAC;
-	int32_t dwordB0;
-	int32_t dwordB4;
-	int32_t dwordB8;
-	int32_t dwordBC;
-	int32_t dwordC0;
-	int32_t dwordC4;
-	int32_t dwordC8;
-	int32_t dwordCC;
-	int8_t wordD0;
-};
-
+//
+//struct CExtraContentManager;
+//// #include <boost/program_options/option.hpp>
+//typedef bool(*SettingMgr__Save)();
+//typedef bool(*SettingMgr__BeginSave)(uintptr_t a1);
+//
+//typedef int(*WriteDebugStateToFile)(const WCHAR* fileName);
+//typedef int(*WriteDebugState)();
+//
+//typedef __int64 (*UpdateCamFrame)(intptr_t* frame, __int64 a2, __int64 a3);
+//
+//SettingMgr__Save gimpl_SettingMgr__Save;
+//WriteDebugStateToFile gimpl_WriteDebugStateToFile;
+//WriteDebugStateToFile gimpl_WriteDebugState;
+//
+//uintptr_t save;
+//uintptr_t beginSave;
+//uintptr_t beginSave_setting_64;
+//uintptr_t beginSave_settingDump;
+//
+//uintptr_t writeDebugStateToFile;
+//uintptr_t writeDebugState;
+//
+//// Looks like a common structure
+//uintptr_t numFramesRendered;
+//uintptr_t isGamePaused;
+//uintptr_t isDebugPaused;
+//uintptr_t isPausedUnk1;
+//uintptr_t isPausedUnk2;
+//
+//uintptr_t numStreamingRequests;
+//
+//bool IsGamePaused()
+//{
+//	return *(bool*)isDebugPaused ||
+//		*(bool*)isGamePaused ||
+//		*(bool*)isPausedUnk1 ||
+//		*(bool*)isPausedUnk2;
+//}
+//
+//enum GameState
+//{
+//	SystemInit = 0,
+//	GameInit = 1,
+//	GameRunning = 2,
+//	GameShutdown = 3,
+//	SystemShutdown = 4,
+//};
+//
+//struct CApp
+//{
+//	int8_t _gap0[0x10];
+//	int8_t _gameState;
+//
+//	GameState GetGameState()
+//	{
+//		return (GameState)_gameState;
+//	}
+//
+//	std::string GetGameStateStr()
+//	{
+//		// TODO: System init is not really possible to get,
+//		// because game returns it when CGame pointer is set to null,
+//		// meaning this class instance wont exist
+//		switch (_gameState)
+//		{
+//		case 0: return "System Init";
+//		case 1: return "Game Init";
+//		case 2: return "Game Running";
+//		case 3: return "Game ShutDown";
+//		case 4: return "System Shutdown";
+//		}
+//		return "Unknown";
+//	}
+//};
+//
+//bool __fastcall aimpl_SettingMgr__BeginSave(uintptr_t a1)
+//{
+//	g_logger->Log(std::format("SettingMgr::Save({:x})", a1));
+//
+//	int v1; // edx
+//
+//	v1 = 203;
+//	if (*(unsigned __int16*)(a1 + 64) < 203u) // a1 + 64 seems to be always on 350
+//		v1 = *(unsigned __int16*)(a1 + 64);
+//	*(int*)beginSave_setting_64 = v1;
+//	memmove((void*)beginSave_settingDump, *(const void**)(a1 + 56), 8i64 * v1);
+//	return gimpl_SettingMgr__Save();
+//}
+//
+//float cam_x = 0;
+//float cam_y = 0;
+//float cam_z = 0;
+//
+//UpdateCamFrame gimpl_UpdateCamFrame = NULL;
+//__int64 __fastcall aimpl_UpdateCamFrame(intptr_t* frame, __int64 a2, __int64 a3)
+//{
+//	if (*(bool*)isDebugPaused)
+//	{
+//		*(float*)(a2 + 0x40) = cam_x;
+//		*(float*)(a2 + 0x44) = cam_y;
+//		*(float*)(a2 + 0x48) = cam_z;
+//	}
+//
+//	return gimpl_UpdateCamFrame(frame, a2, a3);
+//}
+//
+//
+//struct CPools
+//{
+//	int64_t qword0;
+//	int8_t* pbyte8;
+//	int32_t MaxPeds;
+//	int int14;
+//	int8_t gap18[8];
+//	int32_t dword20;
+//};
+//
+//enum PoolType
+//{
+//	POOL_PED = 128,
+//};
+//
+//struct camFrame
+//{
+//	float FrontX;
+//	float FrontY;
+//	float FrontZ;
+//	float FrontW;
+//	float UpX;
+//	float UpY;
+//	float UpZ;
+//	float UpW;
+//	int8_t gap0[32];
+//	int32_t PositionX;
+//	int32_t PositionY;
+//	int32_t PositionZ;
+//	int32_t PositionW;
+//	int32_t dword50;
+//	int32_t dword54;
+//	int32_t dword58;
+//	int32_t dword5C;
+//	int64_t qword60;
+//	int64_t qword68;
+//	float float70;
+//	float float74;
+//	int32_t dword78;
+//	int32_t dword7C;
+//	float float80;
+//	int32_t dword84;
+//	int32_t dword88;
+//	int32_t dword8C;
+//	int32_t dword90;
+//	int32_t dword94;
+//	int32_t dword98;
+//	int32_t dword9C;
+//	int32_t dwordA0;
+//	int32_t dwordA4;
+//	int32_t dwordA8;
+//	int32_t dwordAC;
+//	int32_t dwordB0;
+//	int32_t dwordB4;
+//	int32_t dwordB8;
+//	int32_t dwordBC;
+//	int32_t dwordC0;
+//	int32_t dwordC4;
+//	int32_t dwordC8;
+//	int32_t dwordCC;
+//	int8_t wordD0;
+//};
+//
 typedef int64_t _QWORD;
-
-typedef __int64 (*GtaThread__RunScript)(
-	__int64 a1,
-	int a2,
-	const void* a3,
-	int a4);
-
-intptr_t gtaThread__RunScript;
-
-GtaThread__RunScript gimpl_GtaThread__RunScript;
-
-__int64 aimpl_GtaThread__RunScript(
-	__int64 a1,
-	int a2,
-	const void* a3,
-	int a4)
-{
-	g_logger->Log(std::format("GtaThread__RunScript: {:x}, {}, {}, {}", a1, a2, a3, a4));
-	return gimpl_GtaThread__RunScript(a1, a2, a3, a4);
-}
-
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved);
-
-class MovieEntry
-{
-	char pad_01[176];
-	uint _id;
-	char pad_02[4];
-	uintptr_t _fileName;
-	char pad_03[246];
-	uint _state;
-	char pad_04[36];
-
-public:
-	uint GetId()
-	{
-		return _id;
-	}
-
-	const char* GetFileName()
-	{
-		return (const char*)&_fileName;
-	}
-
-	int GetState()
-	{
-		return _state;
-	}
-};
-static_assert(sizeof(MovieEntry) == 480);
-
-class MovieStore
-{
-	MovieEntry* _slots;
-	short _slotCount;
-
-public:
-	MovieEntry* GetSlot(int index)
-	{
-		return &_slots[index];
-	}
-
-	short GetNumSlots()
-	{
-		return _slotCount;
-	}
-
-	// TODO: Hook
-	bool IsSlotActive(int index)
-	{
-		if (index < 0 || index > 50)
-			return false;
-
-		if (index > GetNumSlots())
-			return false;
-
-		return GetSlot(index)->GetState() == 3;
-	}
-};
-
-typedef intptr_t(*GetEntityToQueryFromGUID)(int index);
-
-GetEntityToQueryFromGUID gImpl_GetEntityToQueryFromGUID;
-
-__int64 __fastcall GetEntityFromGUID(int index)
-{
-	__int64 v1; // r8
-	__int64 v2; // rax
-
-	if (index == -1)
-		return 0i64;
-	v1 = (unsigned int)index / 256;
-
-	auto u0 = *(_QWORD*)(0x273A3D80A60 + 8);
-	auto u1 = *(int8_t*)(v1 + u0);
-	g_logger->Log(std::format("{}", u0));
-	g_logger->Log(std::format("{}", u1));
-
-	if (u1 == (int8_t)index)
-	{
-		auto unk1 = *(int*)(0x273A3D80A60 + 20); // 16
-		auto unk2 = (unsigned int)(v1 * unk1);
-		g_logger->Log(std::format("{}", unk2));
-		v2 = *(_QWORD*)0x273A3D80A60 + unk2;
-	}
-	else
-	{
-		return 0;
-	}
-	return *(_QWORD*)(v2 + 8);
-}
+//
+//typedef __int64 (*GtaThread__RunScript)(
+//	__int64 a1,
+//	int a2,
+//	const void* a3,
+//	int a4);
+//
+//intptr_t gtaThread__RunScript;
+//
+//GtaThread__RunScript gimpl_GtaThread__RunScript;
+//
+//__int64 aimpl_GtaThread__RunScript(
+//	__int64 a1,
+//	int a2,
+//	const void* a3,
+//	int a4)
+//{
+//	g_logger->Log(std::format("GtaThread__RunScript: {:x}, {}, {}, {}", a1, a2, a3, a4));
+//	return gimpl_GtaThread__RunScript(a1, a2, a3, a4);
+//}
+//
+//BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved);
+//
+//class MovieEntry
+//{
+//	char pad_01[176];
+//	uint _id;
+//	char pad_02[4];
+//	uintptr_t _fileName;
+//	char pad_03[246];
+//	uint _state;
+//	char pad_04[36];
+//
+//public:
+//	uint GetId()
+//	{
+//		return _id;
+//	}
+//
+//	const char* GetFileName()
+//	{
+//		return (const char*)&_fileName;
+//	}
+//
+//	int GetState()
+//	{
+//		return _state;
+//	}
+//};
+//static_assert(sizeof(MovieEntry) == 480);
+//
+//class MovieStore
+//{
+//	MovieEntry* _slots;
+//	short _slotCount;
+//
+//public:
+//	MovieEntry* GetSlot(int index)
+//	{
+//		return &_slots[index];
+//	}
+//
+//	short GetNumSlots()
+//	{
+//		return _slotCount;
+//	}
+//
+//	// TODO: Hook
+//	bool IsSlotActive(int index)
+//	{
+//		if (index < 0 || index > 50)
+//			return false;
+//
+//		if (index > GetNumSlots())
+//			return false;
+//
+//		return GetSlot(index)->GetState() == 3;
+//	}
+//};
+//
+//typedef intptr_t(*GetEntityToQueryFromGUID)(int index);
+//
+//GetEntityToQueryFromGUID gImpl_GetEntityToQueryFromGUID;
+//
+//__int64 __fastcall GetEntityFromGUID(int index)
+//{
+//	__int64 v1; // r8
+//	__int64 v2; // rax
+//
+//	if (index == -1)
+//		return 0i64;
+//	v1 = (unsigned int)index / 256;
+//
+//	auto u0 = *(_QWORD*)(0x273A3D80A60 + 8);
+//	auto u1 = *(int8_t*)(v1 + u0);
+//	g_logger->Log(std::format("{}", u0));
+//	g_logger->Log(std::format("{}", u1));
+//
+//	if (u1 == (int8_t)index)
+//	{
+//		auto unk1 = *(int*)(0x273A3D80A60 + 20); // 16
+//		auto unk2 = (unsigned int)(v1 * unk1);
+//		g_logger->Log(std::format("{}", unk2));
+//		v2 = *(_QWORD*)0x273A3D80A60 + unk2;
+//	}
+//	else
+//	{
+//		return 0;
+//	}
+//	return *(_QWORD*)(v2 + 8);
+//}
 
 #include "imgui.h"
 
@@ -314,40 +314,40 @@ void Abort()
 	g_hook->UnHookAll();
 	MH_Uninitialize();
 }
-
-#include "Rage/fwFsm.h"
-#include "Rage/CVehicleFactory.h"
-#include "Rage/Pool.h"
+//
+//#include "Rage/fwFsm.h"
+//#include "Rage/CVehicleFactory.h"
+//#include "Rage/Pool.h"
 
 typedef int32_t _DWORD;
 typedef int8_t _BYTE;
 
-class CPed
-{
-public:
-	static CPool* GetPool()
-	{
-		return *reinterpret_cast<CPool**>(0x7FF69F7B12C0);
-	}
-};
+////class CPed
+////{
+////public:
+////	static CPool* GetPool()
+////	{
+////		return *reinterpret_cast<CPool**>(0x7FF69F7B12C0);
+////	}
+////};
 
-
-void DumpPool()
-{
-	const CPool* pool = CPed::GetPool();
-	for (int i = 0; i < pool->GetSize(); i++)
-	{
-		CPed* pPed = pool->GetSlot<CPed>(i);
-
-		if (!pPed)
-			continue;
-
-
-
-		//g_logger->Log(std::format("CPed at slot [{}] : {:X}", i, reinterpret_cast<intptr_t>(pPed)));
-	}
-}
 //
+//void DumpPool()
+//{
+//	const CPool* pool = CPed::GetPool();
+//	for (int i = 0; i < pool->GetSize(); i++)
+//	{
+//		CPed* pPed = pool->GetSlot<CPed>(i);
+//
+//		if (!pPed)
+//			continue;
+//
+//
+//
+//		//g_logger->Log(std::format("CPed at slot [{}] : {:X}", i, reinterpret_cast<intptr_t>(pPed)));
+//	}
+//}
+////
 //typedef __int64(*Crap)(__int64 fileName, __int64 fileName)
 //{
 //	0x7FF69DE56B5C
@@ -387,60 +387,12 @@ struct CExtraContentManager
 };
 
 typedef intptr_t CBaseModelInfo;
-
-constexpr uint16_t hashSetMaxIndex = 65167;
-constexpr uint16_t hashSetSize = 64000;
-
-intptr_t modelKeyHashes = *reinterpret_cast<intptr_t*>(0x7FF69F0BEC20);
-intptr_t modelValues = *reinterpret_cast<intptr_t*>(0x7FF69F0BEBC0);
-
-constexpr uint16_t HASH_INDEX_INVALID = 0xFFFF; // -1
-
-struct atHashKeyEntry
-{
-	uint hash;
-	uint16_t index;
-	atHashKeyEntry* nextEntry;
-};
-
-struct atHashMap
-{
-
-};
-
-CBaseModelInfo* GetBaseModelInfoFromNameHash(uint modelHash, uint16_t* outModelIndex)
-{
-	*outModelIndex = HASH_INDEX_INVALID;
-
-	const uint slotIndex = modelHash % hashSetMaxIndex;
-	const atHashKeyEntry* hashEntry = *reinterpret_cast<atHashKeyEntry**>(modelKeyHashes + sizeof(void*) * slotIndex);
-	while (hashEntry != nullptr)
-	{
-		if (hashEntry->hash == modelHash)
-			break;
-
-		hashEntry = hashEntry->nextEntry;
-	}
-
-	if (hashEntry == nullptr)
-		return nullptr;
-
-	if (hashEntry->index > hashSetSize)
-		return nullptr;
-
-	*outModelIndex = hashEntry->index;
-
-	return *reinterpret_cast<CBaseModelInfo**>(modelValues + sizeof(void*) * hashEntry->index);
-}
-
-intptr_t g_streamingModules = *reinterpret_cast<intptr_t*>(0x7FF6A0052F30);
-intptr_t g_streamingEntryKeys = *reinterpret_cast<intptr_t*>(0x7FF6A0052D60);
-
-enum eEntryFlags
-{
-	MODEL_UNK0 = 0x0,
-	MODEL_LOADED = 0x1,
-};
+//
+//enum eEntryFlags
+//{
+//	MODEL_UNK0 = 0x0,
+//	MODEL_LOADED = 0x1,
+//};
 //
 //struct strStreamingModule
 //{
@@ -454,43 +406,34 @@ enum eEntryFlags
 //	uint32_t flags;
 //};
 
-bool HasModelLoaded(unsigned int hashName)
-{
-	uint16_t modelIndex;
-	const CBaseModelInfo* modelInfo = GetBaseModelInfoFromNameHash(hashName, &modelIndex);
+//bool HasModelLoaded(unsigned int hashName)
+//{
+//	uint16_t modelIndex;
+//	const CBaseModelInfo* modelInfo = GetBaseModelInfoFromNameHash(hashName, &modelIndex);
+//
+//	if (modelInfo && modelIndex != HASH_INDEX_INVALID)
+//	{
+//		//if ((*(modelInfo + 157) & 0x1F) == 2)
+//		//{
+//		//	return true;
+//		//}
+//
+//		//const strStreamingModule* models = GetStreamingModule(STREAMING_MODELS);
+//		//const streamingKeyEntry* modelEntry = GetStreamingKeyEntry(models, modelIndex);
+//
+//		//return (modelEntry->flags & (MODEL_UNK0 | MODEL_LOADED)) == 1;
+//	}
+//	return false;
+//}
+//
+//bool IsModelExists(unsigned int hashName)
+//{
+//	uint16_t modelIndex;
+//	const CBaseModelInfo* modelInfo = GetBaseModelInfoFromNameHash(hashName, &modelIndex);
+//
+//	return modelInfo && modelIndex != HASH_INDEX_INVALID;
+//}
 
-	if (modelInfo && modelIndex != HASH_INDEX_INVALID)
-	{
-		//if ((*(modelInfo + 157) & 0x1F) == 2)
-		//{
-		//	return true;
-		//}
-
-		//const strStreamingModule* models = GetStreamingModule(STREAMING_MODELS);
-		//const streamingKeyEntry* modelEntry = GetStreamingKeyEntry(models, modelIndex);
-
-		//return (modelEntry->flags & (MODEL_UNK0 | MODEL_LOADED)) == 1;
-	}
-	return false;
-}
-
-bool IsModelExists(unsigned int hashName)
-{
-	uint16_t modelIndex;
-	const CBaseModelInfo* modelInfo = GetBaseModelInfoFromNameHash(hashName, &modelIndex);
-
-	return modelInfo && modelIndex != HASH_INDEX_INVALID;
-}
-
-
-
-struct txdStoreEntry
-{
-	intptr_t pgDictionary;
-	int64_t unk0x8;
-	int64_t unk0x10;
-};
-static_assert(sizeof(txdStoreEntry) == 0x18);
 
 //class CTxdStore
 //{
@@ -501,10 +444,19 @@ static_assert(sizeof(txdStoreEntry) == 0x18);
 //	}
 //};
 
+struct txdStoreEntry
+{
+	intptr_t pgDictionary;
+	int64_t unk0x8;
+	int64_t unk0x10;
+};
+static_assert(sizeof(txdStoreEntry) == 0x18);
+
+
 bool logOpen = true;
 bool menuOpen = true;
 PresentImage gimplPresentImage = NULL;
-MovieStore* gPtr_MovieStore;
+//MovieStore* gPtr_MovieStore;
 
 bool init = false;
 float r = 0;
@@ -553,49 +505,114 @@ void InvokeWithExceptionHandler(void* func)
 
 #include "rage/pgDictionary.h"
 
-void ReadTxds()
+//void DrawTextures()
+//{
+//	const auto txdStore = reinterpret_cast<rage::TxdStore*>(rage::strStreamingModuleMgr::GetStreamingModule(rage::STORE_TXD));
+//
+//	g_logger->Log("Texture Dictionaries:");
+//	int countDict = 0;
+//	int countText = 0;
+//	for (int i = 0; i < txdStore->GetSize(); i++)
+//	{
+//		countDict++;
+//
+//		if (!txdStore->IsSlotActive(i))
+//			continue;
+//
+//		const auto value = txdStore->GetSlot(i);
+//
+//		rage::pgDictionary<rage::grcTexture>* dict = value->GetValue();
+//		rage::fwTxdDef def = value->GetKey();
+//
+//		auto dictPtr = reinterpret_cast<intptr_t>(dict);
+//
+//		g_logger->Log(std::format("[{}] at {:X} ({:X}) with {} textures:", i, dictPtr, def.nameHash, dict->GetCount()));
+//
+//		for (int k = 0; k < dict->GetCount(); k++)
+//		{
+//			countText++;
+//
+//			rage::grcTexture* texture = dict->GetValue(k);
+//
+//			const char* name = texture->GetName();
+//			auto texturePtr = reinterpret_cast<intptr_t>(texture);
+//
+//			g_logger->Log(std::format(" - [{}] at {:X} - {}", k, texturePtr, name));
+//
+//			auto shaderResourceView = texture->GetShaderResourceView();
+//			if(shaderResourceView)
+//			{
+//				ImGui::Image(ImTextureID(shaderResourceView), ImVec2(texture->GetWidth() / 2, texture->GetHeight() / 2));
+//			}
+//		}
+//
+//		break;
+//	}
+//
+//	g_logger->Log(std::format("{} dictionaries total, {} textures.", countDict, countText));
+//}
+rage::strStreamingModuleMgr* streamingMgr;
+rage::TxdStore* txdStore;
+void DrawDictionary(int index)
 {
-	const auto txdStore = reinterpret_cast<rage::TxdStore*>(rage::strStreamingModuleMgr::GetStreamingModule(rage::STORE_TXD));
+	if (!txdStore->IsSlotActive(index))
+		return;
 
-	g_logger->Log("Texture Dictionaries:");
-	int countDict = 0;
-	int countText = 0;
-	for (int i = 0; i < txdStore->GetSize(); i++)
+	const auto value = txdStore->GetSlot(index);
+
+	rage::pgDictionary<rage::grcTexture>* dict = value->GetValue();
+	rage::fwTxdDef def = value->GetKey();
+
+	auto dictPtr = reinterpret_cast<intptr_t>(dict);
+
+	for (int k = 0; k < dict->GetCount(); k++)
 	{
-		countDict++;
+		rage::grcTexture* texture = dict->GetValue(k);
 
-		if (!txdStore->IsSlotActive(i))
-			continue;
+		const char* name = texture->GetName();
+		auto texturePtr = reinterpret_cast<intptr_t>(texture);
 
-		const auto value = txdStore->GetSlot(i);
+		float windowX = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+		ImGuiStyle& style = ImGui::GetStyle();
 
-		rage::pgDictionary<rage::grcTexture>* dict = value->GetValue();
-		rage::fwTxdDef def = value->GetKey();
-
-		auto dictPtr = reinterpret_cast<intptr_t>(dict);
-
-		g_logger->Log(std::format("[{}] at {:X} ({:X}) with {} textures:", i, dictPtr, def.nameHash, dict->GetCount()));
-
-		for (int k = 0; k < dict->GetCount(); k++)
+		auto shaderResourceView = texture->GetShaderResourceView();
+		if (shaderResourceView)
 		{
-			countText++;
+			int width = 100;
+			float factor = (float)texture->GetWidth() / width;
 
-			rage::grcTexture* texture = dict->GetValue(k);
+			float lastImageX = ImGui::GetItemRectMax().x;
+			float nextX = lastImageX + style.ItemSpacing.x + width;
+			if (nextX < windowX)
+				ImGui::SameLine();
 
-			const char* name = texture->GetName();
-			auto texturePtr = reinterpret_cast<intptr_t>(texture);
-
-			g_logger->Log(std::format(" - [{}] at {:X} - {}", k, texturePtr, name));
+			ImGui::Image(ImTextureID(shaderResourceView), ImVec2(width, (float)texture->GetHeight() / factor));
 		}
 	}
+}
 
-	g_logger->Log(std::format("{} dictionaries total, {} textures.", countDict, countText));
+int dictionary = 0;
+int textureDrawMode = 0;
+char inputName[64] = "";
+
+uint32_t atHash(const char* str) {
+	size_t i = 0;
+	uint32_t hash = 0;
+	while (str[i] != '\0') {
+		hash += str[i++];
+		hash += hash << 10;
+		hash ^= hash >> 6;
+	}
+	hash += hash << 3;
+	hash ^= hash >> 11;
+	hash += hash << 15;
+	return hash;
 }
 
 void OnPresentImage()
 {
-	if (menuOpen)
-		PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
+	//if (menuOpen)
+	//	PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
 
 	if (IsKeyJustUp(VK_SCROLL))
 		menuOpen = !menuOpen;
@@ -613,7 +630,34 @@ void OnPresentImage()
 			ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
 			//ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
 
+			const char* items[] = { "Name", "ID" };
+			ImGui::Combo("Mode", &textureDrawMode, items, IM_ARRAYSIZE(items));
 
+			switch (textureDrawMode)
+			{
+			case 0:
+			{
+				ImGui::InputText("Name", inputName, IM_ARRAYSIZE(inputName));
+
+				int index;
+				txdStore->FindSlotByHashKey(index, atHash(inputName));
+				if (index != -1)
+					DrawDictionary(index);
+				break;
+			}
+			case 1:
+			{
+				if (ImGui::Button("<"))
+					dictionary++;
+
+				ImGui::SameLine();
+				if (ImGui::Button(">"))
+					dictionary++;
+
+				DrawDictionary(dictionary);
+				break;
+			}
+			}
 
 			//if (ImGui::TreeNode("Action Movies"))
 			//{
@@ -660,226 +704,226 @@ _QWORD aimplPresentImage()
 	InvokeWithExceptionHandler(OnPresentImage);
 
 
-	if (IsKeyJustUp(VK_F9))
-	{
-		float pos[] = { -74.0f, 0.0f, -820.0f, 0.0f, 327.0f };
-		rage::aImpl_CreateVehicleCommand(0xB779A091, pos, 0, true, false, false);
-		g_logger->Log("Spawning vehicle...");
-	}
+	//if (IsKeyJustUp(VK_F9))
+	//{
+	//	float pos[] = { -74.0f, 0.0f, -820.0f, 0.0f, 327.0f };
+	//	rage::aImpl_CreateVehicleCommand(0xB779A091, pos, 0, true, false, false);
+	//	g_logger->Log("Spawning vehicle...");
+	//}
 
-	if (IsKeyJustUp(VK_SCROLL) && false)
-	{
-		//ReadTextureDictionaries();
-		InvokeWithExceptionHandler(ReadTxds);
+	//if (IsKeyJustUp(VK_SCROLL) && false)
+	//{
+	//	//ReadTextureDictionaries();
+	//	//InvokeWithExceptionHandler(ReadTxds);
 
-		return gimplPresentImage();
+	//	return gimplPresentImage();
 
 
-		const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
+	//	const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
 
-		gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
+	//	gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
 
-		g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
-		//invoke<Void>(0x16C2C89DF3A1E544, vehicle, 1.0f);
+	//	g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
+	//	//invoke<Void>(0x16C2C89DF3A1E544, vehicle, 1.0f);
 
 
 
-		CExtraContentManager* contentMgr = *(CExtraContentManager**)(0x7FF69F176D40);
+	//	CExtraContentManager* contentMgr = *(CExtraContentManager**)(0x7FF69F176D40);
 
-		for (int i = 0; i < LOWORD(contentMgr->numDlc_andWord32); i += 1)
-		{
-			intptr_t dlcPtr = contentMgr->dlcList + 0xF0 * i;
+	//	for (int i = 0; i < LOWORD(contentMgr->numDlc_andWord32); i += 1)
+	//	{
+	//		intptr_t dlcPtr = contentMgr->dlcList + 0xF0 * i;
 
-			const char* dlcName = *reinterpret_cast<const char**>(dlcPtr + 0x30);
-			const char* createDate = *reinterpret_cast<const char**>(dlcPtr + 0x50);
-			const char* rpfPath = *reinterpret_cast<const char**>(dlcPtr + 0xB8);
-			uint dlcHash = *reinterpret_cast<uint*>(dlcPtr + 0x60);
+	//		const char* dlcName = *reinterpret_cast<const char**>(dlcPtr + 0x30);
+	//		const char* createDate = *reinterpret_cast<const char**>(dlcPtr + 0x50);
+	//		const char* rpfPath = *reinterpret_cast<const char**>(dlcPtr + 0xB8);
+	//		uint dlcHash = *reinterpret_cast<uint*>(dlcPtr + 0x60);
 
-			//g_logger->Log(std::format("[{}] DLC : {:X} Hash: {:X} Name: {}", i, dlcPtr, dlcHash, dlcName));
-		}
+	//		//g_logger->Log(std::format("[{}] DLC : {:X} Hash: {:X} Name: {}", i, dlcPtr, dlcHash, dlcName));
+	//	}
 
 
-		uint16_t index = HASH_INDEX_INVALID;
+	//	//uint16_t index = HASH_INDEX_INVALID;
 
-		uint bmx = 0x43779C54;
-		uint adder = 0xB779A091;
+	//	//uint bmx = 0x43779C54;
+	//	//uint adder = 0xB779A091;
 
-		g_logger->Log(std::format("GetBaseModelInfoFromNameHash: {:X} , {:X}", (intptr_t)GetBaseModelInfoFromNameHash(bmx, &index), index));
-		g_logger->Log(std::format("HasModelLoaded(adder): {}", HasModelLoaded(adder)));
-		g_logger->Log(std::format("HasModelLoaded(0x0): {}", HasModelLoaded(0x0)));
+	//	//g_logger->Log(std::format("GetBaseModelInfoFromNameHash: {:X} , {:X}", (intptr_t)GetBaseModelInfoFromNameHash(bmx, &index), index));
+	//	//g_logger->Log(std::format("HasModelLoaded(adder): {}", HasModelLoaded(adder)));
+	//	//g_logger->Log(std::format("HasModelLoaded(0x0): {}", HasModelLoaded(0x0)));
 
 
-		const auto outVector = new float[10] {};
+	//	const auto outVector = new float[10] {};
 
-		intptr_t texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("vehshare", "plate01");
-		g_logger->Log(std::format("Texture Ptr: {:X}", texture));
+	//	intptr_t texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("vehshare", "plate01");
+	//	g_logger->Log(std::format("Texture Ptr: {:X}", texture));
 
-		texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("blimp", "blimp_sign_1");
-		g_logger->Log(std::format("Texture Ptr: {:X}", texture));
+	//	texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("blimp", "blimp_sign_1");
+	//	g_logger->Log(std::format("Texture Ptr: {:X}", texture));
 
-		reinterpret_cast<void(*)(float*, const char*, const char*)>(0x7FF69DBC0010)(outVector, "adder", "adder_badges");
+	//	reinterpret_cast<void(*)(float*, const char*, const char*)>(0x7FF69DBC0010)(outVector, "adder", "adder_badges");
 
-		float x = outVector[0];
-		float y = outVector[1];
-		float z = outVector[2];
+	//	float x = outVector[0];
+	//	float y = outVector[1];
+	//	float z = outVector[2];
 
-		delete outVector;
+	//	delete outVector;
 
-		//sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&txd);
+	//	//sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&txd);
 
-		auto device = *(ID3D11Device**)(0x7ff69fea1c48);
-		auto devcon = *(ID3D11DeviceContext**)(0x7ff69fea1c50);
+	//	auto device = *(ID3D11Device**)(0x7ff69fea1c48);
+	//	auto devcon = *(ID3D11DeviceContext**)(0x7ff69fea1c50);
 
-		ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
+	//	ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
 
-		D3D11_TEXTURE2D_DESC desc{};
-		txd->GetDesc(&desc);
+	//	D3D11_TEXTURE2D_DESC desc{};
+	//	txd->GetDesc(&desc);
 
-		if (txd)
-		{
-			//g_logger->Log(std::format("{:X}", (intptr_t)txd));
+	//	if (txd)
+	//	{
+	//		//g_logger->Log(std::format("{:X}", (intptr_t)txd));
 
-			ID3D11RenderTargetView* backbuffer;
-			//HRESULT hResult = (Id3d) //device->CreateRenderTargetView(txd, NULL, &backbuffer);
+	//		ID3D11RenderTargetView* backbuffer;
+	//		//HRESULT hResult = (Id3d) //device->CreateRenderTargetView(txd, NULL, &backbuffer);
 
-			//g_logger->Log(std::format("hresult: {:X}", (uint)hResult));
+	//		//g_logger->Log(std::format("hresult: {:X}", (uint)hResult));
 
 
 
 
 
-			//backbuffer = *(ID3D11RenderTargetView**)(texture + 0x78);
+	//		//backbuffer = *(ID3D11RenderTargetView**)(texture + 0x78);
 
-			//D3D11_RENDER_TARGET_VIEW_DESC desc2{};
-			//backbuffer->GetDesc(&desc2);
+	//		//D3D11_RENDER_TARGET_VIEW_DESC desc2{};
+	//		//backbuffer->GetDesc(&desc2);
 
 
 
 
-			//auto b = *(ID3D11ShaderResourceView**)(texture + 0x78);
-			//D3D11_SHADER_RESOURCE_VIEW_DESC desc;
-			//b->GetDesc(&desc);
+	//		//auto b = *(ID3D11ShaderResourceView**)(texture + 0x78);
+	//		//D3D11_SHADER_RESOURCE_VIEW_DESC desc;
+	//		//b->GetDesc(&desc);
 
-			//g_logger->Log("CRAP");
+	//		//g_logger->Log("CRAP");
 
 
 
-			//auto devcon = g_gtaDirectX->GetContext();
+	//		//auto devcon = g_gtaDirectX->GetContext();
 
 
-			//// Set the viewport
-			//D3D11_VIEWPORT viewport;
-			//ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
+	//		//// Set the viewport
+	//		//D3D11_VIEWPORT viewport;
+	//		//ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
 
-			//viewport.TopLeftX = 0;
-			//viewport.TopLeftY = 0;
-			//viewport.Width = 800;
-			//viewport.Height = 600;
+	//		//viewport.TopLeftX = 0;
+	//		//viewport.TopLeftY = 0;
+	//		//viewport.Width = 800;
+	//		//viewport.Height = 600;
 
-			//devcon->RSSetViewports(1, &viewport);
+	//		//devcon->RSSetViewports(1, &viewport);
 
-			//devcon->OMSetRenderTargets(1, &backbuffer, NULL);
+	//		//devcon->OMSetRenderTargets(1, &backbuffer, NULL);
 
 
 
 
-			//float color[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
+	//		//float color[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
 
-			//devcon->ClearRenderTargetView(backbuffer, color);
+	//		//devcon->ClearRenderTargetView(backbuffer, color);
 
 
 
 
-			//backbuffer->Release();
-		}
+	//		//backbuffer->Release();
+	//	}
 
-	}
-	auto texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("blimp", "blimp_sign_1");
-	auto device = *(ID3D11Device**)(0x7ff69fea1c48);
-	auto devcon = *(ID3D11DeviceContext**)(0x7ff69fea1c50);
+	//}
+	//auto texture = reinterpret_cast<intptr_t(*)(const char*, const char*)>(0x7FF69DBD1FFC)("blimp", "blimp_sign_1");
+	//auto device = *(ID3D11Device**)(0x7ff69fea1c48);
+	//auto devcon = *(ID3D11DeviceContext**)(0x7ff69fea1c50);
 
-	if (!init)
-	{
-		init = true;
+	//if (!init)
+	//{
+	//	init = true;
 
 
 
 
-		D3D11_TEXTURE2D_DESC textureDesc;
-		ZeroMemory(&textureDesc, sizeof(textureDesc));
+	//	D3D11_TEXTURE2D_DESC textureDesc;
+	//	ZeroMemory(&textureDesc, sizeof(textureDesc));
 
-		textureDesc.Width = 512;
-		textureDesc.Height = 512;
-		textureDesc.MipLevels = 1;
-		textureDesc.ArraySize = 1;
-		textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		textureDesc.SampleDesc.Count = 1;
-		textureDesc.Usage = D3D11_USAGE_DEFAULT;
-		textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-		textureDesc.CPUAccessFlags = 0;
-		textureDesc.MiscFlags = 0;
+	//	textureDesc.Width = 512;
+	//	textureDesc.Height = 512;
+	//	textureDesc.MipLevels = 1;
+	//	textureDesc.ArraySize = 1;
+	//	textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	//	textureDesc.SampleDesc.Count = 1;
+	//	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	//	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	//	textureDesc.CPUAccessFlags = 0;
+	//	textureDesc.MiscFlags = 0;
 
 
-		device->CreateTexture2D(&textureDesc, NULL, &refTex);
+	//	device->CreateTexture2D(&textureDesc, NULL, &refTex);
 
 
 
 
 
-		//DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/gray.dds", &refTex, &refRes);
+	//	//DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/gray.dds", &refTex, &refRes);
 
 
 
 
 
-		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-		renderTargetViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-		renderTargetViewDesc.Texture2D.MipSlice = 0;
+	//	D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+	//	renderTargetViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	//	renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	//	renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-		device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);
+	//	device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
-		shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-		shaderResourceViewDesc.Texture2D.MipLevels = 1;
+	//	D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+	//	shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	//	shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	//	shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+	//	shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
-		device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
-	}
+	//	device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
+	//}
 
-	if (texture)
-	{
-		// ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
+	//if (texture)
+	//{
+	//	// ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
 
 
 
-		r += 0.005f;
-		g += 0.008f;
-		b += 0.002f;
+	//	r += 0.005f;
+	//	g += 0.008f;
+	//	b += 0.002f;
 
-		if (r > 1.0f)
-			r = 0.4f;
+	//	if (r > 1.0f)
+	//		r = 0.4f;
 
-		if (g > 1.0f)
-			g = 0.4f;
+	//	if (g > 1.0f)
+	//		g = 0.4f;
 
-		if (b > 1.0f)
-			b = 0.4f;
+	//	if (b > 1.0f)
+	//		b = 0.4f;
 
-		devcon->OMSetRenderTargets(1, &refRen, NULL);
-		float ClearColor[4] = { r, g, b, 1.0f };
-		devcon->ClearRenderTargetView(refRen, ClearColor);
+	//	devcon->OMSetRenderTargets(1, &refRen, NULL);
+	//	float ClearColor[4] = { r, g, b, 1.0f };
+	//	devcon->ClearRenderTargetView(refRen, ClearColor);
 
-		//* (ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
-		//*(ID3D11ShaderResourceView**)(texture + 0x78) = refRes;
-	}
+	//	//* (ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
+	//	//*(ID3D11ShaderResourceView**)(texture + 0x78) = refRes;
+	//}
 
 
-	//DumpPool();
+	////DumpPool();
 
-	reinterpret_cast<void (*)(Vector3, Vector3, int, int, int, int)>(0x7FF69DBBB3D8)(
-		Vector3(0, 0, 0, 0, 0, 0), Vector3(0, 0, 0, 0, 1000, 0), 255, 255, 255, 255);
+	//reinterpret_cast<void (*)(Vector3, Vector3, int, int, int, int)>(0x7FF69DBBB3D8)(
+	//	Vector3(0, 0, 0, 0, 0, 0), Vector3(0, 0, 0, 0, 1000, 0), 255, 255, 255, 255);
 
 	return gimplPresentImage();
 }
@@ -930,6 +974,18 @@ void Main()
 	g_logger->Log("Scanning patterns...");
 
 	g_componentMgr->RegisterComponents();
+
+
+	intptr_t gPtr_cModelInfo_RequestAssets = g_hook->FindPattern("CModelInfo::RequestAssets", "8B 01 B9 FF FF 00 00 44 8B C2 23 C1 3B C1 75 07");
+	intptr_t gPtr_streaming = g_hook->FindOffset("CModelInfo::RequestAssets_gStreaming", gPtr_cModelInfo_RequestAssets + 0x33 + 0x3);
+	//streamingMgr = streaming->GetStreamingModuleMgr();
+	//g_logger->Log(std::format("StreamingMgr: {:X}", (intptr_t)streamingMgr));
+
+
+	streamingMgr = (rage::strStreamingModuleMgr*)(gPtr_streaming + 0x1B8);
+	txdStore = reinterpret_cast<rage::TxdStore*>(streamingMgr->GetStreamingModule(rage::STORE_TXD));
+
+
 
 	g_imgui->Init(g_gtaWindow->GetHwnd());
 
@@ -1171,76 +1227,75 @@ void Main()
 
 	//g_logger->Log(std::format("missions: {} reused: {} reuse_pool: {}", ped_missions, ped_reused, ped_reuse_pool));
 
-	gimpl_WriteDebugStateToFile(L"victor.txt");
+	//gimpl_WriteDebugStateToFile(L"victor.txt");
 
-	// Main loop
-	while (true)
-	{
-		if (IsKeyJustUp(VK_F9))
-		{
-			*(bool*)isDebugPaused = !*(bool*)isDebugPaused;
-			gimpl_WriteDebugStateToFile(L"victor.txt");
-		}
+	//// Main loop
+	//while (true)
+	//{
+	//	if (IsKeyJustUp(VK_F9))
+	//	{
+	//		*(bool*)isDebugPaused = !*(bool*)isDebugPaused;
+	//		gimpl_WriteDebugStateToFile(L"victor.txt");
+	//	}
 
-		//auto camFrameP = (camFrame*)0x7FF66AF80750;
-		//auto camFrameA = (intptr_t)0x7FF66AF80750;
+	//	//auto camFrameP = (camFrame*)0x7FF66AF80750;
+	//	//auto camFrameA = (intptr_t)0x7FF66AF80750;
 
-		//Vector3 pos = ENTITY::GET_ENTITY_COORDS(PLAYER::GET_PLAYER_PED(0), true);
-		//ENTITY::SET_ENTITY_ALPHA(PLAYER::GET_PLAYER_PED(0), 100, false);
+	//	//Vector3 pos = ENTITY::GET_ENTITY_COORDS(PLAYER::GET_PLAYER_PED(0), true);
+	//	//ENTITY::SET_ENTITY_ALPHA(PLAYER::GET_PLAYER_PED(0), 100, false);
 
-		//// Front
-		//float f_x = pos.x + camFrameP->FrontX;// *(float*)(camFrameA + 0) * 5;
-		//float f_y = pos.y + camFrameP->FrontY;// *(float*)(camFrameA + 4) * 5;
-		//float f_z = pos.z + camFrameP->FrontZ;// *(float*)(camFrameA + 8) * 5;
+	//	//// Front
+	//	//float f_x = pos.x + camFrameP->FrontX;// *(float*)(camFrameA + 0) * 5;
+	//	//float f_y = pos.y + camFrameP->FrontY;// *(float*)(camFrameA + 4) * 5;
+	//	//float f_z = pos.z + camFrameP->FrontZ;// *(float*)(camFrameA + 8) * 5;
 
-		//// Up
-		//float u_x = pos.x + camFrameP->UpX;// *(float*)(camFrameA + 16) * 1;
-		//float u_y = pos.y + camFrameP->UpY;// *(float*)(camFrameA + 20) * 1;
-		//float u_z = pos.z + camFrameP->UpZ;// *(float*)(camFrameA + 24) * 1;
+	//	//// Up
+	//	//float u_x = pos.x + camFrameP->UpX;// *(float*)(camFrameA + 16) * 1;
+	//	//float u_y = pos.y + camFrameP->UpY;// *(float*)(camFrameA + 20) * 1;
+	//	//float u_z = pos.z + camFrameP->UpZ;// *(float*)(camFrameA + 24) * 1;
 
-		//GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, f_x, f_y, f_z, 255, 255, 255, 255);
-		//GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, u_x, u_y, u_z, 255, 255, 255, 255);
+	//	//GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, f_x, f_y, f_z, 255, 255, 255, 255);
+	//	//GRAPHICS::DRAW_LINE(pos.x, pos.y, pos.z, u_x, u_y, u_z, 255, 255, 255, 255);
 
-		//if (*(bool*)isDebugPaused)
-		//{
-		//	float moveVertical = 0.0f;
-		//	float moveHorizontal = 0.0f;
+	//	//if (*(bool*)isDebugPaused)
+	//	//{
+	//	//	float moveVertical = 0.0f;
+	//	//	float moveHorizontal = 0.0f;
 
-		//	moveVertical += IsKeyDown(0x57) ? 1 : 0;
-		//	moveVertical -= IsKeyDown(0x53) ? 1 : 0;
-		//	moveHorizontal += IsKeyDown(0x41) ? 1 : 0;
-		//	moveHorizontal -= IsKeyDown(0x44) ? 1 : 0;
+	//	//	moveVertical += IsKeyDown(0x57) ? 1 : 0;
+	//	//	moveVertical -= IsKeyDown(0x53) ? 1 : 0;
+	//	//	moveHorizontal += IsKeyDown(0x41) ? 1 : 0;
+	//	//	moveHorizontal -= IsKeyDown(0x44) ? 1 : 0;
 
-		//	float dt = SYSTEM::TIMESTEP();
-		//	if (moveHorizontal != 0.0f || moveVertical != 0.0f)
-		//	{
-		//		float length = 1 / sqrt(moveVertical * moveVertical + moveHorizontal * moveHorizontal);
-		//		moveVertical *= length;
-		//		moveHorizontal *= length;
+	//	//	float dt = SYSTEM::TIMESTEP();
+	//	//	if (moveHorizontal != 0.0f || moveVertical != 0.0f)
+	//	//	{
+	//	//		float length = 1 / sqrt(moveVertical * moveVertical + moveHorizontal * moveHorizontal);
+	//	//		moveVertical *= length;
+	//	//		moveHorizontal *= length;
 
-		//		moveVertical *= dt;
-		//		moveHorizontal *= dt;
+	//	//		moveVertical *= dt;
+	//	//		moveHorizontal *= dt;
 
-		//		cam_x += moveHorizontal * 50;
-		//		cam_y += moveVertical * 50;
-		//	}
+	//	//		cam_x += moveHorizontal * 50;
+	//	//		cam_y += moveVertical * 50;
+	//	//	}
 
-		//	cam_z += IsKeyDown(VK_SPACE) ? dt * 50 : 0.0f;
-		//	cam_z -= IsKeyDown(VK_CONTROL) ? dt * 50 : 0.0f;
-		//}
+	//	//	cam_z += IsKeyDown(VK_SPACE) ? dt * 50 : 0.0f;
+	//	//	cam_z -= IsKeyDown(VK_CONTROL) ? dt * 50 : 0.0f;
+	//	//}
 
-		//if(IsKeyJustUp(VK_SCROLL))
-		//{
-		//	gimpl_WriteDebugStateToFile(L"victor.txt");
-		//}
+	//	//if(IsKeyJustUp(VK_SCROLL))
+	//	//{
+	//	//	gimpl_WriteDebugStateToFile(L"victor.txt");
+	//	//}
 
-		WAIT(0);
-	}
+	//	WAIT(0);
+	//}
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
-
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
