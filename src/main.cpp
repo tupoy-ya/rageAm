@@ -1,5 +1,4 @@
-﻿#define BOOST_STACKTRACE_USE_NOOP
-
+﻿
 #include "main.h"
 #include <Windows.h>
 #include <fstream>
@@ -16,9 +15,9 @@
 #include "../vendor/scripthook/include/natives.h"
 #include "../vendor/scripthook/include/types.h"
 #include "../vendor/scripthook/include/enums.h"
-#include <boost/stacktrace/stacktrace.hpp>
 
 #include <d3d11.h>
+#include <sstream>
 
 #include "ComponentMgr.h"
 
@@ -318,16 +317,10 @@ void Abort()
 
 #include "Rage/fwFsm.h"
 #include "Rage/CVehicleFactory.h"
-
-enum ePoolFlags
-{
-	POOL_ACTIVE = 0x2,
-};
+#include "Rage/Pool.h"
 
 typedef int32_t _DWORD;
 typedef int8_t _BYTE;
-
-class CPool;
 
 class CPed
 {
@@ -338,52 +331,6 @@ public:
 	}
 };
 
-class __declspec(align(8)) CPool
-{
-	intptr_t _entryList;
-	intptr_t _flagsList;
-	_DWORD _poolSize;
-	int64_t _sizeOfEntry;
-	_BYTE gap18[8];
-	_DWORD dword20;
-
-public:
-	uint8_t GetSlotFlags(int index) const
-	{
-		return *reinterpret_cast<uint8_t*>(_flagsList + index);
-	}
-
-	int GetSize() const
-	{
-		return _poolSize;
-	}
-
-	bool IsSlotActive(int index) const
-	{
-		return GetSlotFlags(index) & POOL_ACTIVE;
-	}
-
-	int GetNumActiveSlots() const
-	{
-		int count = 0;
-		for (int i = 0; i < GetSize(); i++)
-		{
-			if (!IsSlotActive(i))
-				continue;
-			count++;
-		}
-		return count;
-	}
-
-	template<typename T>
-	T* GetSlot(int index) const
-	{
-		if (!IsSlotActive(index))
-			return nullptr;
-
-		return reinterpret_cast<T*>(_entryList + _sizeOfEntry * index);
-	}
-};
 
 void DumpPool()
 {
@@ -401,7 +348,7 @@ void DumpPool()
 	}
 }
 //
-//typedef __int64(*Crap)(__int64 a2, __int64 a2)
+//typedef __int64(*Crap)(__int64 fileName, __int64 fileName)
 //{
 //	0x7FF69DE56B5C
 //}
@@ -489,40 +436,23 @@ CBaseModelInfo* GetBaseModelInfoFromNameHash(uint modelHash, uint16_t* outModelI
 intptr_t g_streamingModules = *reinterpret_cast<intptr_t*>(0x7FF6A0052F30);
 intptr_t g_streamingEntryKeys = *reinterpret_cast<intptr_t*>(0x7FF6A0052D60);
 
-enum eStreamingModule
-{
-	STREAMING_MODELS = 0x15,
-};
-
 enum eEntryFlags
 {
 	MODEL_UNK0 = 0x0,
 	MODEL_LOADED = 0x1,
 };
-
-struct strStreamingModule
-{
-	intptr_t vftable;
-	uint32_t keysOffset;
-};
-
-struct streamingKeyEntry
-{
-	uint32_t unk0;
-	uint32_t flags;
-};
-
-strStreamingModule* GetStreamingModule(const eStreamingModule module)
-{
-	return *reinterpret_cast<strStreamingModule**>(
-		g_streamingModules + sizeof(void*) * static_cast<int>(module));
-}
-
-streamingKeyEntry* GetStreamingKeyEntry(const strStreamingModule* streamingModule, uint32_t index)
-{
-	return reinterpret_cast<streamingKeyEntry*>(
-		g_streamingEntryKeys + sizeof(void*) * (streamingModule->keysOffset + static_cast<uint64_t>(index)));
-}
+//
+//struct strStreamingModule
+//{
+//	intptr_t vftable;
+//	uint32_t keysOffset;
+//};
+//
+//struct streamingKeyEntry
+//{
+//	uint32_t unk0;
+//	uint32_t flags;
+//};
 
 bool HasModelLoaded(unsigned int hashName)
 {
@@ -536,10 +466,10 @@ bool HasModelLoaded(unsigned int hashName)
 		//	return true;
 		//}
 
-		const strStreamingModule* models = GetStreamingModule(STREAMING_MODELS);
-		const streamingKeyEntry* modelEntry = GetStreamingKeyEntry(models, modelIndex);
+		//const strStreamingModule* models = GetStreamingModule(STREAMING_MODELS);
+		//const streamingKeyEntry* modelEntry = GetStreamingKeyEntry(models, modelIndex);
 
-		return (modelEntry->flags & (MODEL_UNK0 | MODEL_LOADED)) == 1;
+		//return (modelEntry->flags & (MODEL_UNK0 | MODEL_LOADED)) == 1;
 	}
 	return false;
 }
@@ -562,14 +492,14 @@ struct txdStoreEntry
 };
 static_assert(sizeof(txdStoreEntry) == 0x18);
 
-class CTxdStore
-{
-public:
-	static CPool* GetPool()
-	{
-		return *reinterpret_cast<CPool**>(0x7FF6A010E428);
-	}
-};
+//class CTxdStore
+//{
+//public:
+//	static CPool* GetPool()
+//	{
+//		return *reinterpret_cast<CPool**>(0x7FF6A010E428);
+//	}
+//};
 
 bool logOpen = true;
 bool menuOpen = true;
@@ -587,6 +517,100 @@ ID3D11RenderTargetView* refRen;
 ID3D11ShaderResourceView* refRes;
 
 #include "../vendor/directxtk/include/DDSTextureLoader.h"
+#include "Rage/Streaming.h"
+
+#define BOOST_STACKTRACE_USE_BACKTRACE
+#include <boost/stacktrace.hpp>
+#include <strstream>
+
+void LogStackTrace()
+{
+	std::stringstream ss;
+	ss << boost::stacktrace::stacktrace();
+	g_logger->Log(ss.str());
+}
+
+void OnException()
+{
+	g_logger->Log(std::format("Exception occurred. Stack Trace:"));
+	LogStackTrace();
+}
+
+//void ReadTextureDictionaries()
+//{
+//	__try
+//	{
+//		CrapImpl();
+//	}
+//	__except (EXCEPTION_EXECUTE_HANDLER)
+//	{
+//		OnException();
+//	}
+//}
+
+#include <functional>
+
+void InvokeWithExceptionHandler(void* func)
+{
+	__try
+	{
+		static_cast<void(*)()>(func)();
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		OnException();
+	}
+}
+
+struct pgDictionary
+{
+	_QWORD vftable;
+	_BYTE gap8[8];
+	_QWORD qword10;
+	_DWORD dword18;
+	_BYTE gap1C[4];
+	_QWORD qword20;
+	int16_t count;
+	int16_t word2A;
+	_BYTE gap2C[4];
+	_QWORD array;
+	_DWORD dword38;
+};
+
+void ReadTxds()
+{
+	const auto txdStore = reinterpret_cast<rage::fwAssetStore<intptr_t>*>(rage::strStreamingModuleMgr::GetStreamingModule(rage::STORE_TXD));
+	const auto pool = txdStore->GetPool();
+	for (int i = 0; i < pool.GetSize(); i++)
+	{
+		bool isNotActive = (~((*(int8_t*)(txdStore->pool._flagsList + i) & 128 | 
+			-(*(int8_t*)(txdStore->pool._flagsList + i) & 128)) >> 63) & (txdStore->pool._entryList + i * txdStore->pool._sizeOfEntry)) == 0;
+
+		if (!pool.IsSlotActive(i) || isNotActive)
+			continue;
+
+		intptr_t dictPtr = pool.GetSlotPtr(i);
+		//pgDictionary* dict = pool.GetSlot<pgDictionary>(i);
+
+		//if (dict)
+		g_logger->Log(std::format("[{}] at {:X}", i, dictPtr));
+
+		/*int16_t numTextures = *(int16_t*)dict + 0x28;
+		intptr_t* textures = *(intptr_t**)dict + 0x30;
+
+		g_logger->Log(std::format("{} textures:", numTextures));*/
+
+		//for (int k = 0; k < numTextures; k++)
+		//{
+		//	const char* name = *(const char**)(k + 0x28);
+		//	g_logger->Log(std::format(" - [{}]: {}", k, name));
+		//}
+
+
+		if (i > 5)
+			break;
+	}
+}
 
 _QWORD aimplPresentImage()
 {
@@ -654,6 +678,11 @@ _QWORD aimplPresentImage()
 
 	if (IsKeyJustUp(VK_SCROLL))
 	{
+		//ReadTextureDictionaries();
+		InvokeWithExceptionHandler(ReadTxds);
+
+		return gimplPresentImage();
+
 
 		const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
 
@@ -704,15 +733,6 @@ _QWORD aimplPresentImage()
 		float z = outVector[2];
 
 		delete outVector;
-
-		CPool* txds = CTxdStore::GetPool();
-		for (int i = 0; i < txds->GetSize(); i++)
-		{
-			const auto txdEntry = txds->GetSlot<txdStoreEntry>(i);
-
-
-		}
-
 
 		//sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&txd);
 
@@ -787,7 +807,7 @@ _QWORD aimplPresentImage()
 	auto device = *(ID3D11Device**)(0x7ff69fea1c48);
 	auto devcon = *(ID3D11DeviceContext**)(0x7ff69fea1c50);
 
-	if(texture)
+	if (texture)
 	{
 		// ID3D11Texture2D* txd = *(ID3D11Texture2D**)(texture + 0x38);
 
@@ -811,22 +831,22 @@ _QWORD aimplPresentImage()
 
 			//device->CreateTexture2D(&textureDesc, NULL, &refTex);
 
-			DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/rageAm.dds", &refTex, &refRes);
+			DirectX::CreateDDSTextureFromFile(device, L"C:/Users/falco/Desktop/tony.dds", &refTex, &refRes);
 
 			D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
 			renderTargetViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 			renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 			renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-		/*	device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);*/
+			/*	device->CreateRenderTargetView(refTex, &renderTargetViewDesc, &refRen);*/
 
-			//D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
-			//shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			//shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			//shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-			//shaderResourceViewDesc.Texture2D.MipLevels = 1;
+				//D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+				//shaderResourceViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+				//shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+				//shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+				//shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
-			//device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
+				//device->CreateShaderResourceView(refTex, &shaderResourceViewDesc, &refRes);
 		}
 
 		//r += 0.005f;
@@ -846,10 +866,10 @@ _QWORD aimplPresentImage()
 		//float ClearColor[4] = { r, g, b, 1.0f };
 		//devcon->ClearRenderTargetView(refRen, ClearColor);
 
-		*(ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
+		* (ID3D11Texture2D**)(texture + 0x38) = (ID3D11Texture2D*)refTex;
 		*(ID3D11ShaderResourceView**)(texture + 0x78) = refRes;
 	}
-	
+
 
 	//DumpPool();
 
@@ -881,6 +901,20 @@ _QWORD aimplPresentImage()
 typedef uint(*GetHash)(int type, const char* str);
 typedef intptr_t(*GetModelInfo)(int hash);
 
+typedef intptr_t GameBacktraceConfig;
+
+typedef bool (*gDef_GameBacktraceConfig_WriteToFile)(GameBacktraceConfig inst, const WCHAR* fileName);
+
+gDef_GameBacktraceConfig_WriteToFile gImpl_GameBacktraceConfig_WriteToFile;
+
+bool aImpl_GameBacktraceConfig_WriteToFile(GameBacktraceConfig inst, const WCHAR* fileName)
+{
+	g_logger->Log("An unhandled exception occurred in game. Stack trace:");
+	LogStackTrace();
+
+	return gImpl_GameBacktraceConfig_WriteToFile(inst, fileName);
+}
+
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
@@ -894,14 +928,11 @@ void Main()
 
 	g_componentMgr->RegisterComponents();
 
+	intptr_t gPtr_GameBacktraceConfig_WriteToFile = g_hook->FindPattern("GameBacktraceConfig::WriteToFile", "40 53 48 83 EC 30 48 8B CA E8");
+	g_hook->SetHook(gPtr_GameBacktraceConfig_WriteToFile, aImpl_GameBacktraceConfig_WriteToFile, &gImpl_GameBacktraceConfig_WriteToFile);
+
 	//g_logger->Log(std::format("bttf present: {}", reinterpret_cast<bool(*)(int hash)>(0x7FF69DBC1CA0)(0xDE76416E)));
 	//g_logger->Log(std::format("tttf present: {}", reinterpret_cast<bool(*)(int hash)>(0x7FF69DBC1CA0)(0x6C0D278C)));
-
-
-
-
-
-
 
 
 
@@ -1065,22 +1096,22 @@ void Main()
 
 	//g_logger->Log(std::format("Crap1: {:x} Crap2: {:x} Crap3: {} NumPeds: {}", crap1, crap2, crap3, numPeds));
 
-	CPools* pool = *(CPools**)0x7FF66B5112C0;
+	//CPools* pool = *(CPools**)0x7FF66B5112C0;
 
-	auto maxPeds = pool->MaxPeds;
-	auto ped_missions = 0;
-	auto ped_reused = 0;
-	auto ped_reuse_pool = 0;
+	//auto maxPeds = pool->MaxPeds;
+	//auto ped_missions = 0;
+	//auto ped_reused = 0;
+	//auto ped_reuse_pool = 0;
 
-	auto __pedIndex = pool->pbyte8;
-	auto qword0 = pool->qword0;
-	auto pedIterator = (unsigned int)maxPeds;
+	//auto __pedIndex = pool->pbyte8;
+	//auto qword0 = pool->qword0;
+	//auto pedIterator = (unsigned int)maxPeds;
 
-	g_logger->Log(std::format("dword20: {}", pool->dword20));
-	g_logger->Log(std::format("numPeds: {}", 4 * pool->dword20));
-	g_logger->Log(std::format("numPeds: {}", (4 * pool->dword20) >> 2));
-	g_logger->Log(std::format("numPeds: {}", 1073741882 >> 2));
-	g_logger->Log(std::format("_entryList: {:x}", qword0));
+	//g_logger->Log(std::format("dword20: {}", pool->dword20));
+	//g_logger->Log(std::format("numPeds: {}", 4 * pool->dword20));
+	//g_logger->Log(std::format("numPeds: {}", (4 * pool->dword20) >> 2));
+	//g_logger->Log(std::format("numPeds: {}", 1073741882 >> 2));
+	//g_logger->Log(std::format("_entryList: {:x}", qword0));
 
 
 	// From task_commands.cpp
@@ -1094,15 +1125,15 @@ void Main()
 		}
 	*/
 
-	for (int i = 0; i < pedIterator; i++)
-	{
-		auto v31 = *(__pedIndex + i) & 0b10000000;//& POOL_PED; // flag check?
+	//for (int i = 0; i < pedIterator; i++)
+	//{
+	//	auto v31 = *(__pedIndex + i) & 0b10000000;//& POOL_PED; // flag check?
 
-		auto pedPtr = qword0 & ~((v31 | -v31) >> 0x3F);
-		//g_logger->Log(std::format("{} \t {:x}", v31, pedPtr));
-		g_logger->Log(std::format("{} {:x}", *(__pedIndex + i), pedPtr));
-		qword0 += pool->int14;
-	}
+	//	auto pedPtr = qword0 & ~((v31 | -v31) >> 0x3F);
+	//	//g_logger->Log(std::format("{} \t {:x}", v31, pedPtr));
+	//	g_logger->Log(std::format("{} {:x}", *(__pedIndex + i), pedPtr));
+	//	qword0 += pool->int14;
+	//}
 
 	//do                                        // Foreach Ped
 	//{
@@ -1133,7 +1164,7 @@ void Main()
 	//	--pedIterator;
 	//} while (pedIterator);
 
-	g_logger->Log(std::format("missions: {} reused: {} reuse_pool: {}", ped_missions, ped_reused, ped_reuse_pool));
+	//g_logger->Log(std::format("missions: {} reused: {} reuse_pool: {}", ped_missions, ped_reused, ped_reuse_pool));
 
 	gimpl_WriteDebugStateToFile(L"victor.txt");
 

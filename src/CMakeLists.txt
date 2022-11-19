@@ -4,8 +4,9 @@
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})
-set(Boost_USE_STATIC_LIBS OFF) 
-find_package(Boost REQUIRED COMPONENTS stacktrace_noop REQUIRED)
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+find_package(Boost REQUIRED)
 
 # Definde dynamic library
 add_library(rageAm SHARED 
@@ -20,18 +21,23 @@ add_library(rageAm SHARED
     "Graphics/GtaDirectX.h" 
     "Platform/GtaWindow.h" 
     "Rage/fwFsm.h"
-     "Rage/CVehicleFactory.h")
+    "Rage/CVehicleFactory.h"
+    "Rage/Streaming.h"
+    "Rage/Pool.h")
 
 # target_include_directories(rageAm PUBLIC "../vendor/imgui-1.88")
+
+target_include_directories(rageAm PUBLIC ${Boost_INCLUDE_DIRS})
 
 # Link static libraries
 target_link_libraries(rageAm PUBLIC
     "${CMAKE_SOURCE_DIR}/vendor/minhook-1.3.3/lib/libMinHook-x64-v141-md.lib" 
     "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib" 
     "${CMAKE_SOURCE_DIR}/vendor/directxtk/lib/DirectXTK.lib" 
+    "${CMAKE_SOURCE_DIR}/vendor/backtrace/libbacktrace.a" 
     d3d11.lib
     imgui
-    Boost::stacktrace_noop)
+    ${Boost_LIBRARIES})
 
 # Set latest c++ standard
 set_property(TARGET rageAm PROPERTY CXX_STANDARD 20)
