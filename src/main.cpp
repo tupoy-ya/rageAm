@@ -26,76 +26,76 @@
 //typedef bool(*SettingMgr__Save)();
 //typedef bool(*SettingMgr__BeginSave)(uintptr_t a1);
 //
-//typedef int(*WriteDebugStateToFile)(const WCHAR* fileName);
-//typedef int(*WriteDebugState)();
+typedef int(*WriteDebugStateToFile)(const WCHAR* fileName);
+typedef int(*WriteDebugState)();
 //
 //typedef __int64 (*UpdateCamFrame)(intptr_t* frame, __int64 a2, __int64 a3);
 //
 //SettingMgr__Save gimpl_SettingMgr__Save;
-//WriteDebugStateToFile gimpl_WriteDebugStateToFile;
-//WriteDebugStateToFile gimpl_WriteDebugState;
+WriteDebugStateToFile gimpl_WriteDebugStateToFile;
+WriteDebugStateToFile gimpl_WriteDebugState;
 //
 //uintptr_t save;
 //uintptr_t beginSave;
 //uintptr_t beginSave_setting_64;
 //uintptr_t beginSave_settingDump;
 //
-//uintptr_t writeDebugStateToFile;
-//uintptr_t writeDebugState;
-//
-//// Looks like a common structure
-//uintptr_t numFramesRendered;
-//uintptr_t isGamePaused;
-//uintptr_t isDebugPaused;
-//uintptr_t isPausedUnk1;
-//uintptr_t isPausedUnk2;
-//
-//uintptr_t numStreamingRequests;
-//
-//bool IsGamePaused()
-//{
-//	return *(bool*)isDebugPaused ||
-//		*(bool*)isGamePaused ||
-//		*(bool*)isPausedUnk1 ||
-//		*(bool*)isPausedUnk2;
-//}
-//
-//enum GameState
-//{
-//	SystemInit = 0,
-//	GameInit = 1,
-//	GameRunning = 2,
-//	GameShutdown = 3,
-//	SystemShutdown = 4,
-//};
-//
-//struct CApp
-//{
-//	int8_t _gap0[0x10];
-//	int8_t _gameState;
-//
-//	GameState GetGameState()
-//	{
-//		return (GameState)_gameState;
-//	}
-//
-//	std::string GetGameStateStr()
-//	{
-//		// TODO: System init is not really possible to get,
-//		// because game returns it when CGame pointer is set to null,
-//		// meaning this class instance wont exist
-//		switch (_gameState)
-//		{
-//		case 0: return "System Init";
-//		case 1: return "Game Init";
-//		case 2: return "Game Running";
-//		case 3: return "Game ShutDown";
-//		case 4: return "System Shutdown";
-//		}
-//		return "Unknown";
-//	}
-//};
-//
+uintptr_t writeDebugStateToFile;
+uintptr_t writeDebugState;
+
+// Looks like a common structure
+uintptr_t numFramesRendered;
+uintptr_t isGamePaused;
+uintptr_t isDebugPaused;
+uintptr_t isPausedUnk1;
+uintptr_t isPausedUnk2;
+
+uintptr_t numStreamingRequests;
+
+bool IsGamePaused()
+{
+	return *(bool*)isDebugPaused ||
+		*(bool*)isGamePaused ||
+		*(bool*)isPausedUnk1 ||
+		*(bool*)isPausedUnk2;
+}
+
+enum GameState
+{
+	SystemInit = 0,
+	GameInit = 1,
+	GameRunning = 2,
+	GameShutdown = 3,
+	SystemShutdown = 4,
+};
+
+struct CApp
+{
+	int8_t _gap0[0x10];
+	int8_t _gameState;
+
+	GameState GetGameState()
+	{
+		return (GameState)_gameState;
+	}
+
+	std::string GetGameStateStr()
+	{
+		// TODO: System init is not really possible to get,
+		// because game returns it when CGame pointer is set to null,
+		// meaning this class instance wont exist
+		switch (_gameState)
+		{
+		case 0: return "System Init";
+		case 1: return "Game Init";
+		case 2: return "Game Running";
+		case 3: return "Game ShutDown";
+		case 4: return "System Shutdown";
+		}
+		return "Unknown";
+	}
+};
+
 //bool __fastcall aimpl_SettingMgr__BeginSave(uintptr_t a1)
 //{
 //	g_logger->Log(std::format("SettingMgr::Save({:x})", a1));
@@ -214,64 +214,64 @@ typedef int64_t _QWORD;
 //}
 //
 //BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved);
-//
-//class MovieEntry
-//{
-//	char pad_01[176];
-//	uint _id;
-//	char pad_02[4];
-//	uintptr_t _fileName;
-//	char pad_03[246];
-//	uint _state;
-//	char pad_04[36];
-//
-//public:
-//	uint GetId()
-//	{
-//		return _id;
-//	}
-//
-//	const char* GetFileName()
-//	{
-//		return (const char*)&_fileName;
-//	}
-//
-//	int GetState()
-//	{
-//		return _state;
-//	}
-//};
-//static_assert(sizeof(MovieEntry) == 480);
-//
-//class MovieStore
-//{
-//	MovieEntry* _slots;
-//	short _slotCount;
-//
-//public:
-//	MovieEntry* GetSlot(int index)
-//	{
-//		return &_slots[index];
-//	}
-//
-//	short GetNumSlots()
-//	{
-//		return _slotCount;
-//	}
-//
-//	// TODO: Hook
-//	bool IsSlotActive(int index)
-//	{
-//		if (index < 0 || index > 50)
-//			return false;
-//
-//		if (index > GetNumSlots())
-//			return false;
-//
-//		return GetSlot(index)->GetState() == 3;
-//	}
-//};
-//
+
+class MovieEntry
+{
+	char pad_01[176];
+	uint _id;
+	char pad_02[4];
+	uintptr_t _fileName;
+	char pad_03[246];
+	uint _state;
+	char pad_04[36];
+
+public:
+	uint GetId()
+	{
+		return _id;
+	}
+
+	const char* GetFileName()
+	{
+		return (const char*)&_fileName;
+	}
+
+	int GetState()
+	{
+		return _state;
+	}
+};
+static_assert(sizeof(MovieEntry) == 480);
+
+class MovieStore
+{
+	MovieEntry* _slots;
+	short _slotCount;
+
+public:
+	MovieEntry* GetSlot(int index)
+	{
+		return &_slots[index];
+	}
+
+	short GetNumSlots()
+	{
+		return _slotCount;
+	}
+
+	// TODO: Hook
+	bool IsSlotActive(int index)
+	{
+		if (index < 0 || index > 50)
+			return false;
+
+		if (index > GetNumSlots())
+			return false;
+
+		return GetSlot(index)->GetState() == 3;
+	}
+};
+
 //typedef intptr_t(*GetEntityToQueryFromGUID)(int index);
 //
 //GetEntityToQueryFromGUID gImpl_GetEntityToQueryFromGUID;
@@ -456,7 +456,7 @@ static_assert(sizeof(txdStoreEntry) == 0x18);
 bool logOpen = true;
 bool menuOpen = true;
 PresentImage gimplPresentImage = NULL;
-//MovieStore* gPtr_MovieStore;
+MovieStore* gPtr_MovieStore;
 
 bool init = false;
 float r = 0;
@@ -609,6 +609,10 @@ uint32_t atHash(const char* str) {
 	return hash;
 }
 
+intptr_t gPtr_lastScaleformMovie;
+intptr_t gPtr_lastActionScriptMethod;
+intptr_t gPtr_lastActionScriptMethodParams;
+
 void OnPresentImage()
 {
 	//if (menuOpen)
@@ -628,68 +632,69 @@ void OnPresentImage()
 			ImGui::Begin("rageAm", &menuOpen);
 
 			ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
-			//ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
+			ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
 
-			const char* items[] = { "Name", "ID" };
-			ImGui::Combo("Mode", &textureDrawMode, items, IM_ARRAYSIZE(items));
-
-			switch (textureDrawMode)
+			if(ImGui::TreeNode("Texture Browser"))
 			{
-			case 0:
-			{
-				ImGui::InputText("Name", inputName, IM_ARRAYSIZE(inputName));
+				const char* items[] = { "Name", "ID" };
+				ImGui::Combo("Mode", &textureDrawMode, items, IM_ARRAYSIZE(items));
 
-				int index;
-				txdStore->FindSlotByHashKey(index, atHash(inputName));
-				if (index != -1)
-					DrawDictionary(index);
-				break;
+				switch (textureDrawMode)
+				{
+				case 0:
+				{
+					ImGui::InputText("Name", inputName, IM_ARRAYSIZE(inputName));
+
+					int index;
+					txdStore->FindSlotByHashKey(index, atHash(inputName));
+					if (index != -1)
+						DrawDictionary(index);
+					break;
+				}
+				case 1:
+				{
+					if (ImGui::Button("<"))
+						dictionary++;
+
+					ImGui::SameLine();
+					if (ImGui::Button(">"))
+						dictionary++;
+
+					DrawDictionary(dictionary);
+					break;
+				}
+				}
 			}
-			case 1:
+
+			if (ImGui::TreeNode("Action Movie"))
 			{
-				if (ImGui::Button("<"))
-					dictionary++;
+				ImGui::Text("Last Movie Info:");
+				ImGui::Text("\tName: %s", (const char*)gPtr_lastScaleformMovie);
+				ImGui::Text("\tMethod: %s", (const char*)gPtr_lastActionScriptMethod);
+				ImGui::Text("\tParams: %s", (const char*)gPtr_lastActionScriptMethodParams);
 
-				ImGui::SameLine();
-				if (ImGui::Button(">"))
-					dictionary++;
+				ImGui::Text("Active Movies:");
+				for (int i = 0; i < gPtr_MovieStore->GetNumSlots(); i++)
+				{
+					if (!gPtr_MovieStore->IsSlotActive(i))
+						continue;
 
-				DrawDictionary(dictionary);
-				break;
+					const auto entry = gPtr_MovieStore->GetSlot(i);
+					const uint movieId = entry->GetId();
+					const auto movieFileName = entry->GetFileName();
+
+					ImGui::Text("%lu - %s", movieId, movieFileName);
+				}
+				ImGui::TreePop();
 			}
-			}
 
-			//if (ImGui::TreeNode("Action Movies"))
-			//{
-			//	for (int i = 0; i < gPtr_MovieStore->GetNumSlots(); i++)
-			//	{
-			//		if (!gPtr_MovieStore->IsSlotActive(i))
-			//			continue;
-
-			//		const auto entry = gPtr_MovieStore->GetSlot(i);
-			//		const uint movieId = entry->GetId();
-			//		const auto movieFileName = entry->GetFileName();
-
-			//		ImGui::Text("%lu - %s", movieId, movieFileName);
-			//	}
-			//	ImGui::TreePop();
-			//}
-
-
-
-
-			//if (ImGui::TreeNode("Log"))
-			//{
-			//	for (const std::string& entry : g_logger->GetEntries())
-			//	{
-			//		ImGui::Text("%s", entry.c_str());
-			//	}
-			//	ImGui::TreePop();
-			//}
-			// Temporarely not tree because mouse doesn't work
-			for (const std::string& entry : g_logger->GetEntries())
+			if (ImGui::TreeNode("Log"))
 			{
-				ImGui::Text("%s", entry.c_str());
+				for (const std::string& entry : g_logger->GetEntries())
+				{
+					ImGui::Text("%s", entry.c_str());
+				}
+				ImGui::TreePop();
 			}
 
 			ImGui::End();
@@ -1003,17 +1008,16 @@ void Main()
 	//beginSave_setting_64 = g_hook->FindOffset("SettingMgr::BeginSave_setting64", beginSave + 0x1C);
 	//beginSave_settingDump = g_hook->FindOffset("SettingMgr::BeginSave_settingDump", beginSave + 0x27);
 
-	//writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
-	//writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
+	writeDebugStateToFile = g_hook->FindPattern("WriteDebugStateToFile", "48 83 EC 48 48 83 64 24 30 00 83 64 24 28 00 45");
+	writeDebugState = g_hook->FindPattern("WriteDebugState", "48 8B C4 48 89 58 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 80");
 
 	//gtaThread__RunScript = g_hook->FindPattern("GtaThread::RunScript", "48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 81 EC 30 01 00 00 49");
 	//g_hook->SetHook((LPVOID)gtaThread__RunScript, aimpl_GtaThread__RunScript, (LPVOID*)&gimpl_GtaThread__RunScript);
 
-	//gPtr_MovieStore = g_hook->FindOffset<MovieStore*>("WriteDebugState_ScaleformMovieStore", writeDebugState + 0x1091 + 0x3);
-
-
-
-
+	gPtr_MovieStore = g_hook->FindOffset<MovieStore*>("WriteDebugState_ScaleformMovieStore", writeDebugState + 0x1091 + 0x3);
+	gPtr_lastScaleformMovie = g_hook->FindOffset<intptr_t>("WriteDebugState_lastScaleformMovie", writeDebugState + 0x100F + 0x3);
+	gPtr_lastActionScriptMethod = g_hook->FindOffset<intptr_t>("WriteDebugState_lastActionScriptMethod", writeDebugState + 0x1022 + 0x3);
+	gPtr_lastActionScriptMethodParams = g_hook->FindOffset<intptr_t>("WriteDebugState_lastActionScriptMethodParams", writeDebugState + 0x1035 + 0x3);
 
 	//rage::SetHooks();
 	//rage::HookFactories();
@@ -1122,13 +1126,13 @@ void Main()
 	//gimpl_WriteDebugStateToFile = (WriteDebugStateToFile)writeDebugStateToFile;
 
 	// mov rax, cs:CApp
-	//CApp* game = *(CApp**)g_hook->FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
+	CApp* game = *(CApp**)g_hook->FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
 
 	//// mov edx, dword ptr cs:numFramesRendered
 	//numFramesRendered = g_hook->FindOffset("writeDebugState_currentFrame", writeDebugState + 0x159 + 0x2);
 
 	//// or al, cs:isDebugPaused
-	//isDebugPaused = g_hook->FindOffset("writeDebugState_isDebugPaused", writeDebugState + 0x179 + 0x2);
+	isDebugPaused = g_hook->FindOffset("writeDebugState_isDebugPaused", writeDebugState + 0x179 + 0x2);
 	//isGamePaused = isDebugPaused - 0x1;
 	//isPausedUnk1 = isDebugPaused + 0x1;
 	//isPausedUnk2 = isDebugPaused + 0x2;
