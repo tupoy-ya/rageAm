@@ -664,6 +664,7 @@ void OnPresentImage()
 					break;
 				}
 				}
+				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNode("Action Movie"))
