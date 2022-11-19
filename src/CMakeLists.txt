@@ -44,13 +44,20 @@ set_property(TARGET rageAm PROPERTY CXX_STANDARD 20)
 set(CMAKE_CXX20_STANDARD_COMPILE_OPTION "-std:c++latest")
 set(CMAKE_CXX20_EXTENSION_COMPILE_OPTION "-std:c++latest")
 
-# Eject DLL if already loaded
+# Eject DLL and PDB (if stack trace was used) if already loaded
 add_custom_command(TARGET ${PROJECT_NAME} 
     PRE_BUILD
     COMMAND 
     
     ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
     -e rageAm.dll 
+)
+add_custom_command(TARGET ${PROJECT_NAME} 
+    PRE_BUILD
+    COMMAND 
+    
+    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
+    -e rageAm.pdb 
 )
 
 # Copy to temp directory, otherwise we can't compile DLL because its used by GTA.
