@@ -563,14 +563,11 @@ void DrawDictionary(int index)
 	rage::pgDictionary<rage::grcTexture>* dict = value->GetValue();
 	rage::fwTxdDef def = value->GetKey();
 
-	auto dictPtr = reinterpret_cast<intptr_t>(dict);
-
 	for (int k = 0; k < dict->GetCount(); k++)
 	{
 		rage::grcTexture* texture = dict->GetValue(k);
 
 		const char* name = texture->GetName();
-		auto texturePtr = reinterpret_cast<intptr_t>(texture);
 
 		float windowX = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -629,12 +626,13 @@ void OnPresentImage()
 
 	if (!menuOpen && !menuLocked)
 	{
+		// TODO: Controller still works
 		ImGui::GetIO().MousePos = { 0.0f, 0.0f };
 	}
 
 	if (IsKeyJustUp(VK_SCROLL))
 		menuOpen = !menuOpen;
-
+	
 	if (g_imgui->IsInitialized())
 	{
 		g_imgui->NewFrame();
@@ -644,11 +642,12 @@ void OnPresentImage()
 		if (menuLocked || menuOpen)
 		{
 			ImGui::Begin("rageAm");
-			ImGui::SameLine();
 			ImGui::Checkbox("Locked", &menuLocked);
+			ImGui::Separator();
 
 			ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
 			ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
+			ImGui::Separator();
 
 			if (ImGui::TreeNode("Texture Browser"))
 			{
@@ -685,27 +684,42 @@ void OnPresentImage()
 
 			if (ImGui::TreeNode("Action Movie"))
 			{
-				ImGui::BulletText("Last Movie Info:");
+				ImGui::Text("Last Movie Info:");
 				ImGui::Indent();
-				ImGui::Text("Name: %s", (const char*)gPtr_lastScaleformMovie);
-				ImGui::Text("Method: %s", (const char*)gPtr_lastActionScriptMethod);
-				ImGui::Text("Params: %s", (const char*)gPtr_lastActionScriptMethodParams);
+				ImGui::BulletText("Name: %s", (const char*)gPtr_lastScaleformMovie);
+				ImGui::BulletText("Method: %s", (const char*)gPtr_lastActionScriptMethod);
+				ImGui::BulletText("Params:");
+				ImGui::Indent(); ImGui::TextWrapped((const char*)gPtr_lastActionScriptMethodParams); ImGui::Unindent();
 				ImGui::Unindent();
 
-				ImGui::BulletText("Active Movies:");
-				ImGui::Indent();
-				for (int i = 0; i < gPtr_MovieStore->GetNumSlots(); i++)
+				static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit;
+
+				ImGui::Text("Active Movies:");
+				if (ImGui::BeginTable("ActiveMovies", 2, flags))
 				{
-					if (!gPtr_MovieStore->IsSlotActive(i))
-						continue;
+					ImGui::TableSetupColumn("ID");
+					ImGui::TableSetupColumn("Name");
+					ImGui::TableHeadersRow();
 
-					const auto entry = gPtr_MovieStore->GetSlot(i);
-					const uint movieId = entry->GetId();
-					const auto movieFileName = entry->GetFileName();
+					for (int i = 0; i < gPtr_MovieStore->GetNumSlots(); i++)
+					{
+						if (!gPtr_MovieStore->IsSlotActive(i))
+							continue;
+						ImGui::TableNextRow();
 
-					ImGui::Text("%lu - %s", movieId, movieFileName);
+						const auto entry = gPtr_MovieStore->GetSlot(i);
+						const uint movieId = entry->GetId();
+						const auto movieFileName = entry->GetFileName();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("%i", movieId);
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text("%s", movieFileName);
+						//ImGui::Text("%lu - %s", movieId, movieFileName);
+					}
+
+					ImGui::EndTable();
 				}
-				ImGui::Unindent();
 				ImGui::TreePop();
 			}
 
