@@ -454,7 +454,7 @@ static_assert(sizeof(txdStoreEntry) == 0x18);
 
 
 bool logOpen = true;
-bool menuOpen = true;
+bool menuLocked = true;
 PresentImage gimplPresentImage = NULL;
 MovieStore* gPtr_MovieStore;
 
@@ -613,10 +613,24 @@ intptr_t gPtr_lastScaleformMovie;
 intptr_t gPtr_lastActionScriptMethod;
 intptr_t gPtr_lastActionScriptMethodParams;
 
+typedef void(*DisableAllControlActionsCommand)(int padIndex);
+
+DisableAllControlActionsCommand gImpl_DisableAllControlActionsCommand;
+
+bool menuOpen = true;
+
 void OnPresentImage()
 {
-	//if (menuOpen)
+	//if (menuLocked)
 	//	PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
+
+	if (menuOpen)
+		gImpl_DisableAllControlActionsCommand(0);
+
+	if (!menuOpen && !menuLocked)
+	{
+		ImGui::GetIO().MousePos = { 0.0f, 0.0f };
+	}
 
 	if (IsKeyJustUp(VK_SCROLL))
 		menuOpen = !menuOpen;
@@ -627,14 +641,16 @@ void OnPresentImage()
 
 		ImGui::GetIO().MouseDrawCursor = menuOpen; // Until we have SetCursor hook
 
-		if (menuOpen)
+		if (menuLocked || menuOpen)
 		{
-			ImGui::Begin("rageAm", &menuOpen);
+			ImGui::Begin("rageAm");
+			ImGui::SameLine();
+			ImGui::Checkbox("Locked", &menuLocked);
 
 			ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
 			ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
 
-			if(ImGui::TreeNode("Texture Browser"))
+			if (ImGui::TreeNode("Texture Browser"))
 			{
 				const char* items[] = { "Name", "ID" };
 				ImGui::Combo("Mode", &textureDrawMode, items, IM_ARRAYSIZE(items));
@@ -669,12 +685,15 @@ void OnPresentImage()
 
 			if (ImGui::TreeNode("Action Movie"))
 			{
-				ImGui::Text("Last Movie Info:");
-				ImGui::Text("\tName: %s", (const char*)gPtr_lastScaleformMovie);
-				ImGui::Text("\tMethod: %s", (const char*)gPtr_lastActionScriptMethod);
-				ImGui::Text("\tParams: %s", (const char*)gPtr_lastActionScriptMethodParams);
+				ImGui::BulletText("Last Movie Info:");
+				ImGui::Indent();
+				ImGui::Text("Name: %s", (const char*)gPtr_lastScaleformMovie);
+				ImGui::Text("Method: %s", (const char*)gPtr_lastActionScriptMethod);
+				ImGui::Text("Params: %s", (const char*)gPtr_lastActionScriptMethodParams);
+				ImGui::Unindent();
 
-				ImGui::Text("Active Movies:");
+				ImGui::BulletText("Active Movies:");
+				ImGui::Indent();
 				for (int i = 0; i < gPtr_MovieStore->GetNumSlots(); i++)
 				{
 					if (!gPtr_MovieStore->IsSlotActive(i))
@@ -686,6 +705,7 @@ void OnPresentImage()
 
 					ImGui::Text("%lu - %s", movieId, movieFileName);
 				}
+				ImGui::Unindent();
 				ImGui::TreePop();
 			}
 
@@ -951,8 +971,6 @@ _QWORD aimplPresentImage()
 //}
 
 
-
-
 typedef uint(*GetHash)(int type, const char* str);
 typedef intptr_t(*GetModelInfo)(int hash);
 
@@ -1028,7 +1046,7 @@ void Main()
 
 
 
-
+	gImpl_DisableAllControlActionsCommand = g_hook->FindPattern<DisableAllControlActionsCommand>("DisableAllControlActionsCommand", "40 53 48 83 EC 20 33 DB 85 C9 75 09");
 
 
 
@@ -1058,7 +1076,7 @@ void Main()
 
 	//while(true)
 	//{
-	//	if(menuOpen)
+	//	if(menuLocked)
 	//	{
 	//		//PAD::DISABLE_CONTROL_ACTION(0, 0, true);
 	//		PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
