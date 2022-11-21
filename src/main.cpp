@@ -272,9 +272,9 @@ public:
 	}
 };
 
-//typedef intptr_t(*GetEntityToQueryFromGUID)(int index);
+typedef intptr_t(*GetEntityToQueryFromGUID)(int index);
 //
-//GetEntityToQueryFromGUID gImpl_GetEntityToQueryFromGUID;
+GetEntityToQueryFromGUID gImpl_GetEntityToQueryFromGUID;
 //
 //__int64 __fastcall GetEntityFromGUID(int index)
 //{
@@ -551,8 +551,18 @@ void InvokeWithExceptionHandler(void* func)
 //
 //	g_logger->Log(std::format("{} dictionaries total, {} textures.", countDict, countText));
 //}
+int textureViewMode = 0;
+
+int dictionary = 0;
+int textureDrawMode = 0;
+char inputName[64] = "";
+char inputModel[64] = "bh1_14_build1";
+
+static ImGuiTableFlags tableFlags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit;
+
 rage::strStreamingModuleMgr* streamingMgr;
 rage::TxdStore* txdStore;
+rage::DrawableStore* drawableStore;
 void DrawDictionary(int index)
 {
 	if (!txdStore->IsSlotActive(index))
@@ -563,34 +573,71 @@ void DrawDictionary(int index)
 	rage::pgDictionary<rage::grcTexture>* dict = value->GetValue();
 	rage::fwTxdDef def = value->GetKey();
 
+	ImGui::Text("Textures:");
+
+	const char* textureViewModes[] = { "Table", "Grid" };
+	ImGui::Combo("View", &textureViewMode, textureViewModes, IM_ARRAYSIZE(textureViewModes));
+
+	switch (textureViewMode)
+	{
+	case 0:
+		if (ImGui::BeginTable("Textures", 2, tableFlags))
+		{
+			ImGui::TableSetupColumn("Address");
+			ImGui::TableSetupColumn("Name");
+			ImGui::TableHeadersRow();
+		}
+		break;
+	}
+
 	for (int k = 0; k < dict->GetCount(); k++)
 	{
 		rage::grcTexture* texture = dict->GetValue(k);
 
 		const char* name = texture->GetName();
+		auto address = reinterpret_cast<intptr_t>(texture);
 
-		float windowX = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-		ImGuiStyle& style = ImGui::GetStyle();
-
-		auto shaderResourceView = texture->GetShaderResourceView();
-		if (shaderResourceView)
+		switch (textureViewMode)
 		{
-			int width = 100;
-			float factor = (float)texture->GetWidth() / width;
+		case 0:
+		{
+			ImGui::TableNextRow();
 
-			float lastImageX = ImGui::GetItemRectMax().x;
-			float nextX = lastImageX + style.ItemSpacing.x + width;
-			if (nextX < windowX)
-				ImGui::SameLine();
-
-			ImGui::Image(ImTextureID(shaderResourceView), ImVec2(width, (float)texture->GetHeight() / factor));
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text(std::format("{:X}", address).c_str());
+			ImGui::TableSetColumnIndex(1);
+			ImGui::Text(name);
+			break;
 		}
+		case 1:
+			float windowX = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+			ImGuiStyle& style = ImGui::GetStyle();
+
+			auto shaderResourceView = texture->GetShaderResourceView();
+			if (shaderResourceView)
+			{
+				int width = 100;
+				float factor = (float)texture->GetWidth() / width;
+
+				float lastImageX = ImGui::GetItemRectMax().x;
+				float nextX = lastImageX + style.ItemSpacing.x + width;
+				if (nextX < windowX && k > 0)
+					ImGui::SameLine();
+
+				ImGui::Image(ImTextureID(shaderResourceView), ImVec2(width, (float)texture->GetHeight() / factor));
+			}
+			break;
+		}
+	}
+
+	switch (textureViewMode)
+	{
+	case 0:
+		ImGui::EndTable();
+		break;
 	}
 }
 
-int dictionary = 0;
-int textureDrawMode = 0;
-char inputName[64] = "";
 
 uint32_t atHash(const char* str) {
 	size_t i = 0;
@@ -616,8 +663,50 @@ DisableAllControlActionsCommand gImpl_DisableAllControlActionsCommand;
 
 bool menuOpen = true;
 
+void DisabledInput(const char* text)
+{
+	std::string inputId = "m_messages";
+	inputId.append(text);
+	char input[256];
+	strcpy(input, text);
+	ImGui::PushID(inputId.c_str());
+	ImGui::PushItemWidth(ImGui::GetWindowSize().x);
+	ImGui::InputText("", input, 256, ImGuiInputTextFlags_ReadOnly);
+	ImGui::PopItemWidth();
+	ImGui::PopID();
+}
+
+
 void OnPresentImage()
 {
+	float v1[6] =
+	{
+		0, 0, 0, 0, 0, 0
+	};
+	float v2[6] =
+	{
+		500, 0, 500, 0, 500, 0
+	};
+	float v3[6] =
+	{
+		500, 0, 500, 0, 0, 0
+	};
+	float uv1[6] =
+	{
+		0, 0, 0, 0, 0, 0
+	};
+	float uv2[6] =
+	{
+		1, 0, 1, 0,
+	};
+	float uv3[6] =
+	{
+		1, 0, 0, 0
+	};
+
+	((void(*)(float*, float*, float*, int, int, int, int, const char*, const char*, float*, float*, float*))(0x7FF69DBBB92C))(
+		v1, v2, v3, 255, 255, 255, 255, "vehshare", "plate01", uv1, uv2, uv3);
+
 	//if (menuLocked)
 	//	PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
 
@@ -632,7 +721,7 @@ void OnPresentImage()
 
 	if (IsKeyJustUp(VK_SCROLL))
 		menuOpen = !menuOpen;
-	
+
 	if (g_imgui->IsInitialized())
 	{
 		g_imgui->NewFrame();
@@ -651,8 +740,8 @@ void OnPresentImage()
 
 			if (ImGui::TreeNode("Texture Browser"))
 			{
-				const char* items[] = { "Name", "ID" };
-				ImGui::Combo("Mode", &textureDrawMode, items, IM_ARRAYSIZE(items));
+				const char* textureDrawModes[] = { "Name", "ID" };
+				ImGui::Combo("Mode", &textureDrawMode, textureDrawModes, IM_ARRAYSIZE(textureDrawModes));
 
 				switch (textureDrawMode)
 				{
@@ -663,7 +752,15 @@ void OnPresentImage()
 					int index;
 					txdStore->FindSlotByHashKey(index, atHash(inputName));
 					if (index != -1)
+					{
+						if (txdStore->IsSlotActive(index))
+						{
+							intptr_t dictPtr = txdStore->GetSlotPtr(index);
+							ImGui::BulletText("Dictionary Address:");
+							ImGui::SameLine(); DisabledInput(std::format("{:X}", dictPtr).c_str());
+						}
 						DrawDictionary(index);
+					}
 					break;
 				}
 				case 1:
@@ -682,6 +779,64 @@ void OnPresentImage()
 				ImGui::TreePop();
 			}
 
+			if (ImGui::TreeNode("Drawable Browser"))
+			{
+				ImGui::InputText("Name", inputModel, IM_ARRAYSIZE(inputModel));
+
+				int index;
+				drawableStore->FindSlotByHashKey(index, atHash(inputModel));
+				if (index != -1 && drawableStore->IsSlotActive(index))
+				{
+					auto slot = drawableStore->GetSlot(index);
+					auto drawable = slot->GetValue();
+
+					ImGui::BulletText("Drawable Address:");
+					ImGui::SameLine(); DisabledInput(std::format("{:X}", (intptr_t)drawable).c_str());
+
+					ImGui::BulletText(std::format("Shader Count: {}", drawable->grmShaderGroup->numShaders).c_str());
+					for (int i = 0; i < drawable->grmShaderGroup->numShaders; i++)
+					{
+						auto shaderDef = drawable->grmShaderGroup->shaders[i];
+						ImGui::BulletText(std::format("Path: {}", shaderDef->metadata->shaderPath).c_str());
+					}
+				}
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode("Shader Group Browser"))
+			{
+				auto grmShaderGroup = (rage::grmShaderGroup*)(0x19F82F9FCB0);
+
+				ImGui::BulletText(std::format("Shader Count: {}", grmShaderGroup->numShaders).c_str());
+				for (int i = 0; i < grmShaderGroup->numShaders; i++)
+				{
+					auto shaderDef = grmShaderGroup->shaders[i];
+					ImGui::Text(std::format("Path: {}", shaderDef->metadata->shaderPath).c_str());
+
+					auto meta = shaderDef->metadata;
+					for (int k = 0; k < meta->variables.GetSize(); k++)
+					{
+						auto shaderVar = meta->variables.GetAt(k);
+
+						int8_t type = *(int8_t*)(((intptr_t)shaderVar) + 0x4);
+
+						auto value = shaderDef->GetValueAtIndex(k);
+
+						ImGui::Indent();
+						ImGui::BulletText("%s (type: %i) - ", shaderVar->Name, type);
+
+						if(type == 1)
+						{
+							ImGui::SameLine();
+							ImGui::Text("%f", value->GetFloat());
+						}
+
+						ImGui::Unindent();
+					}
+				}
+				ImGui::TreePop();
+			}
+
 			if (ImGui::TreeNode("Action Movie"))
 			{
 				ImGui::Text("Last Movie Info:");
@@ -692,10 +847,8 @@ void OnPresentImage()
 				ImGui::Indent(); ImGui::TextWrapped((const char*)gPtr_lastActionScriptMethodParams); ImGui::Unindent();
 				ImGui::Unindent();
 
-				static ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit;
-
 				ImGui::Text("Active Movies:");
-				if (ImGui::BeginTable("ActiveMovies", 2, flags))
+				if (ImGui::BeginTable("ActiveMovies", 2, tableFlags))
 				{
 					ImGui::TableSetupColumn("ID");
 					ImGui::TableSetupColumn("Name");
@@ -744,8 +897,15 @@ _QWORD aimplPresentImage()
 	InvokeWithExceptionHandler(OnPresentImage);
 
 
-	//if (IsKeyJustUp(VK_F9))
-	//{
+	if (IsKeyJustUp(VK_F9))
+	{
+
+		const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
+
+		gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
+
+		g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
+	}
 	//	float pos[] = { -74.0f, 0.0f, -820.0f, 0.0f, 327.0f };
 	//	rage::aImpl_CreateVehicleCommand(0xB779A091, pos, 0, true, false, false);
 	//	g_logger->Log("Spawning vehicle...");
@@ -759,11 +919,11 @@ _QWORD aimplPresentImage()
 	//	return gimplPresentImage();
 
 
-	//	const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
+		//const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
 
-	//	gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
+		//gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
 
-	//	g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
+		//g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
 	//	//invoke<Void>(0x16C2C89DF3A1E544, vehicle, 1.0f);
 
 
@@ -1022,7 +1182,7 @@ void Main()
 
 	streamingMgr = (rage::strStreamingModuleMgr*)(gPtr_streaming + 0x1B8);
 	txdStore = reinterpret_cast<rage::TxdStore*>(streamingMgr->GetStreamingModule(rage::STORE_TXD));
-
+	drawableStore = reinterpret_cast<rage::DrawableStore*>(streamingMgr->GetStreamingModule(rage::STORE_DRAWABLE));
 
 
 	g_imgui->Init(g_gtaWindow->GetHwnd());

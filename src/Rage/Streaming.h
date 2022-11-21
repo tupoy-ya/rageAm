@@ -5,6 +5,32 @@
 
 namespace rage
 {
+	template<typename T>
+	class atArray
+	{
+		intptr_t items;
+		int16_t size;
+		int16_t unk10;
+		int32_t unk18;
+
+	public:
+		int GetSize() const
+		{
+			return size;
+		}
+
+		T* GetAt(int index) const
+		{
+			if (index < 0 || index > size)
+				return nullptr;
+
+			// Not my brightest moment but how to get pointer
+			// otherwise? It's not pointer array so indexing
+			// is not an option
+			return reinterpret_cast<T*>(items + sizeof(T) * index);
+		}
+	};
+
 	class strStreamingModule;
 
 	struct atLinkedNode
@@ -52,9 +78,109 @@ namespace rage
 		int32_t unk0;
 		uint32_t nameHash;
 		int32_t unk10;
-		int32_t unk18;
-	}; //Size: 0x0018
+		int32_t unk14;
+	}; //Size: 0x0010
 	static_assert(sizeof(fwTxdDef) == 0x10);
+
+	struct fwDwdDef
+	{
+		int32_t unk0;
+		uint32_t nameHash;
+		int64_t unk10;
+		int64_t unk18;
+	}; //Size: 0x0018
+	static_assert(sizeof(fwDwdDef) == 0x18);
+
+	struct grmShaderVariable
+	{
+		int64_t unk0;
+		int64_t pValue;
+
+		float GetFloat()
+		{
+			return *(float*)pValue;
+		}
+
+		grcTexture* GetTexture()
+		{
+			return (grcTexture*)pValue;
+		}
+	};
+
+	class grmShaderVariableDef
+	{
+	public:
+		char pad_0000[8]; //0x0000
+		char* Usage; //0x0008
+		char* Name; //0x0010
+		char pad_0018[48]; //0x0018
+	}; //Size: 0x0048
+	static_assert(sizeof(grmShaderVariableDef) == 0x48);
+
+	class grmShaderMetadata
+	{
+	public:
+		atArray<intptr_t> techniques;
+		atArray<grmShaderVariableDef> variables;
+		atArray<intptr_t> locals;
+		intptr_t* vertexShader;
+		char pad_0038[8];
+		intptr_t* fragmentShader;
+		char pad_0048[520];
+		const char* shaderName; // ITS NOT SHADER NAME!!! Its pointer to shader!!!
+		char pad_0258[104];
+		const char* shaderPath;
+		char pad_02C8[16];
+	}; //Size: 0x02D8
+	static_assert(sizeof(grmShaderMetadata) == 0x2D8);
+
+	struct grmShaderDef
+	{
+		intptr_t values;
+		grmShaderMetadata* metadata;
+
+		grmShaderVariable* GetValueAtIndex(int index) const
+		{
+			return (grmShaderVariable*)(values + sizeof(grmShaderVariable) * index);
+		}
+	};
+
+	struct grmShaderGroup
+	{
+		char pad_0000[16];
+		grmShaderDef** shaders;
+		int16_t numShaders;
+
+		int FindVariableIndexByHashKey(uint32_t nameHash)
+		{
+			//int v2; // er8
+			//__int64 v3; // r9
+			//int64_t** i; // rax
+
+			//v2 = 0;
+			//v3 = 0i64;
+			//if (!info->variables.size)
+			//	return 0i64;
+			//for (i = info->variables.items + 3; *(i + 1) != nameHash && *i != nameHash; i += 9)// i += 0x48... ida must be joking here
+			//{                                             // disassembler makes no sense. must be items + 0x18
+			//	++v3;
+			//	++v2;
+			//	if (v3 >= info->variables.size)
+			//		return 0i64;
+			//}
+			//return (v2 + 1);
+
+		}
+	};
+
+	class gtaDrawable
+	{
+	public:
+		int64_t vftable;
+		intptr_t phBounds;
+		grmShaderGroup* grmShaderGroup;
+		intptr_t crSkeletonData;
+	};
 
 	template<typename T1, typename T2>
 	class fwAssetKeyValuePair
@@ -76,6 +202,7 @@ namespace rage
 
 	enum eStreamingModule
 	{
+		STORE_DRAWABLE = 0x2,
 		STORE_TXD = 0x3,
 		STORE_MODELS = 0x15,
 	};
@@ -200,4 +327,5 @@ namespace rage
 	};
 
 	typedef fwAssetStore<pgDictionary<grcTexture>, fwTxdDef> TxdStore;
+	typedef fwAssetStore<gtaDrawable, fwDwdDef> DrawableStore;
 }
