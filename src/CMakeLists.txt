@@ -34,7 +34,7 @@ target_include_directories(rageAm PUBLIC ${Boost_INCLUDE_DIRS})
 # Link static libraries
 target_link_libraries(rageAm PUBLIC
     "${CMAKE_SOURCE_DIR}/vendor/minhook-1.3.3/lib/libMinHook-x64-v141-md.lib" 
-    "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib" 
+    # "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib" 
     "${CMAKE_SOURCE_DIR}/vendor/directxtk/lib/DirectXTK.lib" 
     "${CMAKE_SOURCE_DIR}/vendor/backtrace/libbacktrace.a" 
     d3d11.lib
@@ -79,13 +79,29 @@ add_custom_command(TARGET ${PROJECT_NAME}
     ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.pdb
 )
 
+OPTION (INJECT_DLL "Inject DLL" ON)
+OPTION (WAIT_FOR_GAME "Wait for game" ON)
+
 # Inject DLL
-if(NOT ${CMAKE_PRESET_NAME} MATCHES "x64-debug-unload-noinject")
-    add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND
+if(INJECT_DLL)
+    unset(INJECT_DLL CACHE)
+    if(WAIT_FOR_GAME)
+        # Unset it right after so if build can be canceled in any moment
+        unset(WAIT_FOR_GAME CACHE)
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND
    
-        ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe
-        -i ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll 
-    )
-endif()
+            ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe 
+            -w ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll 
+        )
+    else()
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND
+   
+            ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe 
+            -i ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/temp/rageAm.dll 
+        )
+    endif(WAIT_FOR_GAME)
+endif(INJECT_DLL)

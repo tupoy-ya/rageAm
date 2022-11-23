@@ -12,7 +12,7 @@
 DWORD GetGtaProcessId();
 HMODULE GetGtaModuleHandle(const std::string& name);
 
-DWORD gtaPid = GetGtaProcessId();
+DWORD gtaPid;
 HANDLE hGta;
 
 DWORD GetGtaProcessId()
@@ -138,14 +138,29 @@ void EjectDll(const std::string& path)
 	printf("%s unloaded\n", path.c_str());
 }
 
-void main(int argc, char* argv[])
+void GetPid()
 {
-	if(gtaPid == 0)
+	gtaPid = GetGtaProcessId();
+}
+
+bool VerifyPid()
+{
+	if (gtaPid == 0)
 	{
 		printf("GTA5.exe is not running.\n");
-		return;
+		return false;
 	}
+	return true;
+}
 
+bool GetAndVerifyPid()
+{
+	GetPid();
+	return VerifyPid();
+}
+
+void OpenProcess()
+{
 	hGta = OpenProcess(
 		PROCESS_QUERY_INFORMATION |
 		PROCESS_CREATE_THREAD |
@@ -154,20 +169,58 @@ void main(int argc, char* argv[])
 		PROCESS_VM_READ,
 		FALSE,
 		gtaPid);
+}
+
+void main(int argc, char* argv[])
+{
+	printf("Rage Injector\n");
 
 	for (int i = 0; i < argc; i++)
 	{
 		std::string arg = argv[i];
 
+		printf("Argument [%i]: %s\n", i, argv[i]);
+
+		if (arg == "-w")
+		{
+			printf("Waiting for GTA5.exe\n");
+			while (gtaPid == 0)
+			{
+				Sleep(100);
+				GetPid();
+			}
+			// Otherwise script hook crashes with unk version
+			// We'll get rid of it soon or later anyway
+			//Sleep(1000);
+
+			if (GetAndVerifyPid())
+			{
+				OpenProcess();
+				InjectDll(argv[++i]);
+			}
+			break;
+		}
+
 		if (arg == "-i")
 		{
-			InjectDll(argv[++i]);
+			if (GetAndVerifyPid())
+			{
+				OpenProcess();
+				InjectDll(argv[++i]);
+			}
+			break;
 		}
-		else if (arg == "-e")
+
+		if (arg == "-e")
 		{
-			EjectDll(argv[++i]);
+			if (GetAndVerifyPid())
+			{
+				OpenProcess();
+				EjectDll(argv[++i]);
+			}
+			break;
 		}
 	}
-
-	CloseHandle(hGta);
+	if (hGta != 0)
+		CloseHandle(hGta);
 }
