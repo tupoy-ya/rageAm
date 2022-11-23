@@ -1,5 +1,4 @@
-﻿
-#include "main.h"
+﻿#include "main.h"
 #include <Windows.h>
 #include <fstream>
 #include <format>
@@ -7,14 +6,15 @@
 #include "Memory/Hooking.h"
 #include "Logger.h"
 #include "../vendor/minhook-1.3.3/include/MinHook.h"
-#include "../vendor/scripthook/include/main.h"
+//#include "../vendor/scripthook/include/main.h"
 
 #include <iostream>
 
-#include "../vendor/scripthook/include/keyboard.h"
-#include "../vendor/scripthook/include/natives.h"
-#include "../vendor/scripthook/include/types.h"
-#include "../vendor/scripthook/include/enums.h"
+//#include "../vendor/scripthook/include/keyboard.h"
+//#include "../vendor/scripthook/include/natives.h"
+#include <windows.h>
+//#include "../vendor/scripthook/include/types.h"
+//#include "../vendor/scripthook/include/enums.h"
 
 #include <d3d11.h>
 #include <sstream>
@@ -77,6 +77,11 @@ struct CApp
 	GameState GetGameState()
 	{
 		return (GameState)_gameState;
+	}
+
+	void SetGameState(GameState state)
+	{
+		_gameState = state;
 	}
 
 	std::string GetGameStateStr()
@@ -214,6 +219,8 @@ typedef int64_t _QWORD;
 //}
 //
 //BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved);
+
+typedef uint32_t uint;
 
 class MovieEntry
 {
@@ -354,7 +361,7 @@ typedef int8_t _BYTE;
 //}
 
 
-typedef int _WORD;
+//typedef int _WORD;
 
 struct CExtraContentManager
 {
@@ -719,8 +726,8 @@ void OnPresentImage()
 		ImGui::GetIO().MousePos = { 0.0f, 0.0f };
 	}
 
-	if (IsKeyJustUp(VK_SCROLL))
-		menuOpen = !menuOpen;
+	//if (IsKeyJustUp(VK_SCROLL))
+	//	menuOpen = !menuOpen;
 
 	if (g_imgui->IsInitialized())
 	{
@@ -805,7 +812,7 @@ void OnPresentImage()
 
 			if (ImGui::TreeNode("Shader Group Browser"))
 			{
-				auto grmShaderGroup = (rage::grmShaderGroup*)(0x19F82F9FCB0);
+				auto grmShaderGroup = (rage::grmShaderGroup*)(0x1AA6BAB3DD0);//(0x19F82F9FCB0);
 
 				ImGui::BulletText(std::format("Shader Count: {}", grmShaderGroup->numShaders).c_str());
 				for (int i = 0; i < grmShaderGroup->numShaders; i++)
@@ -813,25 +820,57 @@ void OnPresentImage()
 					auto shaderDef = grmShaderGroup->shaders[i];
 					ImGui::Text(std::format("Path: {}", shaderDef->metadata->shaderPath).c_str());
 
-					auto meta = shaderDef->metadata;
-					for (int k = 0; k < meta->variables.GetSize(); k++)
+					if (ImGui::BeginTable(shaderDef->metadata->shaderPath, 4, tableFlags))
 					{
-						auto shaderVar = meta->variables.GetAt(k);
+						ImGui::TableSetupColumn("Name");
+						ImGui::TableSetupColumn("Type");
+						ImGui::TableSetupColumn("Value");
+						ImGui::TableSetupColumn("Address");
+						ImGui::TableHeadersRow();
 
-						int8_t type = *(int8_t*)(((intptr_t)shaderVar) + 0x4);
-
-						auto value = shaderDef->GetValueAtIndex(k);
-
-						ImGui::Indent();
-						ImGui::BulletText("%s (type: %i) - ", shaderVar->Name, type);
-
-						if(type == 1)
+						auto meta = shaderDef->metadata;
+						for (int k = 0; k < meta->variables.GetSize(); k++)
 						{
-							ImGui::SameLine();
-							ImGui::Text("%f", value->GetFloat());
-						}
+							ImGui::TableNextRow();
 
-						ImGui::Unindent();
+							auto shaderVar = meta->variables.GetAt(k);
+
+							int8_t type = *(int8_t*)(((intptr_t)shaderVar) + 0x0);
+							auto value = shaderDef->GetValueAtIndex(k);
+
+							ImGui::TableSetColumnIndex(0);
+							ImGui::Text(shaderVar->Name);
+							ImGui::TableSetColumnIndex(1);
+							ImGui::Text("%i", type);
+
+							// Control has to have unique ID
+							auto valueId = std::format(
+								"##{}-{}-{}", shaderVar->Name, i, k);
+							// Don't merge in one expression because otherwise
+							// we'll get garbage
+							// https://stackoverflow.com/questions/35980664/why-does-calling-stdstring-c-str-on-a-function-that-returns-a-string-not-wor
+							auto valueIdStr = valueId.c_str();
+
+							ImGui::TableSetColumnIndex(2);
+							if (type == 2) // 4 bytes
+							{
+								//ImGui::Text("%f", value->GetFloat());
+								ImGui::InputFloat(valueIdStr, value->GetFloatPtr());
+							}
+							if (type == 7) // 1 byte
+							{
+								//ImGui::Text(value->GetBool() ? "True" : "False");
+								ImGui::Checkbox(valueIdStr, value->GetBoolPtr());
+							}
+							if (type == 6) // Texture
+							{
+								ImGui::Text(value->GetTexture()->GetName());
+							}
+
+							ImGui::TableSetColumnIndex(3);
+							ImGui::Text(std::format("{:X}", value->pValue).c_str());
+						}
+						ImGui::EndTable();
 					}
 				}
 				ImGui::TreePop();
@@ -892,20 +931,24 @@ void OnPresentImage()
 	}
 }
 
+
+
 _QWORD aimplPresentImage()
 {
 	InvokeWithExceptionHandler(OnPresentImage);
 
 
-	if (IsKeyJustUp(VK_F9))
-	{
+	//if (IsKeyJustUp(VK_F9))
+	//{
 
-		const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
+	//	const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
 
-		gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
+	//	gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
 
-		g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
-	}
+	//	g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
+	//}
+
+
 	//	float pos[] = { -74.0f, 0.0f, -820.0f, 0.0f, 327.0f };
 	//	rage::aImpl_CreateVehicleCommand(0xB779A091, pos, 0, true, false, false);
 	//	g_logger->Log("Spawning vehicle...");
@@ -1162,6 +1205,223 @@ bool aImpl_GameBacktraceConfig_WriteToFile(GameBacktraceConfig inst, const WCHAR
 	return gImpl_GameBacktraceConfig_WriteToFile(inst, fileName);
 }
 
+typedef intptr_t(*gDef_fiDevice_GetDeviceFor)(const char* path, bool a2);
+
+gDef_fiDevice_GetDeviceFor gImpl_fiDevice_GetDeviceFor;
+
+intptr_t aImpl_fiDevice_GetDeviceFor(const char* path, bool a2)
+{
+	intptr_t result = gImpl_fiDevice_GetDeviceFor(path, a2);
+
+	g_logger->Log(std::format("[fiDevice::GetDeviceFor]({}, {}) returned: {:X}", path, a2, result));
+
+	return result;
+}
+
+struct fiPackfile_fileNameIndex
+{
+	uint16_t nameIndex;
+	int16_t unk0x2;
+	int16_t unk0x4;
+	int16_t unk0x6;
+	int32_t unk0x8;
+	int32_t unk0xC;
+};
+static_assert(sizeof(fiPackfile_fileNameIndex) == 0x10);
+
+typedef int8_t _BYTE;
+typedef int16_t _WORD;
+typedef int32_t _DWORD;
+typedef int64_t _QWORD;
+
+//#pragma pack(push, 1)
+struct fiPackfile_members
+{
+	_BYTE byte8;
+	_BYTE gap9[7];
+	const char* fileNameTable;
+	_BYTE gap18[8];
+	fiPackfile_fileNameIndex* fileNameIndeces;
+	_DWORD dword28;
+	_BYTE gap2C[4];
+	_QWORD qword30;
+	_QWORD qword38;
+	_BYTE gap40[16];
+	_QWORD qword50;
+	_BYTE gap58[4];
+	_BYTE byte5C;
+	_BYTE gap5D[35];
+	const char* filePath;
+	_DWORD dword88;
+	_BYTE gap8C[4];
+	_BYTE byte90;
+	_BYTE gap91;
+	_WORD word92;
+	_BYTE gap94[4];
+	_QWORD qword98;
+	_QWORD qwordA0;
+	_DWORD A8;
+	_BYTE byteAC;
+	_BYTE byteAD;
+	_BYTE byteAE;
+	_BYTE byteAF;
+	uint8_t byteB0;
+	_BYTE byteB1;
+	_BYTE byteB2;
+	_BYTE byteB3;
+	_BYTE byteB4;
+	_BYTE byteB5;
+	_WORD wordB6;
+};
+//#pragma pack(pop)
+
+struct fiPackfile
+{
+	intptr_t vftable;
+	fiPackfile_members members;
+};
+//static_assert(offsetof(fiPackfile, fiPackfile::members.byteb0) == 0xB0);
+
+typedef intptr_t(*gDef_fiPackfile_Function1D8)(fiPackfile* fiPackfile, char* path);
+gDef_fiPackfile_Function1D8 gImpl_fiPackfile_Function1D8;
+
+char g_textBuffer[256]{};
+
+fiPackfile_fileNameIndex* Function1D8(fiPackfile* fiPackfile, char* path);
+
+intptr_t aImpl_fiPackfile_Function1D8(fiPackfile* fiPackfile, char* path)
+{
+	//// To access registers
+	//CONTEXT context;
+	//RtlCaptureContext(&context);
+
+	//char* textBuffer = *reinterpret_cast<char**>(context.Rsp);
+
+	g_textBuffer[0] = '\0';
+
+	fiPackfile_fileNameIndex* gameResult = (fiPackfile_fileNameIndex*)gImpl_fiPackfile_Function1D8(fiPackfile, path);
+	fiPackfile_fileNameIndex* result = Function1D8(fiPackfile, path);
+
+	if (1 || !result ^ !gameResult)
+	{
+		g_logger->Log(std::format("[fiPackfile::Function1D8]({:X}, {}) 0b: {} returned: {:X}", (intptr_t)fiPackfile, path, fiPackfile->members.byteB0, (intptr_t)gameResult));
+		if ((int64_t)result == (int64_t)gameResult)
+		{
+			g_logger->Log(std::format("OK: {:X} - {:X}", (int64_t)result, (int64_t)gameResult));
+		}
+		else
+		{
+			g_logger->Log(std::format("ERROR: a{:X} - g{:X} - d{:X}", (int64_t)result, (int64_t)gameResult, (int64_t)result - (int64_t)gameResult));
+		}
+	}
+
+	//gImpl_fiPackfile_Function1D8(fiPackfile, path);
+
+
+	return (intptr_t)gameResult;
+}
+
+fiPackfile_fileNameIndex* Function1D8(fiPackfile* fiPackfile, char* path)
+{
+	fiPackfile_fileNameIndex* fileNameIndex; // r8
+	char c_char; // cl
+	unsigned int fn_unk0x8; // er11
+	char* _buffer; // r9
+	unsigned int fn_unk0xC; // edi
+	char newChar; // al
+	fiPackfile_fileNameIndex* fiNameIndeces; // rsi
+	unsigned int fiNameIndex; // er9
+	char* __buffer; // rax
+	signed __int64 v13; // rbx
+	char v14; // cl
+	int v15; // eax
+	//char buffer[256]; // [rsp+0h] [rbp-108h] BYREF
+
+	fileNameIndex = fiPackfile->members.fileNameIndeces;
+	if (!fileNameIndex || !fiPackfile->members.fileNameTable)
+		return 0i64;
+	if (*path == '/' || *path == '\\')
+		++path;
+has_no_separator:
+	c_char = *path;
+	if (*path)
+	{
+		fn_unk0x8 = fileNameIndex->unk0x8;
+		_buffer = g_textBuffer;
+		fn_unk0xC = fileNameIndex->unk0xC + fn_unk0x8 - 1;// -1 length?
+		fileNameIndex = 0i64;
+		do                                          // read text before separator in buffer
+		{
+			if (c_char == '/')
+				goto inc_loop;
+			if (c_char == '\\')
+				break;                                  // in result if(*path != '/' && *path != "\\') wont be true so it will act as above statement for '/'
+			newChar = c_char;
+			if ((c_char - 'A') <= 25u)              // convert capital case to lower
+				newChar = c_char + 32;
+			++path;
+			*_buffer++ = newChar;
+			c_char = *path;
+		} while (*path);
+		while (1)
+		{
+			if (*path != '/' && *path != '\\')
+			{
+				*_buffer = 0;                           // set end of string to buffer
+				if (fn_unk0x8 > fn_unk0xC)            // match?
+					return fileNameIndex;
+				fiNameIndeces = fiPackfile->members.fileNameIndeces;
+				while (1)
+				{
+					fiNameIndex = (fn_unk0xC + fn_unk0x8) >> 1;
+					__buffer = g_textBuffer;                    // reset buffer pointer?
+
+					int ntIndex = fiNameIndeces[fiNameIndex].nameIndex; // << fiPackfile->members.byteB0;
+					const char* packfileName = &fiPackfile->members.fileNameTable[ntIndex];
+ 					while (1)
+					{
+						v14 = *__buffer;
+						if (*__buffer != *packfileName)
+							break;
+						++__buffer;
+						++packfileName;
+						if (!v14)
+						{
+							v15 = 0;
+							goto LABEL_25;
+						}
+					}
+					v15 = *__buffer < *packfileName ? -1 : 1;
+				LABEL_25:
+					if (v15 >= 0)
+					{
+						// If matches
+						if (v15 <= 0)
+						{
+							fileNameIndex = &fiNameIndeces[fiNameIndex];
+							if (fileNameIndex && ((*(_QWORD*)&fileNameIndex->nameIndex >> 40) & 0x7FFFFFi64) == 0x7FFFFF)
+								goto has_no_separator;
+							return fileNameIndex;
+						}
+						// if v15 == 1
+						fn_unk0x8 = fiNameIndex + 1;
+					}
+					else
+					{
+						// v15 == -1
+						fn_unk0xC = fiNameIndex - 1;
+					}
+					if (fn_unk0x8 > fn_unk0xC)          // same return statement as above
+						return fileNameIndex;
+				}
+			}
+		inc_loop:
+			++path;
+		}
+	}
+	return fileNameIndex;
+}
+
 void Main()
 {
 	g_logger->Log("Init rageAm", true);
@@ -1170,6 +1430,17 @@ void Main()
 
 
 	g_logger->Log("Scanning patterns...");
+
+	intptr_t gPtr_fiPackfile_Function1D8 = g_hook->FindPattern("fiPackfile::Function1D8", "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 81 EC 00 01 00 00 4C");
+	g_hook->SetHook(gPtr_fiPackfile_Function1D8, aImpl_fiPackfile_Function1D8, &gImpl_fiPackfile_Function1D8);
+
+	return;
+
+	intptr_t gPtr_fiDevice_GetDeviceFor = g_hook->FindPattern("fiDevice::GetDeviceFor", "48 89 5C 24 08 88 54 24 10 55 56 57 41 54 41 55 41 56 41 57 48 83");
+	//g_hook->SetHook(gPtr_fiDevice_GetDeviceFor, aImpl_fiDevice_GetDeviceFor, &gImpl_fiDevice_GetDeviceFor);
+
+	gImpl_fiDevice_GetDeviceFor = (gDef_fiDevice_GetDeviceFor)gPtr_fiDevice_GetDeviceFor;
+	g_logger->Log(std::format("shader fi device: {:X}", gImpl_fiDevice_GetDeviceFor("common:/shaders/win32_40_final/normal_spec_reflect_decal.fxc", true)));
 
 	g_componentMgr->RegisterComponents();
 
@@ -1194,7 +1465,14 @@ void Main()
 	//g_logger->Log(std::format("tttf present: {}", reinterpret_cast<bool(*)(int hash)>(0x7FF69DBC1CA0)(0x6C0D278C)));
 
 
+	//// Dump shader list
+	//for (int i = 0; i < 346; i++)
+	//{
+	//	intptr_t address = 0x7FF69FEA8930 + i * sizeof(void*);
+	//	uint32_t hash = *(int32_t*)(*(intptr_t*)(address)+0x2C8);
 
+	//	g_logger->Log(std::format("{:X}", hash));
+	//}
 
 	//save = g_hook->FindPattern("SettingMgr::Save", "48 83 EC 48 48 83 3D");
 	//beginSave = g_hook->FindPattern("SettingMgr::BeginSave", "40 53 48 83 EC 20 0F B7 41 40");
@@ -1498,12 +1776,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 	case DLL_PROCESS_ATTACH:
 		InvokeWithExceptionHandler(Main);
 		//scriptRegister(hModule, Main);
-		keyboardHandlerRegister(OnKeyboardMessage);
+		//keyboardHandlerRegister(OnKeyboardMessage);
 		break;
 	case DLL_PROCESS_DETACH:
 		InvokeWithExceptionHandler(Abort);
 		//scriptUnregister(hModule);
-		keyboardHandlerUnregister(OnKeyboardMessage);
+		//keyboardHandlerUnregister(OnKeyboardMessage);
 		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:break;

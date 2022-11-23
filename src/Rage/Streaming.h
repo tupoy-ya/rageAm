@@ -96,12 +96,27 @@ namespace rage
 		int64_t unk0;
 		int64_t pValue;
 
-		float GetFloat()
+		float GetFloat() const
 		{
 			return *(float*)pValue;
 		}
 
-		grcTexture* GetTexture()
+		float* GetFloatPtr() const
+		{
+			return (float*)pValue;
+		}
+
+		bool GetBool() const
+		{
+			return *(bool*)pValue;
+		}
+
+		bool* GetBoolPtr() const
+		{
+			return (bool*)pValue;
+		}
+
+		grcTexture* GetTexture() const
 		{
 			return (grcTexture*)pValue;
 		}
