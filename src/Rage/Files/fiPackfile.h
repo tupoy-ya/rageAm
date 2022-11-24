@@ -69,12 +69,6 @@ namespace rage
 		fiPackfile_members members;
 
 	public:
-		static fiPackfileEntryHeader* vftable_FindEntryHeaderByPath(const fiPackfile* inst, const char* path)
-		{
-			g_logger->Log(std::format("fiPackFile::FindEntryHeaderByPath({:X}, {})", (intptr_t)inst, path));
-			return inst->FindEntryHeaderByPath(path);
-		}
-
 		fiPackfileEntryHeader* GetRootEntry() const
 		{
 			return members.headerEntries;
@@ -118,7 +112,7 @@ namespace rage
 			return nullptr;
 		}
 
-		// Virtual Function 0x8
+		// Virtual Function 0x1D8
 		fiPackfileEntryHeader* FindEntryHeaderByPath(const char* path) const
 		{
 			char c = path[0];
@@ -172,6 +166,15 @@ namespace rage
 
 			// Entry was not found
 			return nullptr;
+		}
+
+		/* Virtual Table Wrappers */
+
+		static fiPackfileEntryHeader* vftable_FindEntryHeaderByPath(const fiPackfile* inst, const char* path)
+		{
+			g_logger->Log(std::format("fiPackFile::FindEntryHeaderByPath({:X}, {})", reinterpret_cast<intptr_t>(inst), path));
+
+			return inst->FindEntryHeaderByPath(path);
 		}
 	};
 }
