@@ -69,7 +69,7 @@ namespace rage
 		fiPackfile_members members;
 
 	public:
-		static fiPackfileEntryHeader* vft_FindEntryHeaderByPath(const fiPackfile* inst, const char* path)
+		static fiPackfileEntryHeader* vftable_FindEntryHeaderByPath(const fiPackfile* inst, const char* path)
 		{
 			g_logger->Log(std::format("fiPackFile::FindEntryHeaderByPath({:X}, {})", (intptr_t)inst, path));
 			return inst->FindEntryHeaderByPath(path);
