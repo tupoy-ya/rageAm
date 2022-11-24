@@ -1218,209 +1218,43 @@ intptr_t aImpl_fiDevice_GetDeviceFor(const char* path, bool a2)
 	return result;
 }
 
-struct fiPackfile_fileNameIndex
-{
-	uint16_t nameIndex;
-	int16_t unk0x2;
-	int16_t unk0x4;
-	int16_t unk0x6;
-	int32_t unk0x8;
-	int32_t unk0xC;
-};
-static_assert(sizeof(fiPackfile_fileNameIndex) == 0x10);
 
-typedef int8_t _BYTE;
-typedef int16_t _WORD;
-typedef int32_t _DWORD;
-typedef int64_t _QWORD;
+#include "rage/Files/fiPackfile.h"
 
-//#pragma pack(push, 1)
-struct fiPackfile_members
-{
-	_BYTE byte8;
-	_BYTE gap9[7];
-	const char* fileNameTable;
-	_BYTE gap18[8];
-	fiPackfile_fileNameIndex* fileNameIndeces;
-	_DWORD dword28;
-	_BYTE gap2C[4];
-	_QWORD qword30;
-	_QWORD qword38;
-	_BYTE gap40[16];
-	_QWORD qword50;
-	_BYTE gap58[4];
-	_BYTE byte5C;
-	_BYTE gap5D[35];
-	const char* filePath;
-	_DWORD dword88;
-	_BYTE gap8C[4];
-	_BYTE byte90;
-	_BYTE gap91;
-	_WORD word92;
-	_BYTE gap94[4];
-	_QWORD qword98;
-	_QWORD qwordA0;
-	_DWORD A8;
-	_BYTE byteAC;
-	_BYTE byteAD;
-	_BYTE byteAE;
-	_BYTE byteAF;
-	uint8_t byteB0;
-	_BYTE byteB1;
-	_BYTE byteB2;
-	_BYTE byteB3;
-	_BYTE byteB4;
-	_BYTE byteB5;
-	_WORD wordB6;
-};
-//#pragma pack(pop)
-
-struct fiPackfile
-{
-	intptr_t vftable;
-	fiPackfile_members members;
-};
-//static_assert(offsetof(fiPackfile, fiPackfile::members.byteb0) == 0xB0);
-
-typedef intptr_t(*gDef_fiPackfile_Function1D8)(fiPackfile* fiPackfile, char* path);
-gDef_fiPackfile_Function1D8 gImpl_fiPackfile_Function1D8;
-
-char g_textBuffer[256]{};
-
-fiPackfile_fileNameIndex* Function1D8(fiPackfile* fiPackfile, char* path);
-
-intptr_t aImpl_fiPackfile_Function1D8(fiPackfile* fiPackfile, char* path)
-{
-	//// To access registers
-	//CONTEXT context;
-	//RtlCaptureContext(&context);
-
-	//char* textBuffer = *reinterpret_cast<char**>(context.Rsp);
-
-	g_textBuffer[0] = '\0';
-
-	fiPackfile_fileNameIndex* gameResult = (fiPackfile_fileNameIndex*)gImpl_fiPackfile_Function1D8(fiPackfile, path);
-	fiPackfile_fileNameIndex* result = Function1D8(fiPackfile, path);
-
-	if (1 || !result ^ !gameResult)
-	{
-		g_logger->Log(std::format("[fiPackfile::Function1D8]({:X}, {}) 0b: {} returned: {:X}", (intptr_t)fiPackfile, path, fiPackfile->members.byteB0, (intptr_t)gameResult));
-		if ((int64_t)result == (int64_t)gameResult)
-		{
-			g_logger->Log(std::format("OK: {:X} - {:X}", (int64_t)result, (int64_t)gameResult));
-		}
-		else
-		{
-			g_logger->Log(std::format("ERROR: a{:X} - g{:X} - d{:X}", (int64_t)result, (int64_t)gameResult, (int64_t)result - (int64_t)gameResult));
-		}
-	}
-
-	//gImpl_fiPackfile_Function1D8(fiPackfile, path);
-
-
-	return (intptr_t)gameResult;
-}
-
-fiPackfile_fileNameIndex* Function1D8(fiPackfile* fiPackfile, char* path)
-{
-	fiPackfile_fileNameIndex* fileNameIndex; // r8
-	char c_char; // cl
-	unsigned int fn_unk0x8; // er11
-	char* _buffer; // r9
-	unsigned int fn_unk0xC; // edi
-	char newChar; // al
-	fiPackfile_fileNameIndex* fiNameIndeces; // rsi
-	unsigned int fiNameIndex; // er9
-	char* __buffer; // rax
-	signed __int64 v13; // rbx
-	char v14; // cl
-	int v15; // eax
-	//char buffer[256]; // [rsp+0h] [rbp-108h] BYREF
-
-	fileNameIndex = fiPackfile->members.fileNameIndeces;
-	if (!fileNameIndex || !fiPackfile->members.fileNameTable)
-		return 0i64;
-	if (*path == '/' || *path == '\\')
-		++path;
-has_no_separator:
-	c_char = *path;
-	if (*path)
-	{
-		fn_unk0x8 = fileNameIndex->unk0x8;
-		_buffer = g_textBuffer;
-		fn_unk0xC = fileNameIndex->unk0xC + fn_unk0x8 - 1;// -1 length?
-		fileNameIndex = 0i64;
-		do                                          // read text before separator in buffer
-		{
-			if (c_char == '/')
-				goto inc_loop;
-			if (c_char == '\\')
-				break;                                  // in result if(*path != '/' && *path != "\\') wont be true so it will act as above statement for '/'
-			newChar = c_char;
-			if ((c_char - 'A') <= 25u)              // convert capital case to lower
-				newChar = c_char + 32;
-			++path;
-			*_buffer++ = newChar;
-			c_char = *path;
-		} while (*path);
-		while (1)
-		{
-			if (*path != '/' && *path != '\\')
-			{
-				*_buffer = 0;                           // set end of string to buffer
-				if (fn_unk0x8 > fn_unk0xC)            // match?
-					return fileNameIndex;
-				fiNameIndeces = fiPackfile->members.fileNameIndeces;
-				while (1)
-				{
-					fiNameIndex = (fn_unk0xC + fn_unk0x8) >> 1;
-					__buffer = g_textBuffer;                    // reset buffer pointer?
-
-					int ntIndex = fiNameIndeces[fiNameIndex].nameIndex; // << fiPackfile->members.byteB0;
-					const char* packfileName = &fiPackfile->members.fileNameTable[ntIndex];
- 					while (1)
-					{
-						v14 = *__buffer;
-						if (*__buffer != *packfileName)
-							break;
-						++__buffer;
-						++packfileName;
-						if (!v14)
-						{
-							v15 = 0;
-							goto LABEL_25;
-						}
-					}
-					v15 = *__buffer < *packfileName ? -1 : 1;
-				LABEL_25:
-					if (v15 >= 0)
-					{
-						// If matches
-						if (v15 <= 0)
-						{
-							fileNameIndex = &fiNameIndeces[fiNameIndex];
-							if (fileNameIndex && ((*(_QWORD*)&fileNameIndex->nameIndex >> 40) & 0x7FFFFFi64) == 0x7FFFFF)
-								goto has_no_separator;
-							return fileNameIndex;
-						}
-						// if v15 == 1
-						fn_unk0x8 = fiNameIndex + 1;
-					}
-					else
-					{
-						// v15 == -1
-						fn_unk0xC = fiNameIndex - 1;
-					}
-					if (fn_unk0x8 > fn_unk0xC)          // same return statement as above
-						return fileNameIndex;
-				}
-			}
-		inc_loop:
-			++path;
-		}
-	}
-	return fileNameIndex;
-}
+//typedef intptr_t(*gDef_fiPackfile_Function1D8)(rage::fiPackfile* fiPackfile, char* path);
+//gDef_fiPackfile_Function1D8 gImpl_fiPackfile_Function1D8;
+//
+//rage::fiPackfileEntryHeader* FindEntryHeaderByPath(const rage::fiPackfile* packFile, const char* path);
+//
+//intptr_t aImpl_fiPackfile_Function1D8(rage::fiPackfile* fiPackfile, char* path)
+//{
+//	//// To access registers
+//	//CONTEXT context;
+//	//RtlCaptureContext(&context);
+//
+//	//char* textBuffer = *reinterpret_cast<char**>(context.Rsp);
+//
+//	//g_textBuffer[0] = '\0';
+//	fiPackfileEntryHeader* gameResult = (fiPackfileEntryHeader*)gImpl_fiPackfile_Function1D8(fiPackfile, path);
+//
+//	g_logger->Log(std::format("[fiPackfile::FindEntryHeaderByPath]({})({:X}, {}) 0b: {} returned: {:X}", fiPackfile->members.filePath, (intptr_t)fiPackfile, path, fiPackfile->members.byteB0, (intptr_t)gameResult));
+//
+//	fiPackfileEntryHeader* result = FindEntryHeaderByPath(fiPackfile, path);
+//
+//	if ((int64_t)result == (int64_t)gameResult)
+//	{
+//		g_logger->Log(std::format("OK: {:X} - {:X}", (int64_t)result, (int64_t)gameResult));
+//	}
+//	else
+//	{
+//		g_logger->Log(std::format("ERROR: a{:X} - g{:X} - d{:X}", (int64_t)result, (int64_t)gameResult, (int64_t)result - (int64_t)gameResult));
+//	}
+//
+//	//gImpl_fiPackfile_Function1D8(fiPackfile, path);
+//
+//
+//	return (intptr_t)gameResult;
+//}
 
 void Main()
 {
@@ -1431,9 +1265,20 @@ void Main()
 
 	g_logger->Log("Scanning patterns...");
 
-	intptr_t gPtr_fiPackfile_Function1D8 = g_hook->FindPattern("fiPackfile::Function1D8", "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 81 EC 00 01 00 00 4C");
-	g_hook->SetHook(gPtr_fiPackfile_Function1D8, aImpl_fiPackfile_Function1D8, &gImpl_fiPackfile_Function1D8);
+	intptr_t gPtr_fiPackfile_FindEntryHeaderByPath = g_hook->FindPattern("fiPackfile::FindEntryHeaderByPath", "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 81 EC 00 01 00 00 4C");
+	g_hook->SetHook((LPVOID)gPtr_fiPackfile_FindEntryHeaderByPath, (LPVOID)rage::fiPackfile::vftable_FindEntryHeaderByPath);
 
+	//intptr_t gPtr_fiPackfile = g_hook->FindPattern("fiPackfile::fiPackfile", "48 8D 05 ?? ?? ?? ?? 41 0F B7 D2");
+	//intptr_t gPtr_fiPackfile_vftable = g_hook->FindOffset("fiPackfile::fiPackfile_vftable", 0x3);
+
+	//*(intptr_t**)+0x8 = (intptr_t*)&rage::fiPackfile::vftable_FindEntryHeaderByPath;
+
+	//g_hook->SetHook(gPtr_fiPackfile_FindEntryHeaderByPath, (LPVOID)(rage::fiPackfile::FindEntryHeaderByPath));
+
+	//g_hook->SetHook(gPtr_fiPackfile_Function1D8, aImpl_fiPackfile_Function1D8, &gImpl_fiPackfile_Function1D8);
+	//gImpl_fiPackfile_Function1D8 = (gDef_fiPackfile_Function1D8)(gPtr_fiPackfile_Function1D8);
+	//char p[] = {"common/data/ai/vehiclelayouts.meta"};
+	//aImpl_fiPackfile_Function1D8((fiPackfile*)0x1EA5CE255A0, p);
 	return;
 
 	intptr_t gPtr_fiDevice_GetDeviceFor = g_hook->FindPattern("fiDevice::GetDeviceFor", "48 89 5C 24 08 88 54 24 10 55 56 57 41 54 41 55 41 56 41 57 48 83");

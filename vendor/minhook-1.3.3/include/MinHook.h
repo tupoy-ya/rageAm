@@ -96,7 +96,7 @@ extern "C" {
     MH_STATUS WINAPI MH_Initialize(VOID);
 
     // Uninitialize the MinHook library. You must call this function EXACTLY
-    // ONCE at the end of your program.
+    // ONCE at the entriesEndIndex of your program.
     MH_STATUS WINAPI MH_Uninitialize(VOID);
 
     // Creates a Hook for the specified target function, in disabled state.

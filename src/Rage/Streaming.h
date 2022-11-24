@@ -332,7 +332,7 @@ namespace rage
 				return false;
 
 			// Might be not the best way to check it, but it works.
-			// Around index 30,000 of TxdStore empty entries start appearing that trigger this
+			// Around index 30,000 of TxdStore empty entries entriesStartIndex appearing that trigger this
 			const intptr_t templateEntry = *reinterpret_cast<intptr_t*>(templateEntryPtr);
 			if (templateEntry <= 0xFFFFFFFFFi64)
 				return false;
