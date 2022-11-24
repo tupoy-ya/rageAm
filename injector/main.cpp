@@ -189,9 +189,9 @@ void main(int argc, char* argv[])
 				Sleep(100);
 				GetPid();
 			}
-			// Otherwise script hook crashes with unk version
-			// We'll get rid of it soon or later anyway
-			//Sleep(1000);
+
+			// Put micro delay to wait until process initializes
+			Sleep(200);
 
 			if (GetAndVerifyPid())
 			{
