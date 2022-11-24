@@ -686,33 +686,33 @@ void DisabledInput(const char* text)
 
 void OnPresentImage()
 {
-	float v1[6] =
-	{
-		0, 0, 0, 0, 0, 0
-	};
-	float v2[6] =
-	{
-		500, 0, 500, 0, 500, 0
-	};
-	float v3[6] =
-	{
-		500, 0, 500, 0, 0, 0
-	};
-	float uv1[6] =
-	{
-		0, 0, 0, 0, 0, 0
-	};
-	float uv2[6] =
-	{
-		1, 0, 1, 0,
-	};
-	float uv3[6] =
-	{
-		1, 0, 0, 0
-	};
+	//float v1[6] =
+	//{
+	//	0, 0, 0, 0, 0, 0
+	//};
+	//float v2[6] =
+	//{
+	//	500, 0, 500, 0, 500, 0
+	//};
+	//float v3[6] =
+	//{
+	//	500, 0, 500, 0, 0, 0
+	//};
+	//float uv1[6] =
+	//{
+	//	0, 0, 0, 0, 0, 0
+	//};
+	//float uv2[6] =
+	//{
+	//	1, 0, 1, 0,
+	//};
+	//float uv3[6] =
+	//{
+	//	1, 0, 0, 0
+	//};
 
-	((void(*)(float*, float*, float*, int, int, int, int, const char*, const char*, float*, float*, float*))(0x7FF69DBBB92C))(
-		v1, v2, v3, 255, 255, 255, 255, "vehshare", "plate01", uv1, uv2, uv3);
+	//((void(*)(float*, float*, float*, int, int, int, int, const char*, const char*, float*, float*, float*))(0x7FF69DBBB92C))(
+	//	v1, v2, v3, 255, 255, 255, 255, "vehshare", "plate01", uv1, uv2, uv3);
 
 	//if (menuLocked)
 	//	PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
@@ -935,7 +935,12 @@ void OnPresentImage()
 
 _QWORD aimplPresentImage()
 {
-	InvokeWithExceptionHandler(OnPresentImage);
+	//InvokeWithExceptionHandler(OnPresentImage);
+
+
+
+
+
 
 
 	//if (IsKeyJustUp(VK_F9))
@@ -1221,44 +1226,43 @@ intptr_t aImpl_fiDevice_GetDeviceFor(const char* path, bool a2)
 
 #include "rage/Files/fiPackfile.h"
 
-//typedef intptr_t(*gDef_fiPackfile_Function1D8)(rage::fiPackfile* fiPackfile, char* path);
-//gDef_fiPackfile_Function1D8 gImpl_fiPackfile_Function1D8;
-//
-//rage::fiPackfileEntryHeader* FindEntryHeaderByPath(const rage::fiPackfile* packFile, const char* path);
-//
-//intptr_t aImpl_fiPackfile_Function1D8(rage::fiPackfile* fiPackfile, char* path)
-//{
-//	//// To access registers
-//	//CONTEXT context;
-//	//RtlCaptureContext(&context);
-//
-//	//char* textBuffer = *reinterpret_cast<char**>(context.Rsp);
-//
-//	//g_textBuffer[0] = '\0';
-//	fiPackfileEntryHeader* gameResult = (fiPackfileEntryHeader*)gImpl_fiPackfile_Function1D8(fiPackfile, path);
-//
-//	g_logger->Log(std::format("[fiPackfile::FindEntryHeaderByPath]({})({:X}, {}) 0b: {} returned: {:X}", fiPackfile->members.filePath, (intptr_t)fiPackfile, path, fiPackfile->members.byteB0, (intptr_t)gameResult));
-//
-//	fiPackfileEntryHeader* result = FindEntryHeaderByPath(fiPackfile, path);
-//
-//	if ((int64_t)result == (int64_t)gameResult)
-//	{
-//		g_logger->Log(std::format("OK: {:X} - {:X}", (int64_t)result, (int64_t)gameResult));
-//	}
-//	else
-//	{
-//		g_logger->Log(std::format("ERROR: a{:X} - g{:X} - d{:X}", (int64_t)result, (int64_t)gameResult, (int64_t)result - (int64_t)gameResult));
-//	}
-//
-//	//gImpl_fiPackfile_Function1D8(fiPackfile, path);
-//
-//
-//	return (intptr_t)gameResult;
-//}
+typedef intptr_t(*gDef_fiPackfile_Function1D8)(rage::fiPackfile* fiPackfile, char* path);
+gDef_fiPackfile_Function1D8 gImpl_fiPackfile_FindEntryHeaderByPath;
+
+intptr_t aImpl_fiPackfile_FindEntryHeaderByPath(rage::fiPackfile* fiPackfile, char* path)
+{
+	//// To access registers
+	//CONTEXT context;
+	//RtlCaptureContext(&context);
+
+	//char* textBuffer = *reinterpret_cast<char**>(context.Rsp);
+
+	//g_textBuffer[0] = '\0';
+	rage::fiPackfileEntryHeader* gameResult = (rage::fiPackfileEntryHeader*)gImpl_fiPackfile_FindEntryHeaderByPath(fiPackfile, path);
+	g_logger->Log(std::format("[fiPackfile::FindEntryHeaderByPath]({})({:X}, {}) returned: {:X}",
+		fiPackfile->GetName(), (intptr_t)fiPackfile, path, (intptr_t)gameResult));
+
+	rage::fiPackfileEntryHeader* result = fiPackfile->FindEntryHeaderByPath(path);
+
+
+	if ((int64_t)result == (int64_t)gameResult)
+	{
+		g_logger->Log(std::format("OK: {:X} - {:X}", (int64_t)result, (int64_t)gameResult));
+	}
+	else
+	{
+		g_logger->Log(std::format("ERROR: a{:X} - g{:X} - d{:X}", (int64_t)result, (int64_t)gameResult, (int64_t)result - (int64_t)gameResult));
+	}
+
+	//gImpl_fiPackfile_Function1D8(fiPackfile, path);
+
+	return (intptr_t)gameResult;
+}
 
 void Main()
 {
-	g_logger->Log("Init rageAm", true);
+	g_logger->Init();
+	g_logger->Log("Init rageAm");
 
 	g_logger->Log(std::format("MH_Initialize: {}", MH_Initialize() == MH_OK));
 
@@ -1275,24 +1279,29 @@ void Main()
 
 	//g_hook->SetHook(gPtr_fiPackfile_FindEntryHeaderByPath, (LPVOID)(rage::fiPackfile::FindEntryHeaderByPath));
 
-	//g_hook->SetHook(gPtr_fiPackfile_Function1D8, aImpl_fiPackfile_Function1D8, &gImpl_fiPackfile_Function1D8);
+	//g_hook->SetHook(gPtr_fiPackfile_FindEntryHeaderByPath, aImpl_fiPackfile_FindEntryHeaderByPath, &gImpl_fiPackfile_FindEntryHeaderByPath);
 	//gImpl_fiPackfile_Function1D8 = (gDef_fiPackfile_Function1D8)(gPtr_fiPackfile_Function1D8);
 	//char p[] = {"common/data/ai/vehiclelayouts.meta"};
 	//aImpl_fiPackfile_Function1D8((fiPackfile*)0x1EA5CE255A0, p);
+
+
 	return;
+
 
 	intptr_t gPtr_fiDevice_GetDeviceFor = g_hook->FindPattern("fiDevice::GetDeviceFor", "48 89 5C 24 08 88 54 24 10 55 56 57 41 54 41 55 41 56 41 57 48 83");
 	//g_hook->SetHook(gPtr_fiDevice_GetDeviceFor, aImpl_fiDevice_GetDeviceFor, &gImpl_fiDevice_GetDeviceFor);
 
 	gImpl_fiDevice_GetDeviceFor = (gDef_fiDevice_GetDeviceFor)gPtr_fiDevice_GetDeviceFor;
-	g_logger->Log(std::format("shader fi device: {:X}", gImpl_fiDevice_GetDeviceFor("common:/shaders/win32_40_final/normal_spec_reflect_decal.fxc", true)));
+	g_logger->Log(std::format("Shader fiDevice: {:X}", gImpl_fiDevice_GetDeviceFor("common:/shaders/win32_40_final/normal_spec_reflect_decal.fxc", true)));
+
+
 
 	g_componentMgr->RegisterComponents();
 
 
 	intptr_t gPtr_cModelInfo_RequestAssets = g_hook->FindPattern("CModelInfo::RequestAssets", "8B 01 B9 FF FF 00 00 44 8B C2 23 C1 3B C1 75 07");
 	intptr_t gPtr_streaming = g_hook->FindOffset("CModelInfo::RequestAssets_gStreaming", gPtr_cModelInfo_RequestAssets + 0x33 + 0x3);
-	//streamingMgr = streaming->GetStreamingModuleMgr();
+	//streamingMgr = rage::strStreamingModuleMgr->GetStreamingModuleMgr();
 	//g_logger->Log(std::format("StreamingMgr: {:X}", (intptr_t)streamingMgr));
 
 
@@ -1300,6 +1309,7 @@ void Main()
 	txdStore = reinterpret_cast<rage::TxdStore*>(streamingMgr->GetStreamingModule(rage::STORE_TXD));
 	drawableStore = reinterpret_cast<rage::DrawableStore*>(streamingMgr->GetStreamingModule(rage::STORE_DRAWABLE));
 
+	g_logger->Log(std::format("StreamingMgr: {:X}", (intptr_t)streamingMgr));
 
 	g_imgui->Init(g_gtaWindow->GetHwnd());
 
