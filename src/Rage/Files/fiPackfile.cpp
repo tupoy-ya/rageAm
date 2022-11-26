@@ -46,7 +46,7 @@ rage::fiPackfileEntryHeader* rage::fiPackfile::FindChildEntryIndexByName(const f
 	const char* child) const
 {
 	u32 from = parent->entriesStartIndex;
-	u32 to = parent->entriesEndIndex + from;
+	u32 to = parent->numEntries + from;
 
 	//g_logger->Log("Scanning directory [{}]: {} from: {} to: {}", parent->nameOffset, GetEntryNameByOffset(parent->nameOffset), from, to);
 	//for (u32 i = from; i < to; i++)

@@ -16,8 +16,8 @@ namespace rage
 		u32 flags;
 		// If directory, specifies start index of child entries.
 		u32 entriesStartIndex;
-		// If directory, specifies end index of child entries.
-		u32 entriesEndIndex;
+		// If directory, specifies number of child entries.
+		u32 numEntries;
 
 		bool IsDirectory() const;
 	};
@@ -38,7 +38,9 @@ namespace rage
 		int64_t qword38;
 		int8_t gap40[16];
 		int64_t qword50;
-		int8_t gap58[4];
+		// Used to truncate full path with mounting point like 'dlcMPBeach:/common/data/handling.meta'
+		// to 'common/data/handling.meta' when mounting scope is no longer needed
+		int32_t mountingPointLength;
 		int8_t byte5C;
 		int8_t gap5D[35];
 		// Path and name of packfile (i.e. 'update/update.rpf').
@@ -63,6 +65,7 @@ namespace rage
 		int8_t byteB4;
 		int8_t byteB5;
 		int16_t wordB6;
+		int64_t wordB8;
 	};
 
 	/**
@@ -92,4 +95,5 @@ namespace rage
 
 		static fiPackfileEntryHeader* vftable_FindEntryHeaderByPath(const fiPackfile* inst, const char* path);
 	};
+	static_assert(sizeof(fiPackfile) == 0xC0);
 }

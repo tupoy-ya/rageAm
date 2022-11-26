@@ -27,7 +27,13 @@ namespace rage
 			// Not my brightest moment but how to get pointer
 			// otherwise? It's not pointer array so indexing
 			// is not an option
+			// TODO: &items[index]; should work
 			return reinterpret_cast<T*>(items + sizeof(T) * index);
+		}
+
+		T* operator[](int index) const
+		{
+			return GetAt(index);
 		}
 	};
 

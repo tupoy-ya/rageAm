@@ -10,11 +10,8 @@
 
 #include <iostream>
 
-//#include "../vendor/scripthook/include/keyboard.h"
-//#include "../vendor/scripthook/include/natives.h"
+
 #include <windows.h>
-//#include "../vendor/scripthook/include/types.h"
-//#include "../vendor/scripthook/include/enums.h"
 
 #include <d3d11.h>
 #include <sstream>
@@ -683,9 +680,87 @@ void DisabledInput(const char* text)
 	ImGui::PopID();
 }
 
+struct fiStream
+{
+	intptr_t pDevice;
+	int64_t qword8;
+	uint8_t* buffer;
+	int64_t deviceCursorPos;
+	int32_t bufferCursorPos;
+	int32_t bufferContentEnd;
+	int32_t bufferSize;
+	int32_t dword2C;
+};
 
+bool opened = false;
+
+#include "Rage/Files/fiStream.h"
+#include <fstream>
 void OnPresentImage()
 {
+	if (!opened)
+	{
+		/*int8_t data[0x100]{ 0 };
+
+		reinterpret_cast<void(*)(int8_t*, uint32_t, const char*, int32_t)>(0x7FF7B9F9DF04)(
+			reinterpret_cast<int8_t*>(&data), 0xFFFFFFF1, "1.2.3", 0x58);
+
+		std::ofstream dfs;
+		dfs.open("C:\\Users\\falco\\Desktop\\dump.bin", std::ios::trunc);
+		dfs << data;
+		dfs.close();
+*/
+		g_logger->Log("FS Thread");
+
+		opened = true;
+
+		// Open
+		fiStream* fs = reinterpret_cast<fiStream * (*)(const char*, const char*)>(0x7FF7B94B0310)("common:/data/version.txt", "r");
+
+		// char path[255] = "user:/victor\0";
+		// // Get System Path
+		//reinterpret_cast<void(*)(intptr_t, char*)>(0x7FF7B9F8D7E8)(
+		//	0x7FF7BABDBCB0, reinterpret_cast<char*>(&path));
+		//g_logger->Log("path: {}", path);
+
+		// Open Truncate
+		//fiStream* fs = reinterpret_cast<fiStream * (*)(intptr_t, const char*, const char*)>(0x7FF7B9F8D420)(
+		//	0x7FF7BABDBCB0, path, "txt");
+
+		g_logger->Log("file stream: {:X}", (int64_t)fs);
+		if (fs)
+		{
+			//char data1[] = "I'm not victor.";
+			//char data2[] = " . Yes.";
+			//char data3[] = " Another Test String.";
+			//char data4[] = "i Can add them as much as i want";
+
+			// Write
+			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data1, sizeof data1);
+			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data2, sizeof data2);
+
+			// Flush
+			//reinterpret_cast<void(*)(fiStream*)>(0x7FF7B9F8EADC)(fs);
+
+			const char* line;
+			// Read line
+			while ((line = reinterpret_cast<const char* (*)(fiStream*, bool)>(0x7FF7B94B1F80)(fs, true)))
+			{
+				g_logger->Log(line);
+			}
+			
+			// Write
+			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data3, sizeof data3);
+			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data4, sizeof data4);
+
+			// Close
+			reinterpret_cast<void(*)(fiStream*)>(0x7FF7B949DE10)(fs);
+
+			g_logger->Log("file stream close");
+		}
+	}
+	return;
+
 	//float v1[6] =
 	//{
 	//	0, 0, 0, 0, 0, 0
@@ -935,7 +1010,7 @@ void OnPresentImage()
 
 _QWORD aimplPresentImage()
 {
-	//InvokeWithExceptionHandler(OnPresentImage);
+	InvokeWithExceptionHandler(OnPresentImage);
 
 
 
@@ -1228,7 +1303,10 @@ intptr_t aImpl_fiDevice_GetDeviceFor(const char* path, bool a2)
 
 typedef intptr_t(*gDef_fiPackfile_Function1D8)(rage::fiPackfile* fiPackfile, char* path);
 gDef_fiPackfile_Function1D8 gImpl_fiPackfile_FindEntryHeaderByPath;
-
+//#include "../vendor/scripthook/include/keyboard.h"
+//#include "../vendor/scripthook/include/natives.h"
+//#include "../vendor/scripthook/include/types.h"
+//#include "../vendor/scripthook/include/enums.h"
 intptr_t aImpl_fiPackfile_FindEntryHeaderByPath(rage::fiPackfile* fiPackfile, char* path)
 {
 	//// To access registers
@@ -1272,6 +1350,13 @@ void Main()
 	intptr_t gPtr_fiPackfile_FindEntryHeaderByPath = g_hook->FindPattern("fiPackfile::FindEntryHeaderByPath", "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 81 EC 00 01 00 00 4C");
 	g_hook->SetHook((LPVOID)gPtr_fiPackfile_FindEntryHeaderByPath, (LPVOID)rage::fiPackfile::vftable_FindEntryHeaderByPath);
 
+
+
+
+
+
+
+
 	//intptr_t gPtr_fiPackfile = g_hook->FindPattern("fiPackfile::fiPackfile", "48 8D 05 ?? ?? ?? ?? 41 0F B7 D2");
 	//intptr_t gPtr_fiPackfile_vftable = g_hook->FindOffset("fiPackfile::fiPackfile_vftable", 0x3);
 
@@ -1285,9 +1370,16 @@ void Main()
 	//aImpl_fiPackfile_Function1D8((fiPackfile*)0x1EA5CE255A0, p);
 
 
-	return;
+	//const Vehicle vehicle = PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true);
+
+	//gImpl_GetEntityToQueryFromGUID = (GetEntityToQueryFromGUID)(0x7FF69DB7BFD0);
+
+	//g_logger->Log(std::format("Current Vehicle: {:X}", gImpl_GetEntityToQueryFromGUID(PED::GET_VEHICLE_PED_IS_IN(PLAYER::GET_PLAYER_PED(0), true))));
+	//invoke<Void>(0x16C2C89DF3A1E544, vehicle, 1.0f);
 
 
+	// TODO: Temp
+	/*
 	intptr_t gPtr_fiDevice_GetDeviceFor = g_hook->FindPattern("fiDevice::GetDeviceFor", "48 89 5C 24 08 88 54 24 10 55 56 57 41 54 41 55 41 56 41 57 48 83");
 	//g_hook->SetHook(gPtr_fiDevice_GetDeviceFor, aImpl_fiDevice_GetDeviceFor, &gImpl_fiDevice_GetDeviceFor);
 
@@ -1348,14 +1440,14 @@ void Main()
 	//rage::SetHooks();
 	//rage::HookFactories();
 
+	gImpl_DisableAllControlActionsCommand = g_hook->FindPattern<DisableAllControlActionsCommand>("DisableAllControlActionsCommand", "40 53 48 83 EC 20 33 DB 85 C9 75 09");
+
+	*/
+
 	auto gPtr_PresentImage = g_hook->FindPattern("PresentImage", "40 55 53 56 57 41 54 41 56 41 57 48 8B EC 48 83 EC 40 48 8B 0D");
 	g_hook->SetHook(gPtr_PresentImage, aimplPresentImage, &gimplPresentImage);
 
-
-
-	gImpl_DisableAllControlActionsCommand = g_hook->FindPattern<DisableAllControlActionsCommand>("DisableAllControlActionsCommand", "40 53 48 83 EC 20 33 DB 85 C9 75 09");
-
-
+	return;
 
 	//GetHash getHash = g_hook->FindPattern<GetHash>("GetHash", "48 63 C1 48 8B CA");
 	//auto getModel = g_hook->FindPattern<GetModelInfo>("GetModelInfo", "40 53 48 83 EC 20 48 8B D9 E8 ?? ?? ?? ?? 8B 13 66 89 44 24 30 8B 44 24 30 8B CA 33 C8 81 E1 00 00 FF 0F 33 C1 48 8D 4C 24 30 0F BA F0 1D 33 D0 81 E2 00 00 00 10 33 C2 25 FF FF FF 3F 89 44 24 30 E8 ?? ?? ?? ?? 45");
