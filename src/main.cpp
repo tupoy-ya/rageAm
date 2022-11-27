@@ -695,11 +695,13 @@ struct fiStream
 bool opened = false;
 
 #include "Rage/Files/fiStream.h"
+#include "Rage/Files/fiDevice.h"
 #include <fstream>
 void OnPresentImage()
 {
 	if (!opened)
 	{
+
 		/*int8_t data[0x100]{ 0 };
 
 		reinterpret_cast<void(*)(int8_t*, uint32_t, const char*, int32_t)>(0x7FF7B9F9DF04)(
@@ -715,39 +717,39 @@ void OnPresentImage()
 		opened = true;
 
 		// Open
-		fiStream* fs = reinterpret_cast<fiStream * (*)(const char*, const char*)>(0x7FF7B94B0310)("common:/data/version.txt", "r");
+		//fiStream* fs = reinterpret_cast<fiStream * (*)(const char*, const char*)>(0x7FF7B94B0310)("common:/data/version.txt", "r");
 
-		// char path[255] = "user:/victor\0";
-		// // Get System Path
-		//reinterpret_cast<void(*)(intptr_t, char*)>(0x7FF7B9F8D7E8)(
-		//	0x7FF7BABDBCB0, reinterpret_cast<char*>(&path));
-		//g_logger->Log("path: {}", path);
+		 char path[255] = "user:/victor\0";
+		 // Get System Path
+		reinterpret_cast<void(*)(intptr_t, char*)>(0x7FF7B9F8D7E8)(
+			0x7FF7BABDBCB0, reinterpret_cast<char*>(&path));
+		g_logger->Log("path: {}", path);
 
 		// Open Truncate
-		//fiStream* fs = reinterpret_cast<fiStream * (*)(intptr_t, const char*, const char*)>(0x7FF7B9F8D420)(
-		//	0x7FF7BABDBCB0, path, "txt");
+		fiStream* fs = reinterpret_cast<fiStream * (*)(intptr_t, const char*, const char*)>(0x7FF7B9F8D420)(
+			0x7FF7BABDBCB0, path, "txt");
 
 		g_logger->Log("file stream: {:X}", (int64_t)fs);
 		if (fs)
 		{
-			//char data1[] = "I'm not victor.";
-			//char data2[] = " . Yes.";
+			char data1[] = "I'm not victor.";
+			char data2[] = " . Yes.";
 			//char data3[] = " Another Test String.";
 			//char data4[] = "i Can add them as much as i want";
 
 			// Write
-			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data1, sizeof data1);
-			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data2, sizeof data2);
+			reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data1, sizeof data1);
+			reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data2, sizeof data2);
 
 			// Flush
 			//reinterpret_cast<void(*)(fiStream*)>(0x7FF7B9F8EADC)(fs);
 
-			const char* line;
-			// Read line
-			while ((line = reinterpret_cast<const char* (*)(fiStream*, bool)>(0x7FF7B94B1F80)(fs, true)))
-			{
-				g_logger->Log(line);
-			}
+			//const char* line;
+			//// Read line
+			//while ((line = reinterpret_cast<const char* (*)(fiStream*, bool)>(0x7FF7B94B1F80)(fs, true)))
+			//{
+			//	g_logger->Log(line);
+			//}
 			
 			// Write
 			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data3, sizeof data3);

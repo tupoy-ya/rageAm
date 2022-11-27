@@ -3,11 +3,10 @@
 
 #include "../fwTypes.h"
 #include "../../Logger.h"
+#include "fiDevice.h"
 
 namespace rage
 {
-	typedef int64_t fiDevice;
-
 	/**
 	 * \brief Stream is the low-level bridge to fiDevice (which provides information about remote file on disk / internet or in .RPF).
 	 * \n It allows to abstract from the actual file implementation and work with any type of data the same way,
@@ -23,15 +22,16 @@ namespace rage
 		// Additionally there's checks if it's not set to zero.
 		static constexpr int sm_maxStreams = 64;
 
-		static std::mutex sm_mutex;
+		inline static std::mutex sm_mutex;
 		static fiStream sm_streams[sm_maxStreams];
 
-		static int sm_activeStreams;
+		inline static int sm_activeStreams;
 
 		inline static char sm_streamBuffers[sm_maxStreams][STREAM_BUFFER_SIZE]{ {0} };
 
 		fiDevice* p_Device;
-		intptr_t p_FileData;
+		// Device specific handle. For i.e. in fiDeviceLocal (win api) it's file handle.
+		RAGE_HANDLE m_handle;
 		char* m_buffer;
 
 		int64 m_deviceCursorPos;
@@ -44,9 +44,10 @@ namespace rage
 
 		int m_dword2C;
 
-		fiStream(fiDevice* pDevice, intptr_t pData, char* buffer);
-
 	public:
+		fiStream();
+		fiStream(fiDevice* pDevice, intptr_t handle, char* buffer);
+
 		static int GetNumActiveStreams();
 		static bool HasAvailableStreams();
 
@@ -54,15 +55,18 @@ namespace rage
 		 * \brief Creates new resource, overwriting existing and allocates stream.
 		 * \param resourceName Name of the resource that will be resolved by fiDevice.
 		 * \return Allocated stream for created resource or nullptr if unable to create resource.
+		 * \remark Not supported on following devices: fiPackfile
 		 */
 		static fiStream* Create(const char* resourceName);
 
 		/**
 		 * \brief Opens existing resource and allocates stream.
 		 * \param resourceName Name of the resource that will be resolved by fiDevice.
+		 * \param isReadOnly Whether file needs to be opened only with read access or read & write.
 		 * \return Allocated stream for the resource or nullptr if resource was not found.
+		 * \remark Write mode not supported on following devices: fiPackfile
 		 */
-		static fiStream* Open(const char* resourceName);
+		static fiStream* Open(const char* resourceName, bool isReadOnly = true);
 
 		/**
 		 * \brief Creates a new stream for given resource.

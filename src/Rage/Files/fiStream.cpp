@@ -1,18 +1,28 @@
 #include "fiStream.h"
 
-rage::fiStream::fiStream(fiDevice* pDevice, intptr_t pData, char* buffer)
+rage::fiStream::fiStream()
 {
-	p_Device = pDevice;
-	p_FileData = pData;
-	m_buffer = buffer;
+	p_Device = nullptr;
+	m_buffer = nullptr;
+	m_handle = RAGE_INVALID_HANDLE;
 
 	m_deviceCursorPos = 0;
 	m_bufferCursorPos = 0;
 	m_bufferContentEnd = 0;
 	m_dword2C = 0;
 
+	m_bufferSize = 0;
+}
+
+rage::fiStream::fiStream(fiDevice* pDevice, RAGE_HANDLE handle, char* buffer) : fiStream()
+{
+	p_Device = pDevice;
+	m_buffer = buffer;
+	m_handle = handle;
+
 	// Not sure what is the point of every stream having
 	// size of buffer when it's constant. (is it?)
+	// Though game has checks if it's set to zero.
 	m_bufferSize = STREAM_BUFFER_SIZE;
 }
 
@@ -37,16 +47,15 @@ rage::fiStream* rage::fiStream::Create(const char* resourceName)
 	if (!device)
 		return nullptr;
 
-	// TODO: fiDevice->vftable + 0x28 (resourceName)
-	intptr_t pData = -1;
+	RAGE_HANDLE handle = device->vftable->Create(device, resourceName);
 
-	if (pData == -1)
+	if (handle == RAGE_INVALID_HANDLE)
 		return nullptr;
 
-	return AllocStream(resourceName, pData, device);
+	return AllocStream(resourceName, handle, device);
 }
 
-rage::fiStream* rage::fiStream::Open(const char* resourceName)
+rage::fiStream* rage::fiStream::Open(const char* resourceName, bool isReadOnly)
 {
 	if (!HasAvailableStreams())
 		return nullptr;
@@ -57,13 +66,12 @@ rage::fiStream* rage::fiStream::Open(const char* resourceName)
 	if (!device)
 		return nullptr;
 
-	// TODO: fiDevice->vftable + 0x8 (resourceName, true)
-	intptr_t pData = -1;
+	RAGE_HANDLE handle = device->vftable->Open(device, resourceName, isReadOnly);
 
-	if (pData == -1)
+	if (handle == RAGE_INVALID_HANDLE)
 		return nullptr;
 
-	return AllocStream(resourceName, pData, device);
+	return AllocStream(resourceName, handle, device);
 }
 
 rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, intptr_t pData, fiDevice* device)
@@ -71,7 +79,7 @@ rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, intptr_t p
 	// Resource name is actually passed in fiStream::AllocStream but not used,
 	// most likely was simply logged somewhere.
 	g_logger->Log("Allocating stream for: {}. Data Ptr: {:X}. Device: {:X}",
-		resourceName, reinterpret_cast<intptr_t>(pData), reinterpret_cast<intptr_t>(device));
+		resourceName, pData, reinterpret_cast<intptr_t>(device));
 
 	if (!HasAvailableStreams())
 		return nullptr;
@@ -105,7 +113,7 @@ void rage::fiStream::Close()
 	// Mark as no longer needed?
 	// p_Device->vftable + 0x60 (pData)
 
-	p_FileData = -1;
+	m_handle = RAGE_INVALID_HANDLE;
 	p_Device = nullptr;
 
 	sm_activeStreams--;
@@ -138,3 +146,5 @@ bool rage::fiStream::WriteChar(char c)
 {
 	return Write(&c, 1) != -1;
 }
+
+rage::fiStream rage::fiStream::sm_streams[] = {};
