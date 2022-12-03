@@ -57,3 +57,11 @@ public:
 };
 
 extern Hooker* g_hook;
+
+namespace ra
+{
+	inline uintptr_t FindPattern(std::string name, const char* pattern)
+	{
+		return g_hook->FindPattern(name, pattern);
+	}
+}

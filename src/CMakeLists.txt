@@ -1,7 +1,5 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
-# include_directories(${CMAKE_CURRENT_LIST_DIR})
-
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})
 set(Boost_USE_STATIC_LIBS ON)
@@ -27,7 +25,13 @@ add_library(rageAm SHARED
     "Rage/pgDictionary.h" 
     "Rage/grcTexture.h" 
     "Rage/fwHelpers.h" 
-    "Rage/Files/fiPackfile.cpp" "Rage/Files/fiStream.h" "Rage/Files/fiStream.cpp" "Rage/Files/fiDevice.h")
+    "Rage/Files/fiPackfile.cpp" 
+    "Rage/Files/fiStream.h" 
+    "Rage/Files/fiStream.cpp" 
+    "Rage/Files/fiDevice.h" 
+    "Rage/grmShaderGroup.h" 
+    "Rage/atArray.h" 
+    "ImGui/imconfig_gta.h" "Rage/grmShaderGroup.cpp" "Rage/fragments/fragType.h" "Rage/fragments/fwFragmentDef.h")
 
 # target_include_directories(rageAm PUBLIC "../vendor/imgui-1.88")
 

@@ -3,8 +3,12 @@
 #include <fstream>
 #include <format>
 
+#define IMGUI_USER_CONFIG "imconfig_gta.h"
+// #include "ImGui/imconfig_gta.h"
+
 #include "Memory/Hooking.h"
 #include "Logger.h"
+
 #include "../vendor/minhook-1.3.3/include/MinHook.h"
 //#include "../vendor/scripthook/include/main.h"
 
@@ -567,6 +571,8 @@ static ImGuiTableFlags tableFlags = ImGuiTableFlags_Borders | ImGuiTableFlags_Ro
 rage::strStreamingModuleMgr* streamingMgr;
 rage::TxdStore* txdStore;
 rage::DrawableStore* drawableStore;
+rage::FragmentStore* fragmentStore;
+
 void DrawDictionary(int index)
 {
 	if (!txdStore->IsSlotActive(index))
@@ -680,18 +686,6 @@ void DisabledInput(const char* text)
 	ImGui::PopID();
 }
 
-struct fiStream
-{
-	intptr_t pDevice;
-	int64_t qword8;
-	uint8_t* buffer;
-	int64_t deviceCursorPos;
-	int32_t bufferCursorPos;
-	int32_t bufferContentEnd;
-	int32_t bufferSize;
-	int32_t dword2C;
-};
-
 bool opened = false;
 
 #include "Rage/Files/fiStream.h"
@@ -699,115 +693,114 @@ bool opened = false;
 #include <fstream>
 void OnPresentImage()
 {
-	if (!opened)
-	{
+	//	if (!opened)
+	//	{
+	//
+	//		/*int8_t data[0x100]{ 0 };
+	//
+	//		reinterpret_cast<void(*)(int8_t*, uint32_t, const char*, int32_t)>(0x7FF7B9F9DF04)(
+	//			reinterpret_cast<int8_t*>(&data), 0xFFFFFFF1, "1.2.3", 0x58);
+	//
+	//		std::ofstream dfs;
+	//		dfs.open("C:\\Users\\falco\\Desktop\\dump.bin", std::ios::trunc);
+	//		dfs << data;
+	//		dfs.close();
+	//*/
+	//		g_logger->Log("FS Thread");
+	//
+	//		opened = true;
+	//
+	//		// Open
+	//		//fiStream* fs = reinterpret_cast<fiStream * (*)(const char*, const char*)>(0x7FF7B94B0310)("common:/data/version.txt", "r");
+	//
+	//		char path[255] = "user:/victor\0";
+	//		// Get System Path
+	//		reinterpret_cast<void(*)(intptr_t, char*)>(0x7FF7B9F8D7E8)(
+	//			0x7FF7BABDBCB0, reinterpret_cast<char*>(&path));
+	//		g_logger->Log("path: {}", path);
+	//
+	//		// Open Truncate
+	//		fiStream* fs = reinterpret_cast<fiStream * (*)(intptr_t, const char*, const char*)>(0x7FF7B9F8D420)(
+	//			0x7FF7BABDBCB0, path, "txt");
+	//
+	//		g_logger->Log("file stream: {:X}", (int64_t)fs);
+	//		if (fs)
+	//		{
+	//			char data1[] = "I'm not victor.";
+	//			char data2[] = " . Yes.";
+	//			//char data3[] = " Another Test String.";
+	//			//char data4[] = "i Can add them as much as i want";
+	//
+	//			// Write
+	//			reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data1, sizeof data1);
+	//			reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data2, sizeof data2);
+	//
+	//			// Flush
+	//			//reinterpret_cast<void(*)(fiStream*)>(0x7FF7B9F8EADC)(fs);
+	//
+	//			//const char* line;
+	//			//// Read line
+	//			//while ((line = reinterpret_cast<const char* (*)(fiStream*, bool)>(0x7FF7B94B1F80)(fs, true)))
+	//			//{
+	//			//	g_logger->Log(line);
+	//			//}
+	//
+	//			// Write
+	//			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data3, sizeof data3);
+	//			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data4, sizeof data4);
+	//
+	//			// Close
+	//			reinterpret_cast<void(*)(fiStream*)>(0x7FF7B949DE10)(fs);
+	//
+	//			g_logger->Log("file stream close");
+	//		}
+	//	}
+	//	//return;
 
-		/*int8_t data[0x100]{ 0 };
+		//float v1[6] =
+		//{
+		//	0, 0, 0, 0, 0, 0
+		//};
+		//float v2[6] =
+		//{
+		//	500, 0, 500, 0, 500, 0
+		//};
+		//float v3[6] =
+		//{
+		//	500, 0, 500, 0, 0, 0
+		//};
+		//float uv1[6] =
+		//{
+		//	0, 0, 0, 0, 0, 0
+		//};
+		//float uv2[6] =
+		//{
+		//	1, 0, 1, 0,
+		//};
+		//float uv3[6] =
+		//{
+		//	1, 0, 0, 0
+		//};
 
-		reinterpret_cast<void(*)(int8_t*, uint32_t, const char*, int32_t)>(0x7FF7B9F9DF04)(
-			reinterpret_cast<int8_t*>(&data), 0xFFFFFFF1, "1.2.3", 0x58);
-
-		std::ofstream dfs;
-		dfs.open("C:\\Users\\falco\\Desktop\\dump.bin", std::ios::trunc);
-		dfs << data;
-		dfs.close();
-*/
-		g_logger->Log("FS Thread");
-
-		opened = true;
-
-		// Open
-		//fiStream* fs = reinterpret_cast<fiStream * (*)(const char*, const char*)>(0x7FF7B94B0310)("common:/data/version.txt", "r");
-
-		 char path[255] = "user:/victor\0";
-		 // Get System Path
-		reinterpret_cast<void(*)(intptr_t, char*)>(0x7FF7B9F8D7E8)(
-			0x7FF7BABDBCB0, reinterpret_cast<char*>(&path));
-		g_logger->Log("path: {}", path);
-
-		// Open Truncate
-		fiStream* fs = reinterpret_cast<fiStream * (*)(intptr_t, const char*, const char*)>(0x7FF7B9F8D420)(
-			0x7FF7BABDBCB0, path, "txt");
-
-		g_logger->Log("file stream: {:X}", (int64_t)fs);
-		if (fs)
-		{
-			char data1[] = "I'm not victor.";
-			char data2[] = " . Yes.";
-			//char data3[] = " Another Test String.";
-			//char data4[] = "i Can add them as much as i want";
-
-			// Write
-			reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data1, sizeof data1);
-			reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data2, sizeof data2);
-
-			// Flush
-			//reinterpret_cast<void(*)(fiStream*)>(0x7FF7B9F8EADC)(fs);
-
-			//const char* line;
-			//// Read line
-			//while ((line = reinterpret_cast<const char* (*)(fiStream*, bool)>(0x7FF7B94B1F80)(fs, true)))
-			//{
-			//	g_logger->Log(line);
-			//}
-			
-			// Write
-			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data3, sizeof data3);
-			//reinterpret_cast<void(*)(fiStream*, void*, uint)>(0x7FF7B9F95BF4)(fs, &data4, sizeof data4);
-
-			// Close
-			reinterpret_cast<void(*)(fiStream*)>(0x7FF7B949DE10)(fs);
-
-			g_logger->Log("file stream close");
-		}
-	}
-	return;
-
-	//float v1[6] =
-	//{
-	//	0, 0, 0, 0, 0, 0
-	//};
-	//float v2[6] =
-	//{
-	//	500, 0, 500, 0, 500, 0
-	//};
-	//float v3[6] =
-	//{
-	//	500, 0, 500, 0, 0, 0
-	//};
-	//float uv1[6] =
-	//{
-	//	0, 0, 0, 0, 0, 0
-	//};
-	//float uv2[6] =
-	//{
-	//	1, 0, 1, 0,
-	//};
-	//float uv3[6] =
-	//{
-	//	1, 0, 0, 0
-	//};
-
-	//((void(*)(float*, float*, float*, int, int, int, int, const char*, const char*, float*, float*, float*))(0x7FF69DBBB92C))(
-	//	v1, v2, v3, 255, 255, 255, 255, "vehshare", "plate01", uv1, uv2, uv3);
-
-	//if (menuLocked)
-	//	PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
-
-	if (menuOpen)
-		gImpl_DisableAllControlActionsCommand(0);
-
-	if (!menuOpen && !menuLocked)
-	{
-		// TODO: Controller still works
-		ImGui::GetIO().MousePos = { 0.0f, 0.0f };
-	}
-
-	//if (IsKeyJustUp(VK_SCROLL))
-	//	menuOpen = !menuOpen;
+		//((void(*)(float*, float*, float*, int, int, int, int, const char*, const char*, float*, float*, float*))(0x7FF69DBBB92C))(
+		//	v1, v2, v3, 255, 255, 255, 255, "vehshare", "plate01", uv1, uv2, uv3);
 
 	if (g_imgui->IsInitialized())
 	{
+
+		if (menuOpen)
+			gImpl_DisableAllControlActionsCommand(0);
+
+		if (!menuOpen && !menuLocked)
+		{
+			// TODO: Controller still works
+			ImGui::GetIO().MousePos = { 0.0f, 0.0f };
+		}
+
+		//if (IsKeyJustUp(VK_SCROLL))
+		//	menuOpen = !menuOpen;
+
+
 		g_imgui->NewFrame();
 
 		ImGui::GetIO().MouseDrawCursor = menuOpen; // Until we have SetCursor hook
@@ -819,7 +812,7 @@ void OnPresentImage()
 			ImGui::Separator();
 
 			ImGui::Text("Window Handle: %#X", reinterpret_cast<int>(g_gtaWindow->GetHwnd()));
-			ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
+			// ImGui::Checkbox("Debug Pause", reinterpret_cast<bool*>(isDebugPaused));
 			ImGui::Separator();
 
 			if (ImGui::TreeNode("Texture Browser"))
@@ -877,11 +870,11 @@ void OnPresentImage()
 					ImGui::BulletText("Drawable Address:");
 					ImGui::SameLine(); DisabledInput(std::format("{:X}", (intptr_t)drawable).c_str());
 
-					ImGui::BulletText(std::format("Shader Count: {}", drawable->grmShaderGroup->numShaders).c_str());
-					for (int i = 0; i < drawable->grmShaderGroup->numShaders; i++)
+					ImGui::BulletText(std::format("Shader Count: {}", drawable->grmShaderGroup->numMaterials).c_str());
+					for (int i = 0; i < drawable->grmShaderGroup->numMaterials; i++)
 					{
-						auto shaderDef = drawable->grmShaderGroup->shaders[i];
-						ImGui::BulletText(std::format("Path: {}", shaderDef->metadata->shaderPath).c_str());
+						auto shaderDef = drawable->grmShaderGroup->materials[i];
+						ImGui::BulletText(std::format("Path: {}", shaderDef->shaderPack->shaderFilePath).c_str());
 					}
 				}
 				ImGui::TreePop();
@@ -889,15 +882,15 @@ void OnPresentImage()
 
 			if (ImGui::TreeNode("Shader Group Browser"))
 			{
-				auto grmShaderGroup = (rage::grmShaderGroup*)(0x1AA6BAB3DD0);//(0x19F82F9FCB0);
+				auto grmShaderGroup = reinterpret_cast<rage::grmShaderGroup*>(0x1F8844FFC50);
 
-				ImGui::BulletText(std::format("Shader Count: {}", grmShaderGroup->numShaders).c_str());
-				for (int i = 0; i < grmShaderGroup->numShaders; i++)
+				ImGui::BulletText(std::format("Material Count: {}", grmShaderGroup->numMaterials).c_str());
+				for (int i = 0; i < grmShaderGroup->numMaterials; i++)
 				{
-					auto shaderDef = grmShaderGroup->shaders[i];
-					ImGui::Text(std::format("Path: {}", shaderDef->metadata->shaderPath).c_str());
+					auto material = grmShaderGroup->materials[i];
+					ImGui::Text(std::format("Path: {}", material->shaderPack->shaderFilePath).c_str());
 
-					if (ImGui::BeginTable(shaderDef->metadata->shaderPath, 4, tableFlags))
+					if (ImGui::BeginTable(material->shaderPack->shaderFilePath, 4, tableFlags))
 					{
 						ImGui::TableSetupColumn("Name");
 						ImGui::TableSetupColumn("Type");
@@ -905,15 +898,15 @@ void OnPresentImage()
 						ImGui::TableSetupColumn("Address");
 						ImGui::TableHeadersRow();
 
-						auto meta = shaderDef->metadata;
-						for (int k = 0; k < meta->variables.GetSize(); k++)
+						auto shader = material->shaderPack;
+						for (int k = 0; k < shader->variables.GetSize(); k++)
 						{
 							ImGui::TableNextRow();
 
-							auto shaderVar = meta->variables.GetAt(k);
+							auto shaderVar = shader->variables.GetAt(k);
 
-							int8_t type = *(int8_t*)(((intptr_t)shaderVar) + 0x0);
-							auto value = shaderDef->GetValueAtIndex(k);
+							int8_t type = *(int8_t*)((intptr_t)shaderVar + 0x0);
+							auto value = material->GetVariableAtIndex(k);
 
 							ImGui::TableSetColumnIndex(0);
 							ImGui::Text(shaderVar->Name);
@@ -945,7 +938,7 @@ void OnPresentImage()
 							}
 
 							ImGui::TableSetColumnIndex(3);
-							ImGui::Text(std::format("{:X}", value->pValue).c_str());
+							ImGui::Text(std::format("{:X}", value->pDataValue).c_str());
 						}
 						ImGui::EndTable();
 					}
@@ -1339,6 +1332,235 @@ intptr_t aImpl_fiPackfile_FindEntryHeaderByPath(rage::fiPackfile* fiPackfile, ch
 	return (intptr_t)gameResult;
 }
 
+double NullSub()
+{
+	return 0.1f;
+}
+
+typedef bool (*gDef_grcFragmentProgram_SetConstantBuffers)(int64_t grcProgram);
+
+gDef_grcFragmentProgram_SetConstantBuffers aImpl_grcFragmentProgram_SetConstantBuffers;
+
+bool grcFragmentProgram_SetConstantBuffers(int64_t grcProgram)
+{
+	auto name = *reinterpret_cast<const char**>(grcProgram + 0x8);
+	g_logger->Log("{:X} - {}", grcProgram, name);
+
+	return aImpl_grcFragmentProgram_SetConstantBuffers(grcProgram);
+}
+
+#include "Rage/grmShaderGroup.h"
+
+// grmShaderVariable array is in fact grmMaterial->shaderPack->variables
+typedef void(*gDef_grmMaterial_UpdateAndBindFragmentProgram)(rage::grmMaterial*, rage::grcFragmentProgram*, rage::grmShaderVariable**);
+
+gDef_grmMaterial_UpdateAndBindFragmentProgram gImpl_grmMaterial_UpdateAndBindFragmentProgram = nullptr;
+
+intptr_t GetFragTypeListPtr(intptr_t vehicle)
+{
+	intptr_t fragInst = *reinterpret_cast<intptr_t*>(vehicle + 0x30);
+	intptr_t fragType = *reinterpret_cast<intptr_t*>(fragInst + 0x78);
+	intptr_t fragPhysicsLODGroup = *reinterpret_cast<intptr_t*>(fragType + 0xF0);
+	intptr_t fragPhysicsLOD = *reinterpret_cast<intptr_t*>(fragPhysicsLODGroup + 0x10);
+	intptr_t fragChildTypeArray = *reinterpret_cast<intptr_t*>(fragPhysicsLOD + 0xD0);
+
+
+	return 0;
+}
+
+void aImpl_UpdateAndBindFragmentProgram(rage::grmMaterial* inst, rage::grcFragmentProgram* ps, rage::grmShaderVariable** variables)
+{
+
+	//rage::grmShaderGroup* adderGroup = (rage::grmShaderGroup*)(0x00000259A8EAE390);
+	rage::grmShaderGroup* adderGroup = (rage::grmShaderGroup*)(0x2C9A098CE70);
+
+	//g_logger->Log("{:X}", (int64_t)inst)
+
+	if (strstr(inst->shaderPack->shaderFilePath, "ranstar"))
+	{
+		g_logger->Log("{}", inst->shaderPack->shaderFilePath);
+		g_logger->Log("mat inst: {:X}, {}", (int64_t)inst, inst->shaderPack->shaderFilePath);
+		g_logger->Log("num materials: {}", adderGroup->numMaterials);
+
+		for (int i = 0; i < adderGroup->numMaterials; i++)
+		{
+			rage::grmMaterial* material = adderGroup->materials[i];
+			g_logger->Log("[{}] - {:X}, {}", i, (int64_t)material, material->shaderPack->shaderFilePath);
+
+			if ((int64_t)material == (int64_t)inst)
+			{
+				g_logger->Log("Bingo!");
+				g_logger->Log("{} variables", material->shaderPack->variables.GetSize());
+
+				for (int k = 0; k < material->shaderPack->variables.GetSize(); k++)
+				{
+					auto shaderVar = material->shaderPack->variables.GetAt(k);
+
+					g_logger->Log(" - {}", shaderVar->Name);
+					if (strcmp(shaderVar->Name, "ranstarScale") == 0)
+					{
+						auto var = material->GetVariableAtIndex(k);
+						*var->GetFloatPtr() = rand() % 128 / 128.0f;
+
+						g_logger->Log("Found ranstarScale at {:X}", (int64_t)var->GetFloatPtr());
+					}
+				}
+			}
+		}
+	}
+
+	// g_logger->Log("grmMaterial::UpdateAndBindFragmentProgram({:X}, {:X}, {:X})", (int64_t)inst, (int64_t)ps, (int64_t)variables);
+
+	gImpl_grmMaterial_UpdateAndBindFragmentProgram(inst, ps, variables);
+}
+
+typedef void(*gDef_rage_fwRenderThreadInterface_DefaultRenderFunction)(int64_t);
+typedef void(*gDef_rage_fwRenderThreadInterface_DoRenderFunction)(int64_t);
+
+gDef_rage_fwRenderThreadInterface_DefaultRenderFunction gImpl_DefaultRenderFunction;
+
+void aImpl_rage_fwRenderThreadInterface_DoRenderFunction(int64_t inst)
+{
+	gImpl_DefaultRenderFunction(inst);
+}
+
+void nullsub()
+{
+
+}
+
+typedef void(*gDef_DrawCustomShaderEffectCommand)(intptr_t renderData);
+gDef_DrawCustomShaderEffectCommand gImpl_DrawCustomShaderEffectCommand;
+#include <D3Dcompiler.h>
+#pragma comment(lib,"D3dcompiler.lib")
+
+bool shaderUpdated = false;
+
+void aImpl_DrawCustomShaderEffectCommand(intptr_t renderData)
+{
+	intptr_t fragType = *(intptr_t*)0x7FF7BB06B620;
+	intptr_t shaderFx = *(intptr_t*)0x7FF7BB06B630;
+
+	gImpl_DrawCustomShaderEffectCommand(renderData);
+
+	// if (!(shaderFx == 0x1E145B21060 || shaderFx == 0x1E145C97870))
+	//	return;
+
+	const char* fragName = *(const char**)(fragType + 0x58);
+
+	//if (strcmp(fragName, "pack:/adder_hi") != 0)
+	//	return;
+
+	rage::gtaDrawable* drawable = *(rage::gtaDrawable**)(fragType + 0x30);
+
+	rage::grmShaderGroup* shaderGroup = drawable->grmShaderGroup;
+
+	for (int k = 0; k < shaderGroup->numMaterials; k++)
+	{
+		rage::grmMaterial* material = shaderGroup->materials[k];
+
+		if(g_gtaWindow->test)
+		{
+			shaderUpdated = false;
+			g_gtaWindow->test = false;
+		}
+
+		if (!shaderUpdated)
+		{
+			for (int i = 0; i < material->shaderPack->pFragmentPrograms.GetSize(); i++)
+			{
+				auto fp = material->shaderPack->pFragmentPrograms.GetAt(i);
+
+				// g_logger->Log("{:X}", fp);
+				auto fpName = *(const char**)((intptr_t)fp + 0x8);
+
+				g_logger->Log(fpName);
+
+				if (strcmp(fpName, "ranstar_paint1:PS_DeferredVehicleTextured") == 0)
+				{
+					shaderUpdated = true;
+					ID3DBlob* psBlob;
+					D3DCompileFromFile(L"S:/Repos/ShaderCompiler/ShaderCompiler/PS_DeferredVehicleTextured.hlsl",
+						NULL, NULL, "main", "ps_5_0", NULL, NULL, &psBlob, NULL);
+
+					ID3D11PixelShader* pPs;
+					g_gtaDirectX->GetDevice()->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), NULL, &pPs);
+					fp->pPixelShaderD3D11 = pPs;
+				}
+
+				//*(ID3D11PixelShader*)(fp + 0x228) = nullptr;
+			}
+		}
+
+		for (int i = 0; i < material->numVariables; i++)
+		{
+			//g_logger->Log(material->shaderPack->variables.GetAt(i)->Name);
+			if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "ranstarScale") == 0)
+			{
+				//g_logger->Log("ranstarScale");
+				*material->variables[i].GetFloatPtr() = 0.1f;
+			}
+			if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "Bumpiness") == 0)
+			{
+				//g_logger->Log("ranstarScale");
+				*material->variables[i].GetFloatPtr() = 100.0f;
+			}
+			if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "LetterSize") == 0)
+			{
+				//g_logger->Log("ranstarScale");
+				*material->variables[i].GetFloatPtr() = 0.2f;
+			}
+			//if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "LetterIndex2") == 0)
+			//{
+			//	//g_logger->Log("ranstarScale");
+			//	*material->variables[i].GetFloatPtr() = 35.0f;
+			//}
+			if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "bDebugDisplayDamageMap") == 0)
+			{
+				//g_logger->Log("envEffScale");
+				*material->variables[i].GetBoolPtr() = false;
+			}
+			if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "DamageMultiplier") == 0)
+			{
+				//g_logger->Log("envEffScale");
+				*material->variables[i].GetFloatPtr() = 2.0f;
+			}
+			if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "envEffScale0") == 0)
+			{
+				//g_logger->Log("envEffScale");
+				*material->variables[i].GetFloatPtr() = 0;
+			}if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "reflectivepower") == 0)
+			{
+				//g_logger->Log("envEffScale");
+				*material->variables[i].GetFloatPtr() = 0;
+			}if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "enveffthickness") == 0)
+			{
+				//g_logger->Log("envEffScale");
+				*material->variables[i].GetFloatPtr() = 0;
+			}
+			if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "EmissiveMultiplier") == 0)
+			{
+				//g_logger->Log("envEffScale");
+				*material->variables[i].GetFloatPtr() = 150;
+			}
+
+			if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "Fresnel") == 0)
+			{
+				//g_logger->Log("Dirt");
+				*material->variables[i].GetFloatPtr() = 5;
+				intptr_t dirt = (intptr_t)material->variables[i].GetFloatPtr();
+
+				// *(float*)(dirt + 0x0) = 1.0f;
+				//*(float*)(dirt + 0x4) = 15.0f;
+				//*(float*)(dirt + 0x8) = 15.0f;
+			}
+		}
+	}
+
+	// g_logger->Log("Adder Drawable: {:X}", (intptr_t)drawable);
+	// g_logger->Log("DrawCustomShaderEffectCommand({:X})", renderData);
+}
+
 void Main()
 {
 	g_logger->Init();
@@ -1349,13 +1571,65 @@ void Main()
 
 	g_logger->Log("Scanning patterns...");
 
+	g_componentMgr->RegisterComponents();
+
+	uintptr_t gPtr_rage_fwRenderThreadInterface_DoRenderFunction = g_hook->FindPattern("rage::fwRenderThreadInterface::DoRenderFunction", "48 89 5C 24 08 57 48 83 EC 20 48 8D 99 B0 00 00 00 48 8B F9 48 83");
+	uintptr_t gPtr_rage_fwRenderThreadInterface_DefaultRenderFunction = g_hook->FindPattern("rage::fwRenderThreadInterface::DefaultRenderFunction", "48 89 5C 24 08 56 48 83 EC 20 48 8B F1 E8 ?? ?? ?? ?? 33 DB 84 C0 0F 84 96 00 00 00 38 1D");
+
+	//gImpl_DefaultRenderFunction = (gDef_rage_fwRenderThreadInterface_DefaultRenderFunction)gPtr_rage_fwRenderThreadInterface_DefaultRenderFunction;
+	//g_hook->SetHook((LPVOID)gPtr_rage_fwRenderThreadInterface_DoRenderFunction, aImpl_rage_fwRenderThreadInterface_DoRenderFunction);
+
+	uintptr_t gPtr_DrawCustomShaderEffectCommand = g_hook->FindPattern("DrawCustomShaderEffectCommand", "48 89 5C 24 10 48 89 74 24 18 57 48 83 EC 30 F7");
+	g_hook->SetHook((LPVOID)gPtr_DrawCustomShaderEffectCommand, aImpl_DrawCustomShaderEffectCommand, &gImpl_DrawCustomShaderEffectCommand);
+
+
+
+	//g_hook->SetHook((LPVOID)0x7FF7B91F9E9C, nullsub); // 134 - cars
+
+	/*
+	g_hook->SetHook((LPVOID)0x7FF7B95A5DA8, nullsub); // xxx - CVehicleShaderEffect update
+
+	g_hook->SetHook((LPVOID)0x7FF7B91FC98C, nullsub); // 202
+	g_hook->SetHook((LPVOID)0x7FF7B91FC9CC, nullsub); // 203
+
+	g_hook->SetHook((LPVOID)0x7FF7B91FC920, nullsub); // 140 -
+	g_hook->SetHook((LPVOID)0x7FF7B8F7CB30, nullsub); // 141 -
+	g_hook->SetHook((LPVOID)0x7FF7B8FA829C, nullsub); // 138 -
+	g_hook->SetHook((LPVOID)0x7FF7B8F7C85C, nullsub); // 144 -
+	g_hook->SetHook((LPVOID)0x7FF7B91FC8D8, nullsub); // 175 -
+	g_hook->SetHook((LPVOID)0x7FF7B91F9FDC, nullsub); // 131 -
+	g_hook->SetHook((LPVOID)0x7FF7B91FA898, nullsub); // 132 - helmet
+	g_hook->SetHook((LPVOID)0x7FF6849D9DFC, nullsub); // 133 - NOT SURE
+	g_hook->SetHook((LPVOID)0x7FF7B91FAA98, nullsub); // 204 - NOT SURE
+	g_hook->SetHook((LPVOID)0x7FF7B91F9EDC, nullsub); // 135 - some vegetation (like grass)
+	g_hook->SetHook((LPVOID)0x7FF7B91FA520, nullsub); // 136 - terrain
+	g_hook->SetHook((LPVOID)0x7FF7B91F9C34, nullsub); // 137 - player rendering
+
+
+	g_hook->SetHook((LPVOID)0x7FF7B8F95B44, nullsub); // hud
+	*/
+
+	return;
+
 	intptr_t gPtr_fiPackfile_FindEntryHeaderByPath = g_hook->FindPattern("fiPackfile::FindEntryHeaderByPath", "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 81 EC 00 01 00 00 4C");
 	g_hook->SetHook((LPVOID)gPtr_fiPackfile_FindEntryHeaderByPath, (LPVOID)rage::fiPackfile::vftable_FindEntryHeaderByPath);
 
 
+	uintptr_t gPtr_grmMaterial_UpdateAndBindFragmentProgram = ra::FindPattern("grmMaterial::UpdateAndBindFragmentProgram", "48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48 89 78 20 41 54 41 56 41 57 48 83 EC 30 0F B7 42 18 45 33 FF 4D 8B F0 48 8B FA 48 8B E9 41 8B DF 8B F0 85 C0 0F 8E B9 00 00 00 4C 8D 25 F7 38 CC FE");
+
+	g_hook->SetHook((LPVOID)gPtr_grmMaterial_UpdateAndBindFragmentProgram, (LPVOID)aImpl_UpdateAndBindFragmentProgram, &gImpl_grmMaterial_UpdateAndBindFragmentProgram);
+
+	//intptr_t gPtr_test = g_hook->FindPattern("gDef_grcFragmentProgram_SetConstantBuffers", "40 53 48 83 EC 20 8B 05 ?? ?? ?? ?? 48 8B D9 F7 D0 23 05 ?? ?? ?? ?? A8 02");
+	//g_hook->SetHook(gPtr_test, grcFragmentProgram_SetConstantBuffers, &aImpl_grcFragmentProgram_SetConstantBuffers);
 
 
-
+	//// Disable CCustomShaderEffectVehicle::UpdateShaders_Internal
+	//intptr_t gPtr_test2 = g_hook->FindPattern("test", "48 83 EC 38 0F B6");
+	//if (gPtr_test2)
+	//	g_hook->SetHook((LPVOID)gPtr_test2, nullsub);
+	//	intptr_t gPtr_test3 = g_hook->FindPattern("test2", "48 89 5C 24 08 57 48 83 EC 20 48 8B FA 8B D9 66");
+	//if (gPtr_test3)
+	//	g_hook->SetHook((LPVOID)gPtr_test3, nullsub);
 
 
 
@@ -1381,7 +1655,7 @@ void Main()
 
 
 	// TODO: Temp
-	/*
+	///*
 	intptr_t gPtr_fiDevice_GetDeviceFor = g_hook->FindPattern("fiDevice::GetDeviceFor", "48 89 5C 24 08 88 54 24 10 55 56 57 41 54 41 55 41 56 41 57 48 83");
 	//g_hook->SetHook(gPtr_fiDevice_GetDeviceFor, aImpl_fiDevice_GetDeviceFor, &gImpl_fiDevice_GetDeviceFor);
 
@@ -1390,7 +1664,6 @@ void Main()
 
 
 
-	g_componentMgr->RegisterComponents();
 
 
 	intptr_t gPtr_cModelInfo_RequestAssets = g_hook->FindPattern("CModelInfo::RequestAssets", "8B 01 B9 FF FF 00 00 44 8B C2 23 C1 3B C1 75 07");
@@ -1402,10 +1675,16 @@ void Main()
 	streamingMgr = (rage::strStreamingModuleMgr*)(gPtr_streaming + 0x1B8);
 	txdStore = reinterpret_cast<rage::TxdStore*>(streamingMgr->GetStreamingModule(rage::STORE_TXD));
 	drawableStore = reinterpret_cast<rage::DrawableStore*>(streamingMgr->GetStreamingModule(rage::STORE_DRAWABLE));
+	fragmentStore = reinterpret_cast<rage::FragmentStore*>(streamingMgr->GetStreamingModule(rage::STORE_FRAGMENTS));
+
+	int index;
+	auto entry = fragmentStore->FindSlotByHashKey(index, atHash("adder"));
+	auto key = entry->GetValue();
+	g_logger->Log("Adder fragType: {:X}", (int64_t)key);
 
 	g_logger->Log(std::format("StreamingMgr: {:X}", (intptr_t)streamingMgr));
 
-	g_imgui->Init(g_gtaWindow->GetHwnd());
+	//g_imgui->Init(g_gtaWindow->GetHwnd());
 
 	intptr_t gPtr_GameBacktraceConfig_WriteToFile = g_hook->FindPattern("GameBacktraceConfig::WriteToFile", "40 53 48 83 EC 30 48 8B CA E8");
 	g_hook->SetHook(gPtr_GameBacktraceConfig_WriteToFile, aImpl_GameBacktraceConfig_WriteToFile, &gImpl_GameBacktraceConfig_WriteToFile);
@@ -1444,7 +1723,7 @@ void Main()
 
 	gImpl_DisableAllControlActionsCommand = g_hook->FindPattern<DisableAllControlActionsCommand>("DisableAllControlActionsCommand", "40 53 48 83 EC 20 33 DB 85 C9 75 09");
 
-	*/
+	//*/
 
 	auto gPtr_PresentImage = g_hook->FindPattern("PresentImage", "40 55 53 56 57 41 54 41 56 41 57 48 8B EC 48 83 EC 40 48 8B 0D");
 	g_hook->SetHook(gPtr_PresentImage, aimplPresentImage, &gimplPresentImage);

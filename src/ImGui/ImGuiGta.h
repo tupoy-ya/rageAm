@@ -9,7 +9,7 @@ class ImGuiGta : public atSingleton<ImGuiGta>
 public:
 	// TODO: Events
 	void Init(HANDLE hWnd);
-	void Destroy() const;
+	void Destroy();
 	void NewFrame();
 	void Render();
 

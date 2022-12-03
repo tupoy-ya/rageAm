@@ -19,6 +19,11 @@ class GtaWindow : public Component
 
 	static LRESULT aImpl_WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	{
+		if(Msg == WM_KEYDOWN && wParam == VK_F9)
+		{
+			test = true;
+		}
+
 		ImGui_ImplGta_WndProcHandler(hWnd, Msg, wParam, lParam);
 		return gImpl_WndProc(hWnd, Msg, wParam, lParam);
 	}
@@ -26,6 +31,8 @@ class GtaWindow : public Component
 	HWND hWnd;
 
 public:
+
+	inline static bool test;
 	GtaWindow()
 	{
 		// CreateGameWindow

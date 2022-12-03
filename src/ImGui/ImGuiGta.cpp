@@ -28,7 +28,7 @@ void ImGuiGta::Init(HANDLE hWnd)
 	g_logger->Log("ImGuiGta::Init");
 }
 
-void ImGuiGta::Destroy() const
+void ImGuiGta::Destroy()
 {
 	if (!IsInitialized())
 		return;
@@ -38,6 +38,8 @@ void ImGuiGta::Destroy() const
 	//ImGui_ImplDX11_Shutdown();
 	//ImGui_ImplGta_Shutdown();
 	//ImGui::DestroyContext();
+
+	_isInitialized = false;
 
 	g_logger->Log("ImGuiGta::Destroy");
 }
