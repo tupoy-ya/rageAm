@@ -57,7 +57,7 @@ add_library(rageAm SHARED
     "rage_hook/rageStreaming.h"
     "rage_hook/rageFwTimer.h" 
     "rage_hook/rageControls.h" 
-)
+ "FileHelper.h")
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})

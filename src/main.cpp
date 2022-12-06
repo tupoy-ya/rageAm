@@ -536,9 +536,6 @@ void Init()
 	g_Log.LogT("main::Init()");
 	hVectorExceptionHandler = AddVectoredExceptionHandler(true, VectoredExceptionHandler);
 
-	// For log and address storage
-	CreateDirectoryW(L"rageAm", nullptr);
-
 	g_ImGui.Init();
 
 	g_ImGuiAppMgr.Init();

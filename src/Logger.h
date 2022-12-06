@@ -5,6 +5,8 @@
 
 #include "format"
 
+#include "FileHelper.h"
+
 enum eLoggerLevel
 {
 	LOG_TRACE = 0x1,
@@ -32,6 +34,8 @@ public:
 	Logger()
 	{
 		LogT("Logger()");
+
+		CreateDataFolderIfNotExists();
 		m_fs.open(m_logFile, std::ios::trunc);
 	}
 

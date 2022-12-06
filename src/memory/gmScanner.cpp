@@ -50,6 +50,8 @@ void gm::gmScanner::Save() const
 {
 	g_Log.LogT("gmScanner::Save()");
 
+	CreateDataFolderIfNotExists();
+
 	std::ofstream fs(m_addrStorageName, std::ofstream::trunc);
 
 	fs << SCANNER_STORE_FORMAT_VER;
