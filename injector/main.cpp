@@ -3,6 +3,8 @@
 #include <tlHelp32.h>
 #include <tchar.h>
 #include <psapi.h>
+#include <format>
+#include <ctime>
 
 /*
  * KooroshRZ
@@ -167,7 +169,7 @@ void OpenProcess()
 		gtaPid);
 }
 
-void main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 	printf("Rage Injector\n");
 
@@ -249,6 +251,34 @@ void main(int argc, char* argv[])
 					printf("%s was unloaded after %i attempts.\n", argv[i], count);
 			}
 			break;
+		}
+
+		// boost stack trace win dbg library it uses don't close .pdb file
+		// handle, making it impossible to compile project
+		// it still can be renamed or moved, so rename to random
+		// and mark as to be removed
+		if (arg == "-pdb")
+		{
+			srand(_time32(nullptr));
+
+			std::string name = argv[++i];
+
+			std::string newName = name.substr(0, name.rfind('/'));
+			newName += std::format("/temp_{}.pdb", rand());
+
+			printf("Renaming pdb file to: %s\n", name.c_str());
+
+			if (MoveFileEx(name.c_str(), newName.c_str(), 0) == 0)
+			{
+				printf(".pdb renamed successfully.\n");
+			}
+			else
+			{
+				printf("Failed to rename pcb. Last error code: %lu.\n", GetLastError());
+			}
+
+			// This should delete file after reboot
+			MoveFileEx(newName.c_str(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
 		}
 	}
 

@@ -57,7 +57,7 @@ add_library(rageAm SHARED
     "rage_hook/rageStreaming.h"
     "rage_hook/rageFwTimer.h" 
     "rage_hook/rageControls.h" 
- "FileHelper.h")
+)
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})
@@ -87,6 +87,13 @@ add_custom_command(TARGET ${PROJECT_NAME}
     
     ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe 
     -fe rageAm.dll 
+)
+add_custom_command(TARGET ${PROJECT_NAME} 
+    PRE_BUILD
+    COMMAND 
+    
+    ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe 
+    -pdb ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/src/rageAm.pdb
 )
 
 # Copy to temp directory, otherwise we can't compile DLL because its used by GTA.
