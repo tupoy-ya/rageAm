@@ -4,8 +4,9 @@
 #include "grcTexture.h"
 #include "grmShaderGroup.h"
 #include "atArray.h"
-#include "fragments/fragType.h"
-#include "fragments/fwFragmentDef.h"
+#include "fragType.h"
+#include "fwFragmentDef.h"
+#include "atHashString.h"
 
 namespace rage
 {
@@ -23,8 +24,8 @@ namespace rage
 		atLinkedNode* indexNodes;
 		int* hashToIndeces;
 		unsigned int hashToIndecesSize;
-		_DWORD size_1;
-		_DWORD size_2;
+		int32_t size_1;
+		int32_t size_2;
 
 	public:
 		int GetNodeIndex(int nameHash) const
@@ -107,9 +108,10 @@ namespace rage
 	class strStreamingModuleMgr
 	{
 	public:
-		strStreamingModule* GetStreamingModule(const eStreamingModule module)
+		template<typename T>
+		T* GetStreamingModule(const eStreamingModule module)
 		{
-			return *reinterpret_cast<strStreamingModule**>(
+			return *reinterpret_cast<T**>(
 				*(intptr_t*)(this + 0x18) + sizeof(void*) * static_cast<int>(module));
 		}
 
@@ -182,6 +184,11 @@ namespace rage
 				return nullptr;
 
 			return pool.GetSlot<fwAssetStoreValue>(index);
+		}
+
+		fwAssetStoreValue* FindSlot(const char* name)
+		{
+			return FindSlotByHashKey(atHashString(name));
 		}
 
 		int GetSize() const

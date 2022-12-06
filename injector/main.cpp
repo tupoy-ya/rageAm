@@ -119,23 +119,19 @@ void InjectDll(const std::string& path)
 	CloseHandle(hThread);
 }
 
-void EjectDll(const std::string& path)
+bool EjectDll(const std::string& path)
 {
 	const HMODULE hModule = GetGtaModuleHandle(path);
 
 	if (!hModule)
-	{
-		printf("%s was not loaded. Skipping.\n", path.c_str());
-
-		return;
-	}
+		return false;
 
 	CreateRemoteThread(
 		hGta, 0, 0,
 		(PTHREAD_START_ROUTINE)FreeLibraryAndExitThread,
 		hModule, 0, 0);
 
-	printf("%s unloaded\n", path.c_str());
+	return true;
 }
 
 void GetPid()
@@ -216,11 +212,46 @@ void main(int argc, char* argv[])
 			if (GetAndVerifyPid())
 			{
 				OpenProcess();
-				EjectDll(argv[++i]);
+				if (EjectDll(argv[++i]))
+				{
+					printf("%s unloaded\n", argv[i]);
+				}
+				else
+				{
+					printf("%s was not loaded. Skipping.\n", argv[i]);
+				}
+			}
+			break;
+		}
+
+		if (arg == "-fe") // Force Eject
+		{
+			if (GetAndVerifyPid())
+			{
+				OpenProcess();
+
+				// Eject until module is not found in game
+				// That's part of genius global (per rage am)
+				// exception handler that really messes up things
+				int count = 0;
+				const char* name = argv[++i];
+				while (EjectDll(name))
+				{
+					printf("Failed to unload... Retrying\n");
+
+					count++;
+					Sleep(100);
+				}
+
+				if (count == 0)
+					printf("%s was not loaded.\n", argv[i]);
+				else
+					printf("%s was unloaded after %i attempts.\n", argv[i], count);
 			}
 			break;
 		}
 	}
-	if (hGta != 0)
-		CloseHandle(hGta);
+
+	printf("Exiting rageInjector.\n");
+	CloseHandle(hGta);
 }

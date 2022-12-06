@@ -107,8 +107,8 @@ namespace rage
 
 	void SetHooks()
 	{
-		//intptr_t gPtr_fwFsm_Update = g_hook->FindPattern("fwFsm::Update", "10 57 48 83 EC 20 F3 0F 10 05 ?? ?? ?? ?? 48 8B D9 F3 0F 58 41 0C") - 0x9;
-		//g_hook->SetHook((LPVOID)gPtr_fwFsm_Update, aImpl_fwFsm_Update);
+		//intptr_t gPtr_fwFsm_Update = g_Hook.FindPattern("fwFsm::Update", "10 57 48 83 EC 20 F3 0F 10 05 ?? ?? ?? ?? 48 8B D9 F3 0F 58 41 0C") - 0x9;
+		//g_Hook.SetHook((LPVOID)gPtr_fwFsm_Update, aImpl_fwFsm_Update);
 	}
 
 	//class hook_fwFsm : public Component
@@ -118,7 +118,7 @@ namespace rage
 	//public:
 	//	fwFsm()
 	//	{
-	//		//g_hook->FindPattern()
+	//		//g_Hook.FindPattern()
 	//	}
 	//};
 
