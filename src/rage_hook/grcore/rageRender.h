@@ -34,7 +34,7 @@ namespace rh
 				&gImpl_DoRenderFunction);
 
 			gm::ScanAndSet(
-				"fwRenderThreadInterface::DoRenderFunction",
+				"fwRenderThreadInterface::DefaultRenderFunction",
 				"48 89 5C 24 08 56 48 83 EC 20 48 8B F1 E8 ?? ?? ?? ?? 33 DB 84 C0 0F 84 96 00 00 00 38 1D",
 				&gImpl_DefaultRenderFunction);
 		}
@@ -49,7 +49,7 @@ namespace rh
 		// We can use it to override various params right after without breaking any functionality.
 		typedef void(*gDef_DrawCustomShaderEffectCommand)(intptr_t renderData);
 
-		static inline gDef_DrawCustomShaderEffectCommand gImpl_DrawCustomShaderEffectCommand = nullptr;
+		static inline gDef_DrawCustomShaderEffectCommand gImpl_DrawCustomShaderEffectCommand;
 
 		static void aImpl_DrawCustomShaderEffectCommand(intptr_t renderData)
 		{
