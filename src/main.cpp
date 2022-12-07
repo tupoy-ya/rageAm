@@ -6,6 +6,9 @@
 // Keep it above everything
 auto startTime = std::chrono::high_resolution_clock::now();
 
+#define USE_GLOBAL_CRASH_HANDLER
+#include "CrashHandler.h"
+
 // We use dynamic initialization for pattern scanning,
 // so these may be marked as unused but it's not true.
 
@@ -485,56 +488,9 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //	}
 //}
 
-HMODULE hModule_rageAm;
-PVOID hVectorExceptionHandler;
-
-static HMODULE GetCurrentModule()
-{ // NB: XP+ solution!
-	HMODULE hModule = nullptr;
-	GetModuleHandleEx(
-		GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-		reinterpret_cast<LPCTSTR>(GetCurrentModule),
-		&hModule);
-
-	return hModule;
-}
-
-#define BOOST_STACKTRACE_USE_BACKTRACE
-#include <boost/stacktrace.hpp>
-#include <strstream>
-
-bool m_hasExceptionOccurred = false;
-static LONG CALLBACK VectoredExceptionHandler(EXCEPTION_POINTERS* info)
-{
-	std::stringstream ss;
-	ss << boost::stacktrace::stacktrace();
-
-	HMODULE hModule = GetCurrentModule();
-	if (hModule == hModule_rageAm)
-	{
-		if (!m_hasExceptionOccurred)
-		{
-			g_Log.LogE("An unhandled exception occurred in rageAm: \n{}", ss.str());
-			m_hasExceptionOccurred = true;
-		}
-
-		// This probably will make every c++ developer in the world angry
-		// but at least won't crash whole game and unwind stack properly
-		// (hopefully)
-		// There's basically 100% chance that it will get in the middle of instruction,
-		// causing this handler to be called few more times...
-		info->ContextRecord->Rip++;
-		return EXCEPTION_CONTINUE_EXECUTION;
-	}
-	g_Log.LogT("An unhandled exception occurred in GTA5: \n{}", ss.str());
-
-	return EXCEPTION_CONTINUE_SEARCH;
-}
-
 void Init()
 {
 	g_Log.LogT("main::Init()");
-	hVectorExceptionHandler = AddVectoredExceptionHandler(true, VectoredExceptionHandler);
 
 	g_ImGui.Init();
 
@@ -543,10 +499,6 @@ void Init()
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	g_Log.LogT("Core systems initialization took {}ms", std::chrono::duration<double, std::milli>(currentTime - startTime).count());
-
-	int* p = NULL;
-	*p = 10;
-	g_Log.LogT("main::Catch()");
 
 	// TODO:
 	// mov rax, cs:CApp
@@ -570,15 +522,9 @@ void Init()
 	//gPtr_lastActionScriptMethodParams = g_Hook.FindOffset<intptr_t>("WriteDebugState_lastActionScriptMethodParams", writeDebugState + 0x1035 + 0x3);
 }
 
-void Shutdown()
-{
-	g_Log.LogT("main::Shutdown()");
-	RemoveVectoredExceptionHandler(hVectorExceptionHandler);
-}
-
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
-	hModule_rageAm = hModule;
+	g_RageAmHnd = hModule;
 
 	switch (dwReason)
 	{
@@ -586,8 +532,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 		Init();
 		break;
 	case DLL_PROCESS_DETACH:
-		Shutdown();
-		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:
 		break;

@@ -8,14 +8,14 @@ namespace gm
 	void ScanAndHook(const char* name, const std::string& pattern, Detour detour, Original original)
 	{
 		gmAddress addr = g_Scanner.ScanPattern(name, pattern);
-		g_Hook.SetHook(addr, detour, original);
+		g_Hook.SetHook(addr.GetAddress(), detour, original);
 	}
 
 	template<typename Detour>
 	void ScanAndHook(const char* name, const std::string& pattern, Detour detour)
 	{
 		gmAddress addr = g_Scanner.ScanPattern(name, pattern);
-		g_Hook.SetHook(addr, detour);
+		g_Hook.SetHook(addr.GetAddress(), detour);
 	}
 
 	template<typename Func>

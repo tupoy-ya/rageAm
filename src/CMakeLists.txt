@@ -1,5 +1,8 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi -O3")
+set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF")
+
 add_library(rageAm SHARED 
 	"main.cpp"
 
@@ -57,6 +60,8 @@ add_library(rageAm SHARED
     "rage_hook/rageStreaming.h"
     "rage_hook/rageFwTimer.h" 
     "rage_hook/rageControls.h" 
+
+    "CrashHandler.h"
 )
 
 # Boost Libary
@@ -88,6 +93,7 @@ add_custom_command(TARGET ${PROJECT_NAME}
     ${CMAKE_SOURCE_DIR}/out/build/${CMAKE_PRESET_NAME}/injector/rageInjector.exe 
     -fe rageAm.dll 
 )
+
 add_custom_command(TARGET ${PROJECT_NAME} 
     PRE_BUILD
     COMMAND 
@@ -111,6 +117,7 @@ add_custom_command(TARGET ${PROJECT_NAME}
     /R:5
     /W:1
     /is /it
+    /np /nfl /NJH /NDL
     || cmd /c "exit /b 0"
 )
 

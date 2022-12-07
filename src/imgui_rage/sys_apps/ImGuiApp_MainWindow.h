@@ -7,6 +7,9 @@ namespace sys_apps
 	{
 		bool m_isOpen = true;
 		bool m_isBackground = false;
+
+
+		bool crashed = false;
 	public:
 		void OnRender() override
 		{

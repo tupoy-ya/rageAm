@@ -169,6 +169,14 @@ void OpenProcess()
 		gtaPid);
 }
 
+BOOL FileExists(LPCTSTR szPath)
+{
+	DWORD dwAttrib = GetFileAttributes(szPath);
+
+	return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+		!(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
 int main(int argc, char* argv[])
 {
 	printf("Rage Injector\n");
@@ -239,10 +247,15 @@ int main(int argc, char* argv[])
 				const char* name = argv[++i];
 				while (EjectDll(name))
 				{
-					printf("Failed to unload... Retrying\n");
-
 					count++;
-					Sleep(100);
+					Sleep(250);
+
+					// Check if module still presents
+					const HMODULE hModule = GetGtaModuleHandle(name);
+					if (!hModule)
+						break;
+
+					printf("Failed to unload... Retrying\n");
 				}
 
 				if (count == 0)
@@ -263,12 +276,18 @@ int main(int argc, char* argv[])
 
 			std::string name = argv[++i];
 
+			if (!FileExists(name.c_str()))
+			{
+				printf(".pdb doesn't exists.\n");
+				break;
+			}
+
 			std::string newName = name.substr(0, name.rfind('/'));
 			newName += std::format("/temp_{}.pdb", rand());
 
 			printf("Renaming pdb file to: %s\n", name.c_str());
 
-			if (MoveFileEx(name.c_str(), newName.c_str(), 0) == 0)
+			if (MoveFileEx(name.c_str(), newName.c_str(), 0) != 0)
 			{
 				printf(".pdb renamed successfully.\n");
 			}
@@ -279,9 +298,12 @@ int main(int argc, char* argv[])
 
 			// This should delete file after reboot
 			MoveFileEx(newName.c_str(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
+			break;
 		}
 	}
 
 	printf("Exiting rageInjector.\n");
 	CloseHandle(hGta);
+
+	return 0;
 }

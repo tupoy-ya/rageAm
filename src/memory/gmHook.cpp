@@ -32,11 +32,24 @@ gm::gmHook::gmHook()
 
 gm::gmHook::~gmHook()
 {
-	g_Log.LogT("gmHook::~gmHook()");
+	g_Log.LogT("~gmHook()");
 
 	for (auto& func : m_hookedFuncs)
 	{
-		MH_DisableHook(func);
+		MH_STATUS disableHook = MH_DisableHook(func);
+		MH_STATUS removeHook = MH_RemoveHook(func);
+
+		if (disableHook == MH_OK && removeHook == MH_OK)
+		{
+			g_Log.LogD("UnHook: {:X} finished with status OK", reinterpret_cast<uintptr_t>(func));
+		}
+		else
+		{
+			g_Log.LogD("UnHook: {:X} failed with statuses: {}, {}",
+				reinterpret_cast<uintptr_t>(func),
+				static_cast<int>(disableHook),
+				static_cast<int>(removeHook));
+		}
 	}
 	m_hookedFuncs.clear();
 
@@ -46,5 +59,6 @@ gm::gmHook::~gmHook()
 void gm::gmHook::UnHook(LPVOID addr)
 {
 	MH_DisableHook(addr);
+	MH_RemoveHook(addr);
 	m_hookedFuncs.erase(addr);
 }

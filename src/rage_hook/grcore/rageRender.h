@@ -27,6 +27,8 @@ namespace rh
 	public:
 		fwRenderThreadInterface()
 		{
+			// TODO: Somehow being invoked after DLL unloaded, causing exception (doesn't seem to happen on release target)
+			/*
 			gm::ScanAndHook(
 				"fwRenderThreadInterface::DoRenderFunction",
 				"48 89 5C 24 08 57 48 83 EC 20 48 8D 99 B0 00 00 00 48 8B F9 48 83",
@@ -37,6 +39,7 @@ namespace rh
 				"fwRenderThreadInterface::DefaultRenderFunction",
 				"48 89 5C 24 08 56 48 83 EC 20 48 8B F1 E8 ?? ?? ?? ?? 33 DB 84 C0 0F 84 96 00 00 00 38 1D",
 				&gImpl_DefaultRenderFunction);
+			*/
 		}
 	};
 
