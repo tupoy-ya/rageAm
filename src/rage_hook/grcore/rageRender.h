@@ -193,7 +193,7 @@ namespace rh
 		}*/
 	};
 
-	typedef void(*RenderTask)();
+	//typedef void(*RenderTask)();
 	class RenderThread
 	{
 		typedef void(*gDef_PresentImage)();
@@ -202,14 +202,14 @@ namespace rh
 
 		static void aImpl_PresentImage()
 		{
-			for (auto& task : ms_renderTasks)
-			{
-				task();
-			}
+			//for (auto& task : ms_renderTasks)
+			//{
+			//	task();
+			//}
 			gImpl_PresentImage();
 		}
 
-		static inline std::vector<RenderTask> ms_renderTasks;
+		//static inline std::vector<RenderTask> ms_renderTasks;
 	public:
 		RenderThread()
 		{
@@ -218,11 +218,11 @@ namespace rh
 				&gImpl_PresentImage);
 		}
 
-		template<typename T>
-		static void AddRenderTask(T task)
-		{
-			ms_renderTasks.push_back(reinterpret_cast<RenderTask>(task));
-		}
+		//template<typename T>
+		//static void AddRenderTask(T task)
+		//{
+		//	ms_renderTasks.push_back(reinterpret_cast<RenderTask>(task));
+		//}
 	};
 
 	inline DrawCommands g_DrawCommands;

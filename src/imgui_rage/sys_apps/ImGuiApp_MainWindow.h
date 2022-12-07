@@ -1,24 +1,22 @@
 #pragma once
+#include "imgui_internal.h"
 #include "../ImGuiApp.h"
 
 namespace sys_apps
 {
 	class ImGuiApp_MainWindow : public imgui_rage::ImGuiApp
 	{
-		bool m_isOpen = true;
-		bool m_isBackground = false;
-
-
-		bool crashed = false;
 	public:
 		void OnRender() override
 		{
-			if (!ImGui::Begin("Victor Window", &m_isOpen))
-				return;
-
-			rh::GameInput::DisableAllControlsThisFrame();
-
+			auto ctx = ImGui::GetCurrentContext();
+			
+			ImGui::Begin("Victor Window");
 			ImGui::Text("Hello segfault!");
+			ImGui::Text("Delta Time: %f", ctx->IO.DeltaTime);
+			ImGui::Button("Test");
+			ImGui::Button("Test2");
+			ImGui::Button("Test3");
 			ImGui::End();
 		}
 	};

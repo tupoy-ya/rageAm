@@ -3,6 +3,8 @@
 #include <vector>
 #include <memory>
 
+#include "imgui_internal.h"
+
 namespace imgui_rage
 {
 	class ImGuiAppMgr;
@@ -15,29 +17,51 @@ namespace imgui_rage
 	{
 		static inline std::vector<std::unique_ptr<ImGuiApp>> ms_apps;
 
-		bool ms_isBackground = false;
-		bool ms_isVisible = true;
+		bool m_isBackground = false;
+		bool m_isVisible = true;
 
-		void UpdateAll() const
+		void UpdateAll()
 		{
 			if (!g_ImGui.IsInitialized())
 				return;
 
-			if (!ms_isVisible)
-				return;
+			auto ctx = ImGui::GetCurrentContext();
 
-			if (ms_apps.empty())
-				return;
-
-			if (ms_isBackground)
-				rh::GameInput::DisableAllControlsThisFrame();
+			// New frame must be called no matter whether we actually rendering or not,
+			// otherwise things like input wont work correctly.
 
 			g_ImGui.NewFrame();
 
-			for (auto& app : ms_apps)
+			if (ImGui::IsKeyReleased(ImGuiKey_F9))
+				m_isVisible = !m_isVisible;
+
+			bool isFocused = true;
+			if (m_isVisible)
 			{
-				app->OnRender();
+				if (ImGui::IsKeyReleased(ImGuiKey_F10))
+					m_isBackground = !m_isBackground;
+
+				if (m_isBackground)
+					isFocused = false;
+				else
+					rh::GameInput::DisableAllControlsThisFrame();
+
+				if (GetForegroundWindow() != rh::PlatformWin32Impl::GetHwnd())
+					isFocused = false;
+
+				if (!isFocused)
+					ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+
+				for (auto& app : ms_apps)
+				{
+					app->OnRender();
+				}
+
+				if (!isFocused)
+					ImGui::PopItemFlag();
 			}
+
+			ctx->IO.MouseDrawCursor = m_isVisible && isFocused;
 
 			g_ImGui.Render();
 		}
@@ -49,7 +73,7 @@ namespace imgui_rage
 	public:
 		void Init() const
 		{
-			rh::RenderThread::AddRenderTask(OnRender);
+			rh::grcDX11::AddRenderTask(OnRender);
 		}
 
 		template<typename T>

@@ -25,7 +25,6 @@ auto startTime = std::chrono::high_resolution_clock::now();
 
 // #include "rage/fwHelpers.h"
 
-#define IMGUI_USER_CONFIG "imconfig_gta.h"
 #include "imgui_rage/ImGuiRage.h"
 #include "imgui_rage/ImGuiAppMgr.h"
 
