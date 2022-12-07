@@ -1,11 +1,13 @@
 #pragma once
-#include "imgui_rage.h"
-#include <cassert>
 
-// TODO: Doesn't work
+#include "../Logger.h"
+#include "ImGuiRage.h"
 
-#define IM_ASSERT(_EXPR) { \
-    /* Disable ImGui so it won't spam with messages */ \
-	g_imgui->Destroy(); \
-	/* assert(_EXPR); */ \
-} 
+static void throw_on_assert(bool ok, const char* msg) {
+	if (!ok) {
+		g_Log.LogE("An error occurred in ImGui: {}", msg);
+		g_ImGui.Shutdown();
+	}
+}
+
+#define IM_ASSERT(_EXPR)  throw_on_assert((_EXPR), #_EXPR)
