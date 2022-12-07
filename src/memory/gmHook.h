@@ -12,6 +12,7 @@ namespace gm
 		std::set<LPVOID> m_hookedFuncs;
 
 		void SetHook_Internal(LPVOID func, LPVOID detour, LPVOID* orig);
+		static const char* GetMHStatusStr(MH_STATUS e);
 	public:
 		gmHook();
 		~gmHook();

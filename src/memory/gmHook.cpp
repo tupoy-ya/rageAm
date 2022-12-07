@@ -9,12 +9,34 @@ void gm::gmHook::SetHook_Internal(LPVOID func, LPVOID detour, LPVOID* orig)
 	{
 		g_Log.LogE("gmHook::SetHook({:X}) -> Failed. Hook Status: {}. Enable Status: {}",
 			reinterpret_cast<uintptr_t>(func),
-			static_cast<int>(hookStatus),
-			static_cast<int>(enableStatus));
+			GetMHStatusStr(hookStatus),
+			GetMHStatusStr(enableStatus));
 		return;
 	}
-	g_Log.LogT("gmHook::SetHook({:X})", reinterpret_cast<uintptr_t>(func));
+	g_Log.LogT("gmHook::SetHook({:X}) OK", reinterpret_cast<uintptr_t>(func));
 	m_hookedFuncs.emplace(func);
+}
+
+const char* gm::gmHook::GetMHStatusStr(MH_STATUS e)
+{
+	switch (e)
+	{
+	case MH_UNKNOWN: return "MH_UNKNOWN";
+	case MH_OK: return "MH_OK";
+	case MH_ERROR_ALREADY_INITIALIZED: return "MH_ERROR_ALREADY_INITIALIZED";
+	case MH_ERROR_NOT_INITIALIZED: return "MH_ERROR_NOT_INITIALIZED";
+	case MH_ERROR_ALREADY_CREATED: return "MH_ERROR_ALREADY_CREATED";
+	case MH_ERROR_NOT_CREATED: return "MH_ERROR_NOT_CREATED";
+	case MH_ERROR_ENABLED: return "MH_ERROR_ENABLED";
+	case MH_ERROR_DISABLED: return "MH_ERROR_DISABLED";
+	case MH_ERROR_NOT_EXECUTABLE: return "MH_ERROR_NOT_EXECUTABLE";
+	case MH_ERROR_UNSUPPORTED_FUNCTION: return "MH_ERROR_UNSUPPORTED_FUNCTION";
+	case MH_ERROR_MEMORY_ALLOC: return "MH_ERROR_MEMORY_ALLOC";
+	case MH_ERROR_MEMORY_PROTECT: return "MH_ERROR_MEMORY_PROTECT";
+	case MH_ERROR_MODULE_NOT_FOUND: return "MH_ERROR_MODULE_NOT_FOUND";
+	case MH_ERROR_FUNCTION_NOT_FOUND: return "MH_ERROR_FUNCTION_NOT_FOUND";
+	default: return "unknown";
+	}
 }
 
 gm::gmHook::gmHook()
@@ -47,8 +69,8 @@ gm::gmHook::~gmHook()
 		{
 			g_Log.LogD("UnHook: {:X} failed with statuses: {}, {}",
 				reinterpret_cast<uintptr_t>(func),
-				static_cast<int>(disableHook),
-				static_cast<int>(removeHook));
+				GetMHStatusStr(disableHook),
+				GetMHStatusStr(removeHook));
 		}
 	}
 	m_hookedFuncs.clear();
