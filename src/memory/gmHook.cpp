@@ -43,18 +43,29 @@ gm::gmHook::gmHook()
 {
 	MH_STATUS status = MH_Initialize();
 
-	if (status == MH_OK)
+	if (status != MH_OK)
 	{
-		g_Log.LogT("gmHook::gmHook() -> MinHook initialized with status OK");
+		g_Log.LogE("gmHook::gmHook() -> MinHook failed to initialize with status {}", static_cast<int>(status));
 		return;
 	}
 
-	g_Log.LogE("gmHook::gmHook() -> MinHook failed to initialize with status {}", static_cast<int>(status));
+	g_Log.LogT("gmHook::gmHook() -> MinHook initialized with status OK");
+	m_IsInitialized = true;
 }
 
 gm::gmHook::~gmHook()
 {
 	g_Log.LogT("~gmHook()");
+
+	Shutdown();
+}
+
+void gm::gmHook::Shutdown()
+{
+	if (!m_IsInitialized)
+		return;
+
+	g_Log.LogT("gmHook::Shutdown()");
 
 	for (auto& func : m_hookedFuncs)
 	{
@@ -76,6 +87,8 @@ gm::gmHook::~gmHook()
 	m_hookedFuncs.clear();
 
 	MH_Uninitialize();
+
+	m_IsInitialized = false;
 }
 
 void gm::gmHook::UnHook(LPVOID addr)

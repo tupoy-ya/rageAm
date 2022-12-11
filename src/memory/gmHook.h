@@ -13,9 +13,13 @@ namespace gm
 
 		void SetHook_Internal(LPVOID func, LPVOID detour, LPVOID* orig);
 		static const char* GetMHStatusStr(MH_STATUS e);
+
+		bool m_IsInitialized;
 	public:
 		gmHook();
 		~gmHook();
+
+		void Shutdown();
 
 		void UnHook(LPVOID addr);
 

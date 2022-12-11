@@ -1,34 +1,54 @@
-﻿#include <chrono>
+﻿/*
+ * TODO:
+ * Shader & Texture replace
+ * Ped, Map Shaders
+ * Entity parts highlighting
+ * Timecycle editor
+ */
+
+#include <chrono>
 #include <Windows.h>
 #include <d3d11.h>
 #include "Logger.h"
 
-// Keep it above everything
+ // Keep it above everything
 auto startTime = std::chrono::high_resolution_clock::now();
 
-#define USE_GLOBAL_CRASH_HANDLER
+#define USE_UNHANDLED_CRASH_HANDLER
+#ifdef _RELEASE
+#define USE_VEH_CRASH_HANDLER // Conflicts with Cheat Engine VEH debugger
+#endif
 #include "CrashHandler.h"
+
+/* HOOK INCLUDES */
 
 // We use dynamic initialization for pattern scanning,
 // so these may be marked as unused but it's not true.
 
-#include "rage/grmShaderGroup.h"
 #include "rage_hook/grcore/rageDX11.h"
 #include "rage_hook/grcore/rageGrc.h"
 #include "rage_hook/grcore/rageRender.h"
 #include "rage_hook/rageGrm.h"
-#include "rage_hook/rageFileInterface.h"
+
+// Disabled because not used currently
+// #include "rage_hook/rageFileInterface.h"
+
 #include "rage_hook/rageWin32.h"
 #include "rage_hook/rageStreaming.h"
 #include "rage_hook/rageFwTimer.h"
 #include "rage_hook/rageControls.h"
 
-// #include "rage/fwHelpers.h"
+// Global Deluxo Flying Tests
+// #include "rage_hook/rageHandlingHacks.h"
+// #include "rage_hook/rageHandling.h"
+
+/* HOOK INCLUDES */
 
 #include "imgui_rage/ImGuiRage.h"
 #include "imgui_rage/ImGuiAppMgr.h"
 
 #include "imgui_rage/sys_apps/ImGuiApp_MainWindow.h"
+#include "imgui_rage/sys_apps/ImGuiApp_Toolbar.h"
 
 //typedef int(*WriteDebugStateToFile)(const WCHAR* fileName);
 //typedef int(*WriteDebugState)();
@@ -494,7 +514,7 @@ void Init()
 	g_ImGui.Init();
 
 	g_ImGuiAppMgr.Init();
-	g_ImGuiAppMgr.RegisterApp<sys_apps::ImGuiApp_MainWindow>();
+	g_ImGuiAppMgr.RegisterApp<sapp::ImGuiApp_Toolbar>();
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	g_Log.LogT("Core systems initialization took {}ms", std::chrono::duration<double, std::milli>(currentTime - startTime).count());
@@ -521,6 +541,16 @@ void Init()
 	//gPtr_lastActionScriptMethodParams = g_Hook.FindOffset<intptr_t>("WriteDebugState_lastActionScriptMethodParams", writeDebugState + 0x1035 + 0x3);
 }
 
+#include "memory/gmHook.h"
+void Shutdown()
+{
+	g_Log.LogT("main::Shutdown()");
+
+	// Disable all hooks instantly to prevent any further calls into already unloaded library.
+	// We can't rely on dynamic object destructor because it's called too late.
+	g_Hook.Shutdown();
+}
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	g_RageAmHnd = hModule;
@@ -528,9 +558,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
+		g_Log.LogT("DllMain -> DLL_PROCESS_ATTACH");
 		Init();
 		break;
 	case DLL_PROCESS_DETACH:
+		g_Log.LogT("DllMain -> DLL_PROCESS_DETACH");
+		Shutdown();
+		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:
 		break;
