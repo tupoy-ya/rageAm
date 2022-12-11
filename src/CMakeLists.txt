@@ -18,6 +18,7 @@ add_library(rageAm SHARED
     "imgui_rage/ImGuiExtensions.h"
 
     "imgui_rage/sys_apps/ImGuiApp_MainWindow.h"
+    "imgui_rage/sys_apps/ImGuiApp_Toolbar.h" 
 
     "memory/gmAddress.h"
     "memory/gmAddress.cpp"
@@ -49,7 +50,8 @@ add_library(rageAm SHARED
     "rage/Pool.h"
     "rage/Streaming.h"
     "rage/TlsManager.h"
-    "rage/atHashString.h" 
+    "rage/atHashString.h"
+    "rage/Vec3V.h"
 
     "rage_hook/grcore/rageRender.h"
     "rage_hook/grcore/rageDX11.h"
@@ -60,6 +62,8 @@ add_library(rageAm SHARED
     "rage_hook/rageStreaming.h"
     "rage_hook/rageFwTimer.h" 
     "rage_hook/rageControls.h" 
+    "rage_hook/rageHandlingHacks.h" 
+    "rage_hook/rageHandling.h"
 
     "CrashHandler.h"
 )
