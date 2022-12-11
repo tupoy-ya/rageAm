@@ -80,6 +80,31 @@ namespace rage
 		int16_t unk20;
 	};
 
+	enum eGrmValueType
+	{
+		GRM_VALUE_FLOAT = 2, // 4 bytes
+		GRM_VALUE_VECTOR2 = 3, // 8 bytes
+		GRM_VALUE_VECTOR3 = 4, // 16 bytes (used only 3)
+		GRM_VALUE_VECTOR4 = 5, // 16 bytes
+		GRM_VALUE_TEXTURE = 6, // A pointer to grcTexture
+		GRM_VALUE_BOOL = 7, // 1 byte
+		GRM_VALUE_MATRIX = 9, // 64 bytes, 4x4 matrix apparently (see vehicle_tire.fxc)
+	};
+
+	inline uint8_t GetGrmValueSizeForType(eGrmValueType type)
+	{
+		switch (type)
+		{
+		case GRM_VALUE_FLOAT: return 4;
+		case GRM_VALUE_VECTOR2: return 8;
+		case GRM_VALUE_VECTOR3: return 16;
+		case GRM_VALUE_VECTOR4: return 16;
+		case GRM_VALUE_TEXTURE: return 8;
+		case GRM_VALUE_BOOL: return 1;
+		default: return 0;
+		}
+	}
+
 	struct grmShaderVariable
 	{
 		uint8_t dataType;
@@ -95,6 +120,11 @@ namespace rage
 		int32_t unk34;
 		int64_t unk38;
 		int64_t pLocalBuffer;
+
+		eGrmValueType GetValueType()
+		{
+			return static_cast<eGrmValueType>(dataType);
+		}
 	};
 	static_assert(sizeof(grmShaderVariable) == 0x48);
 
@@ -124,6 +154,23 @@ namespace rage
 
 	struct grmShaderPack
 	{
+		const char* GetFilePath() const
+		{
+			return shaderFilePath;
+		}
+
+		std::string GetFileName() const
+		{
+			std::string filePath = GetFilePath();
+			std::string fileName = filePath.substr(filePath.rfind('/') + 1);
+			return fileName;
+		}
+
+		atArray<grmShaderVariable> GetVariables()
+		{
+			return variables;
+		}
+
 		atArray<grmTechnique> techniques;
 		atArray<grmShaderVariable> variables;
 		atArray<grmConstantBuffer> locals;
@@ -174,7 +221,6 @@ namespace rage
 		int32_t dword330;
 	};
 
-	// Unique per drawable instance.
 	struct grmMaterial
 	{
 		grmMaterialVariable* variables;
@@ -183,6 +229,16 @@ namespace rage
 		int64_t qword18;
 		int64_t qword20;
 
+		eGrmValueType GetValueTypeAt(int index) const
+		{
+			return GetShaderPack()->GetVariables().GetAt(index)->GetValueType();
+		}
+
+		grmShaderPack* GetShaderPack() const
+		{
+			return shaderPack;
+		}
+
 		grmMaterialVariable* GetVariableAtIndex(int index) const
 		{
 			return &variables[index];
@@ -190,11 +246,19 @@ namespace rage
 	};
 	static_assert(sizeof(grmMaterial) == 0x28);
 
+	/**
+	 * \brief Though it's called shader group, in fact it's 'material library'
+	 * of some game model (shared per - model, not per - instance).
+	 * \remarks
+	 * - While it's possible to easily edit material values for regular drawables' (such as static map props),
+	 * for vehicles, weapons etc with 'specific shaders' there's CCustomShaderEffect (later - shaderFx)
+	 * that provides abstraction on shader and allows to easily set some parameters like car paint, dirt level, enveff.
+	 * \n - Just before rendering model, shaderFx update function is invoked, updating material values in grmShaderGroup,
+	 * and that makes it impossible to easily edit material values. (except for the ones that are
+	 * unused by shaderFx). So for material editor we have to disable it to be able to edit any value.
+	 */
 	struct grmShaderGroup
 	{
-		//char pad_0000[16];
-		//grmMaterial** materials;
-		//int16_t numMaterials;
 		int64_t qword0;
 		pgDictionary<grcTexture>* pEmbedTextures;
 		grmMaterial** materials;
@@ -204,6 +268,16 @@ namespace rage
 		int32_t dword28;
 		__declspec(align(8)) int32_t dword30;
 		int64_t qword38;
+
+		int GetMaterialCount() const
+		{
+			return numMaterials;
+		}
+
+		grmMaterial* GetMaterialAt(int index) const
+		{
+			return materials[index];
+		}
 
 		int FindVariableIndexByHashKey(uint32_t nameHash)
 		{
