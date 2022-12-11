@@ -9,6 +9,8 @@
 #include "../../memory/gmHelper.h"
 #include "rageDX11.h"
 
+#include "boost/signals2.hpp"
+
 namespace rh
 {
 	class fwRenderThreadInterface
@@ -43,148 +45,125 @@ namespace rh
 		}
 	};
 
-	class DrawCommands
+	class Rendering
 	{
-		static inline bool m_shaderUpdated = false;
-
 		// This command is called by render thread before rendering vehicle to update
 		// shader buffers from CCustomShaderEffectVehicle.
 		// We can use it to override various params right after without breaking any functionality.
 		typedef void(*gDef_DrawCustomShaderEffectCommand)(intptr_t renderData);
+		// This command handler (called by draw fragment draw command) executed by render thread
+		// to draw fragment. Disabling this will disable vehicles, street lamps and other .yft models.
+		typedef void (*gDef_DrawFragmentCommandHandler)(int64_t a1, bool a2);
+		// Draws non-standard (tuning) wheels on cars. Shares ms_CurrentShaderFxVehicle variable with
+		// DrawCustomShaderEffectCommand (which sets it).
+		typedef void (*gDef_DrawTuningWheelsCommandHandler)(int64_t a1);
+		// Override of rmcDrawable::DrawSkinned.
+		typedef void(*gDef_fragDrawable_DrawSkinned)(int64_t renderData, rage::grmShaderGroup* shaderGroup, int64_t matrices, int64_t a4, uint32_t unkMask, uint32_t modelIndex);
 
 		static inline gDef_DrawCustomShaderEffectCommand gImpl_DrawCustomShaderEffectCommand;
+		static inline gDef_DrawFragmentCommandHandler gImpl_DrawFragmentCommandHandler;
+		static inline gDef_DrawTuningWheelsCommandHandler gImpl_DrawTuningWheelsCommandHandler;
+		static inline gDef_fragDrawable_DrawSkinned gImpl_fragDrawable_DrawSkinned;
 
-		static void aImpl_DrawCustomShaderEffectCommand(intptr_t renderData)
+		static void aImpl_DrawCustomShaderEffectCommand(intptr_t a1)
 		{
-			gImpl_DrawCustomShaderEffectCommand(renderData);
+			int v12 = LOWORD(*(int32_t*)(a1 + 8));
+			v12 = (unsigned __int16)v12 | 0xFFF0000;
+			int64_t modelInfo = ((int64_t(*)(uint16_t*))(0x7FF6DF411E58))((unsigned __int16*)&v12);
 
-			return;
-			// TODO: Don't use these
-			intptr_t fragType = *(intptr_t*)0x7FF7BB06B620;
-			intptr_t shaderFx = *(intptr_t*)0x7FF7BB06B630;
+			uint32_t hash = *(uint32_t*)(modelInfo + 0x18);
 
-			gImpl_DrawCustomShaderEffectCommand(renderData);
+			m_UpdateVehicleShaderEffect = true;
+			OnCustomShaderEffectVehicleUse(hash, m_UpdateVehicleShaderEffect);
 
-			// if (!(shaderFx == 0x1E145B21060 || shaderFx == 0x1E145C97870))
-			//	return;
-
-			const char* fragName = *(const char**)(fragType + 0x58);
-
-			//if (strcmp(fragName, "pack:/adder_hi") != 0)
-			//	return;
-
-			rage::gtaDrawable* drawable = *(rage::gtaDrawable**)(fragType + 0x30);
-
-			rage::grmShaderGroup* shaderGroup = drawable->grmShaderGroup;
-
-			for (int k = 0; k < shaderGroup->numMaterials; k++)
-			{
-				rage::grmMaterial* material = shaderGroup->materials[k];
-
-				if (!m_shaderUpdated)
-				{
-					for (int i = 0; i < material->shaderPack->pFragmentPrograms.GetSize(); i++)
-					{
-						auto fp = material->shaderPack->pFragmentPrograms.GetAt(i);
-
-						// g_Log.Log("{:X}", fp);
-						auto fpName = *(const char**)((intptr_t)fp + 0x8);
-
-						//g_Log.Log(fpName);
-
-						if (strcmp(fpName, "ranstar_paint1:PS_DeferredVehicleTextured") == 0)
-						{
-							m_shaderUpdated = true;
-							ID3DBlob* psBlob;
-							D3DCompileFromFile(L"S:/Repos/ShaderCompiler/ShaderCompiler/PS_DeferredVehicleTextured.hlsl",
-								NULL, NULL, "main", "ps_5_0", NULL, NULL, &psBlob, NULL);
-
-							ID3D11PixelShader* pPs;
-							grcDX11::GetDevice()->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), NULL, &pPs);
-							fp->pPixelShaderD3D11 = pPs;
-						}
-
-						//*(ID3D11PixelShader*)(fp + 0x228) = nullptr;
-					}
-				}
-
-				for (int i = 0; i < material->numVariables; i++)
-				{
-					//g_Log.Log(material->shaderPack->variables.GetAt(i)->Name);
-					if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "ranstarScale") == 0)
-					{
-						//g_Log.Log("ranstarScale");
-						*material->variables[i].GetFloatPtr() = 0.1f;
-					}
-					if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "Bumpiness") == 0)
-					{
-						//g_Log.Log("ranstarScale");
-						*material->variables[i].GetFloatPtr() = 100.0f;
-					}
-					if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "LetterSize") == 0)
-					{
-						//g_Log.Log("ranstarScale");
-						*material->variables[i].GetFloatPtr() = 0.2f;
-					}
-					//if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "LetterIndex2") == 0)
-					//{
-					//	//g_Log.Log("ranstarScale");
-					//	*material->variables[i].GetFloatPtr() = 35.0f;
-					//}
-					if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "bDebugDisplayDamageMap") == 0)
-					{
-						//g_Log.Log("envEffScale");
-						*material->variables[i].GetBoolPtr() = false;
-					}
-					if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "DamageMultiplier") == 0)
-					{
-						//g_Log.Log("envEffScale");
-						*material->variables[i].GetFloatPtr() = 2.0f;
-					}
-					if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "envEffScale0") == 0)
-					{
-						//g_Log.Log("envEffScale");
-						*material->variables[i].GetFloatPtr() = 0;
-					}if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "reflectivepower") == 0)
-					{
-						//g_Log.Log("envEffScale");
-						*material->variables[i].GetFloatPtr() = 0;
-					}if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "enveffthickness") == 0)
-					{
-						//g_Log.Log("envEffScale");
-						*material->variables[i].GetFloatPtr() = 0;
-					}
-					if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "EmissiveMultiplier") == 0)
-					{
-						//g_Log.Log("envEffScale");
-						*material->variables[i].GetFloatPtr() = 150;
-					}
-
-					if (strcmp(material->shaderPack->variables.GetAt(i)->Name, "Fresnel") == 0)
-					{
-						//g_Log.Log("Dirt");
-						*material->variables[i].GetFloatPtr() = 5;
-						intptr_t dirt = (intptr_t)material->variables[i].GetFloatPtr();
-
-						// *(float*)(dirt + 0x0) = 1.0f;
-						//*(float*)(dirt + 0x4) = 15.0f;
-						//*(float*)(dirt + 0x8) = 15.0f;
-					}
-				}
-			}
-
-			// g_Log.Log("Adder Drawable: {:X}", (intptr_t)drawable);
-			// g_Log.Log("DrawCustomShaderEffectCommand({:X})", renderData);
+			if (m_UpdateVehicleShaderEffect)
+				gImpl_DrawCustomShaderEffectCommand(a1);
 		}
 
-	public:
-		DrawCommands()
+		static void aImpl_DrawFragmentCommandHandler(int64_t a1, bool a2)
 		{
+			// TODO: Rewrite this hell
+
+			uint16_t v3 = *(uint16_t*)(a1 + 0xB4);
+			int v47 = v3 | 0xFFF0000;
+			unsigned int v37 = LOWORD(v47);
+			v37 = ((v47 ^ ((v47 ^ v37) & 0xFFF0000 ^ v37) & 0xDFFFFFFF) & 0x10000000 ^ ((v47 ^ v37) & 0xFFF0000 ^ v37) & 0xDFFFFFFF) & 0x3FFFFFFF;
+
+			int64_t modelInfo = ((int64_t(*)(uint16_t*))(0x7FF6DF411E58))((unsigned __int16*)&v37);
+
+			uint32_t hash = *(uint32_t*)(modelInfo + 0x18);
+
+			m_CurrentRenderingFragmentHash = hash;
+			gImpl_DrawFragmentCommandHandler(a1, a2);
+			m_CurrentRenderingFragmentHash = -1;
+		}
+
+		static void aImpl_DrawTuningWheelsCommandHandler(int64_t a1)
+		{
+			// This function can't be called without DrawCustomShaderEffectCommand
+			if (m_UpdateVehicleShaderEffect)
+				gImpl_DrawTuningWheelsCommandHandler(a1);
+		}
+
+		static void aImpl_fragDrawable_DrawSkinned(int64_t renderData, rage::grmShaderGroup* shaderGroup, int64_t matrices, int64_t a4, uint32_t unkMask, uint32_t modelIndex)
+		{
+			OnFragRender(m_CurrentRenderingFragmentHash, shaderGroup ? &shaderGroup : nullptr);
+
+			gImpl_fragDrawable_DrawSkinned(renderData, shaderGroup, matrices, a4, unkMask, modelIndex);
+		}
+
+		static inline bool m_UpdateVehicleShaderEffect;
+		static inline uint32_t m_CurrentRenderingFragmentHash;
+	public:
+		/**
+		 * \brief Invoked before fragment rendered.
+		 * \param hash Name hash of the model.
+		 * \param lpShaderGroup Long pointer on grmShaderGroup that used to render fragment.
+		 * \remarks - lpShaderGroup parameter can be NULL.
+		 * \n - lpShaderGroup can be replaced with custom one (see material editor).
+		 * \n - Make sure that the only difference in shader group is material values, otherwise
+		 * geometry render function will crash with out of bounds exception while iterating materials.
+		 * \n - _hi and regular model name hashes are different.
+		 */
+		static inline boost::signals2::signal<void(uint32_t hash, rage::grmShaderGroup** lpShaderGroup)> OnFragRender;
+
+		/**
+		 * \brief Invoked before CCustomShaderEffectVehicle updates values in grmShaderGroup.
+		 * \param hash Name hash of the model.
+		 * \param execute if set to false, CCustomShaderEffectVehicle won't be executed.
+		 * \remarks - Just after this function fragment is being rendered. See @OnFragRender.
+		 * \n - _hi and regular model name hashes are different.
+		 */
+		static inline boost::signals2::signal<void(uint32_t hash, bool& execute)> OnCustomShaderEffectVehicleUse;
+
+		Rendering()
+		{
+			gm::ScanAndHook("DrawTuningWheelsCommandHandler",
+				"48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 68 A1 48 81 EC F8 00 00 00 44 8B 3D",
+				aImpl_DrawTuningWheelsCommandHandler);
+
 			gm::ScanAndHook(
 				"DrawCustomShaderEffectCommand",
 				"48 89 5C 24 10 48 89 74 24 18 57 48 83 EC 30 F7",
 				aImpl_DrawCustomShaderEffectCommand,
 				&gImpl_DrawCustomShaderEffectCommand);
+
+			// This function responsible for drawing every fragment in game
+			gm::ScanAndHook("DrawFragmentCommandHandler",
+				"88 54 24 10 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 E1 48 81 EC A8 00 00 00 8B",
+				aImpl_DrawFragmentCommandHandler,
+				&gImpl_DrawFragmentCommandHandler);
+
+			// NOTICE: Car wheels are apparently not frag drawable
+			gm::ScanAndHook("fragDrawable::DrawSkinned",
+				"48 8B C4 48 89 58 08 48 89 68 10 48 89 70 20 4C 89 40 18 57 41 54 41 55 41 56 41 57 48 83 EC 70 48",
+				aImpl_fragDrawable_DrawSkinned,
+				&gImpl_fragDrawable_DrawSkinned);
+		}
+
+		uint32_t GetCurrentRenderingFragmentHash() const
+		{
+			return m_CurrentRenderingFragmentHash;
 		}
 
 		/*void AddOverrideShaderParamThisFrame(int entity, const char* shaderName, int materialId, const char* paramName)
@@ -193,7 +172,6 @@ namespace rh
 		}*/
 	};
 
-	//typedef void(*RenderTask)();
 	class RenderThread
 	{
 		typedef void(*gDef_PresentImage)();
@@ -214,7 +192,7 @@ namespace rh
 		}
 	};
 
-	inline DrawCommands g_DrawCommands;
+	inline Rendering g_Rendering;
 	inline fwRenderThreadInterface g_FwRenderThreadInterface;
 	inline RenderThread g_RenderThread;
 }
