@@ -19,6 +19,7 @@ add_library(rageAm SHARED
 
     "imgui_rage/sys_apps/ImGuiApp_MainWindow.h"
     "imgui_rage/sys_apps/ImGuiApp_Toolbar.h" 
+    "imgui_rage/sys_apps/ImGuiApp_MaterialEditor.h"
 
     "memory/gmAddress.h"
     "memory/gmAddress.cpp"
@@ -65,8 +66,7 @@ add_library(rageAm SHARED
     "rage_hook/rageHandlingHacks.h" 
     "rage_hook/rageHandling.h"
 
-    "CrashHandler.h"
-)
+    "CrashHandler.h")
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})
