@@ -63,20 +63,24 @@ class CrashHandler
 public:
 	CrashHandler()
 	{
-#ifdef USE_GLOBAL_CRASH_HANDLER
 		g_Log.LogT("CrashHandler()");
 
+#ifdef USE_VEH_CRASH_HANDLER
 		ms_VectorExceptionHandlerHnd = AddVectoredExceptionHandler(true, RageVectoredExceptionHandler);
+#endif
+#ifdef USE_UNHANDLED_CRASH_HANDLER
 		ms_PreviousTopLevelUnhandledExceptionHandler = SetUnhandledExceptionFilter(RageUnhandledExceptionFilter);
 #endif
 	}
 
 	~CrashHandler()
 	{
-#ifdef USE_GLOBAL_CRASH_HANDLER
 		g_Log.LogT("~CrashHandler()");
 
+#ifdef USE_VEH_CRASH_HANDLER
 		RemoveVectoredExceptionHandler(ms_VectorExceptionHandlerHnd);
+#endif
+#ifdef USE_UNHANDLED_CRASH_HANDLER
 		SetUnhandledExceptionFilter(ms_PreviousTopLevelUnhandledExceptionHandler);
 #endif
 	}
