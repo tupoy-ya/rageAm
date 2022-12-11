@@ -46,7 +46,22 @@ namespace sapp
 
 		void OnCustomShaderEffectVehicleUse(uint32_t hash, bool& execute) const
 		{
-			// Prevent game overwriting material values
+			// ISSUE: Fragments rendering is a little bit complicated,
+			// as usual there's grmShaderGroup but it's not one per model,
+			// it's per-lod. So simply editing grmShaderGroup will lead to nothing.
+			// Further more, vehicles and other entities with 'specific' shaders
+			// such as tint or paint have a thing called 'CCustomShaderEffect' (later - shaderFx)
+			// which basically provides an interface to edit shader parameters,
+			// and just before when constant buffers are being updated with new values
+			// from grmShaderGroup->Materials (later materials), shaderFx sets it's own
+			// values in materials. It's another reason why we can't
+			// simply alter grmShaderGroup without disabling shaderFx,
+			// but it will completely break rendering pipeline. For i.e. cars
+			// will appear with green mud, DamageRT (in GTA damage
+			// to cars applied via displacement texture and tessellation) won't be applied whatsoever,
+			// license plates will appear bugged.
+
+			// So simply prevent game overwriting material values
 			if (hash == fwHelpers::joaat(ms_ModelNameInput))
 				execute = false;
 		}
@@ -205,23 +220,6 @@ namespace sapp
 
 		rage::gtaDrawable* TryGetFragmentDrawable()
 		{
-			// ISSUE: Fragments rendering is a little bit complicated,
-			// as usual there's grmShaderGroup but it's not one per model,
-			// it's per-lod. So simply editing grmShaderGroup will lead to nothing.
-			// Further more, vehicles and other entities with 'specific' shaders
-			// such as tint or paint have a thing called 'CCustomShaderEffect' (later - shaderFx)
-			// which basically provides an interface to edit shader parameters,
-			// and just before when constant buffers are being updated with new values
-			// from grmShaderGroup->Materials (later materials), shaderFx sets it's own
-			// values in materials. It's another reason why we can't
-			// simply alter grmShaderGroup without disabling shaderFx,
-			// but it will completely break rendering pipeline. For i.e. cars
-			// will appear with green mud, DamageRT (in GTA damage
-			// to cars applied via displacement texture and tessellation) won't be applied whatsoever,
-			// license plates will appear bugged.
-			// SOLUTION: So what we do, is hook render command method that invoked just right after shaderFx
-			// values were set, compare if model hash matches ours, and if so, cancel execution.
-
 			static const char* modelMode[] = { "High Detail (_hi)", "Standard" };
 			if (ImGui::Combo("LOD##FRAG_LOD", &m_FragLodMode, modelMode, IM_ARRAYSIZE(modelMode)))
 				m_CacheOutdated = true;
