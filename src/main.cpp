@@ -1,5 +1,7 @@
 ﻿/*
  * TODO:
+ * Developer comments in shader params (like for license plate letters)
+ * Sliders in UI
  * Shader & Texture replace
  * Ped, Map Shaders
  * Entity parts highlighting
