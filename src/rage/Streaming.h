@@ -35,7 +35,10 @@ namespace rage
 
 		int FindNodeFromNodeIndexAndHashKey(int nodeIndex, int nameHash)
 		{
-			const atLinkedNode& indexNode = indexNodes[nodeIndex];
+			if (nodeIndex > size_1 || nodeIndex < 0)
+				return -1;
+
+			const atLinkedNode indexNode = indexNodes[nodeIndex];
 
 			if (indexNode.nameHash == nameHash)
 				return indexNode.index;
@@ -79,24 +82,15 @@ namespace rage
 		intptr_t crSkeletonData;
 	};
 
-	template<typename T1, typename T2>
-	class fwAssetKeyValuePair
+	template<typename TValue, typename TDef>
+	struct fwAssetKeyValuePair
 	{
-		T1* value;
-		T2 key;
-
-	public:
-		T1* GetValue()
-		{
-			return value;
-		}
-
-		T2 GetKey()
-		{
-			return key;
-		}
+		TValue* value;
+		TDef key;
 	};
 
+	// Note: there's much more streaming stores, but this is
+	// enumeration of every supported one.
 	enum eStreamingModule
 	{
 		STORE_DRAWABLE = 0x2,
@@ -136,25 +130,44 @@ namespace rage
 
 	class strStreamingModule
 	{
-
+		//int64_t vftable;
+		//int64_t unk8;
+		//int32_t size;
+		//int32_t dword14;
+		//char* m_DebugName;
+		//int64_t qword20_relatedToName;
+		//int8_t N000027F1;
+		//int8_t N00005ABD;
+		//int8_t N00005AC0;
+		//int8_t byte2B;
+		//int32_t N00005ABB;
+		//int32_t fileTypeId;
 	};
 
 	template<typename T1, typename T2>
 	class fwAssetStore : public strStreamingModule
 	{
+		// str streaming module
 		int64_t vftable;
 		int64_t unk8;
-		int32_t poolSize;
-		char pad_0014[4];
-		char* storeName;
-		char pad_0020_relatedToName[8];
+		int32_t size;
+		int32_t dword14;
+		char* m_DebugName;
+		int64_t qword20_relatedToName;
 		int8_t N000027F1;
 		int8_t N00005ABD;
 		int8_t N00005AC0;
-		char pad_002B[1];
+		int8_t byte2B;
 		int32_t N00005ABB;
 		int32_t fileTypeId;
-		char pad_0034[4];
+
+
+
+		int32_t dword34; // Not sure if it belongs to strStreamingModule or not
+
+		// I Suppose pool (memory) + linked list (lookup) can be classified
+		// as hashset?
+
 		// This is not used like ped pool,
 		// key list is unused, meaning IsSlotActive() cannot be used.
 		// Additionally in RDR2 symbols fwAssetStore don't have
@@ -169,7 +182,7 @@ namespace rage
 		// doesn't have such functionality.
 		atLinkedList linkedList;
 		char pad_008C[4];
-		int8_t IsPoolInitialized;
+		int8_t m_PoolInitialized;
 
 	public:
 		typedef fwAssetKeyValuePair<T1, T2> fwAssetStoreValue;
@@ -188,7 +201,14 @@ namespace rage
 
 		fwAssetStoreValue* FindSlot(const char* name)
 		{
-			return FindSlotByHashKey(atHashString(name));
+			int index;
+			return FindSlotByHashKey(index, atHashString(name));
+		}
+
+		bool Exists(const char* name)
+		{
+			const int index = linkedList.FindNodeFromHashKey(atHashString(name));
+			return index != -1;
 		}
 
 		int GetSize() const
@@ -215,13 +235,13 @@ namespace rage
 				return false;
 
 			const intptr_t templateEntryPtr = GetSlotPtr(index);
-			if (templateEntryPtr <= 0xFFFFFFFFFi64)
+			if (templateEntryPtr <= 0xFFFFFFFFF)
 				return false;
 
 			// Might be not the best way to check it, but it works.
 			// Around index 30,000 of TxdStore empty entries entriesStartIndex appearing that trigger this
 			const intptr_t templateEntry = *reinterpret_cast<intptr_t*>(templateEntryPtr);
-			if (templateEntry <= 0xFFFFFFFFFi64)
+			if (templateEntry <= 0xFFFFFFFFF)
 				return false;
 
 			return true;
