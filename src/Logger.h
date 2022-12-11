@@ -26,6 +26,7 @@ class Logger
 
 	std::ofstream m_fs;
 	std::string m_logFile = "rageAm/rageAm.txt";
+	std::string m_logFileBack = "rageAm/rageAm_backup.txt";
 
 	std::mutex m_fileMutex;
 
@@ -36,6 +37,10 @@ public:
 		LogT("Logger()");
 
 		CreateDataFolderIfNotExists();
+
+		// Rename existing log
+		MoveFileExA(m_logFile.c_str(), m_logFileBack.c_str(), MOVEFILE_REPLACE_EXISTING);
+
 		m_fs.open(m_logFile, std::ios::trunc);
 	}
 
