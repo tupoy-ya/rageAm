@@ -29,7 +29,7 @@ namespace sapp
 			// to one with exactly the same amount of materials won't hurt even if our assert failed.
 			// It won't crash game though materials will be assigned wrong.
 
-			if (hash != fwHelpers::jooat(m_ModelNameInput))
+			if (hash != fwHelpers::joaat(m_ModelNameInput))
 				return;
 
 			if ((*lpShaderGroup)->GetMaterialCount() != m_EditShaderGroup->GetMaterialCount())
@@ -41,7 +41,7 @@ namespace sapp
 		void OnCustomShaderEffectVehicleUse(uint32_t hash, bool& execute) const
 		{
 			// Prevent game overwriting material values
-			if (hash == fwHelpers::jooat(m_ModelNameInput))
+			if (hash == fwHelpers::joaat(m_ModelNameInput))
 				execute = false;
 		}
 

@@ -333,7 +333,7 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //					ImGui::InputText("Name", inputName, IM_ARRAYSIZE(inputName));
 //
 //					int index;
-//					g_TxdStore->FindSlotByHashKey(index, fwHelpers::jooat(inputName));
+//					g_TxdStore->FindSlotByHashKey(index, fwHelpers::joaat(inputName));
 //					if (index != -1)
 //					{
 //						if (g_TxdStore->IsSlotActive(index))
@@ -367,7 +367,7 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //				ImGui::InputText("Name", inputModel, IM_ARRAYSIZE(inputModel));
 //
 //				int index;
-//				g_DrawableStore->FindSlotByHashKey(index, fwHelpers::jooat(inputModel));
+//				g_DrawableStore->FindSlotByHashKey(index, fwHelpers::joaat(inputModel));
 //				if (index != -1 && g_DrawableStore->IsSlotActive(index))
 //				{
 //					auto slot = g_DrawableStore->GetSlot(index);

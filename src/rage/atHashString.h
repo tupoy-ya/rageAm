@@ -13,7 +13,7 @@ namespace rage
 		atHashString(const char* str)
 		{
 			m_str = str;
-			m_hash = fwHelpers::jooat(str);
+			m_hash = fwHelpers::joaat(str);
 		}
 
 		uint32_t GetHash() const

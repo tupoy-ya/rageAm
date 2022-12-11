@@ -21,7 +21,7 @@ namespace fwHelpers
 		return c == '\0';
 	}
 
-	constexpr uint32_t jooat(const char* str)
+	constexpr uint32_t joaat(const char* str)
 	{
 		size_t i = 0;
 		uint32_t hash = 0;
