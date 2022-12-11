@@ -13,6 +13,12 @@ namespace rage
 		atHashString(const char* str)
 		{
 			m_str = str;
+			m_hash = fwHelpers::jooat(str);
+		}
+
+		uint32_t GetHash() const
+		{
+			return m_hash;
 		}
 
 		operator uint32_t() const { return m_hash; }
