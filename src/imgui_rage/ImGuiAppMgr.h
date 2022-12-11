@@ -54,7 +54,7 @@ namespace imgui_rage
 
 				for (auto& app : ms_apps)
 				{
-					app->OnRender();
+					app->Render();
 				}
 
 				if (!isFocused)
