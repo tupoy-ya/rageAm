@@ -26,17 +26,15 @@ auto startTime = std::chrono::high_resolution_clock::now();
 
 // We use dynamic initialization for pattern scanning,
 // so these may be marked as unused but it's not true.
+// NOTICE: Order matters here.
 
+#include "rage_hook/rageStreaming.h"
 #include "rage_hook/grcore/rageDX11.h"
 #include "rage_hook/grcore/rageGrc.h"
 #include "rage_hook/grcore/rageRender.h"
 #include "rage_hook/rageGrm.h"
-
-// Disabled because not used currently
-// #include "rage_hook/rageFileInterface.h"
-
+// #include "rage_hook/rageFileInterface.h" // Disabled because not used currently
 #include "rage_hook/rageWin32.h"
-#include "rage_hook/rageStreaming.h"
 #include "rage_hook/rageFwTimer.h"
 #include "rage_hook/rageControls.h"
 

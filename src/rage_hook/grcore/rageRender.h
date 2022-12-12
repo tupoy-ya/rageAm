@@ -5,6 +5,8 @@
 #include <D3Dcompiler.h>
 #pragma comment(lib,"D3dcompiler.lib")
 
+#include "rage/fwModelId.h"
+#include "rage/CModelInfo.h"
 #include "../../rage/Streaming.h"
 #include "../../memory/gmHelper.h"
 #include "rageDX11.h"
@@ -50,13 +52,13 @@ namespace rh
 		// This command is called by render thread before rendering vehicle to update
 		// shader buffers from CCustomShaderEffectVehicle.
 		// We can use it to override various params right after without breaking any functionality.
-		typedef void(*gDef_DrawCustomShaderEffectCommand)(intptr_t renderData);
+		typedef void(*gDef_DrawCustomShaderEffectCommand)(intptr_t renderCtx);
 		// This command handler (called by draw fragment draw command) executed by render thread
 		// to draw fragment. Disabling this will disable vehicles, street lamps and other .yft models.
-		typedef void (*gDef_DrawFragmentCommandHandler)(int64_t a1, bool a2);
+		typedef void (*gDef_DrawFragmentCommandHandler)(int64_t renderCtx, bool a2);
 		// Draws non-standard (tuning) wheels on cars. Shares ms_CurrentShaderFxVehicle variable with
 		// DrawCustomShaderEffectCommand (which sets it).
-		typedef void (*gDef_DrawTuningWheelsCommandHandler)(int64_t a1);
+		typedef void (*gDef_DrawTuningWheelsCommandHandler)(int64_t renderCtx);
 		// Override of rmcDrawable::DrawSkinned.
 		typedef void(*gDef_fragDrawable_DrawSkinned)(int64_t renderData, rage::grmShaderGroup* shaderGroup, int64_t matrices, int64_t a4, uint32_t unkMask, uint32_t modelIndex);
 
@@ -65,36 +67,25 @@ namespace rh
 		static inline gDef_DrawTuningWheelsCommandHandler gImpl_DrawTuningWheelsCommandHandler;
 		static inline gDef_fragDrawable_DrawSkinned gImpl_fragDrawable_DrawSkinned;
 
-		static void aImpl_DrawCustomShaderEffectCommand(intptr_t a1)
+		static void aImpl_DrawCustomShaderEffectCommand(intptr_t renderCtx)
 		{
-			int v12 = LOWORD(*(int32_t*)(a1 + 8));
-			v12 = (unsigned __int16)v12 | 0xFFF0000;
-			int64_t modelInfo = ((int64_t(*)(uint16_t*))(0x7FF6DF411E58))((unsigned __int16*)&v12);
-
-			uint32_t hash = *(uint32_t*)(modelInfo + 0x18);
+			rage::fwModelId modelId(*reinterpret_cast<uint16_t*>(renderCtx + 8));
+			rage::CBaseModelInfo* modelInfo = rage::CModelInfo::GetModelInfoFromId(&modelId);
 
 			m_UpdateVehicleShaderEffect = true;
-			OnCustomShaderEffectVehicleUse(hash, m_UpdateVehicleShaderEffect);
+			OnCustomShaderEffectVehicleUse(modelInfo->GetNameHash(), m_UpdateVehicleShaderEffect);
 
 			if (m_UpdateVehicleShaderEffect)
-				gImpl_DrawCustomShaderEffectCommand(a1);
+				gImpl_DrawCustomShaderEffectCommand(renderCtx);
 		}
 
-		static void aImpl_DrawFragmentCommandHandler(int64_t a1, bool a2)
+		static void aImpl_DrawFragmentCommandHandler(int64_t renderCtx, bool a2)
 		{
-			// TODO: Rewrite this hell
+			rage::fwModelId modelId(*reinterpret_cast<uint16_t*>(renderCtx + 0xB4));
+			rage::CBaseModelInfo* modelInfo = rage::CModelInfo::GetModelInfoFromId(&modelId);
 
-			uint16_t v3 = *(uint16_t*)(a1 + 0xB4);
-			int v47 = v3 | 0xFFF0000;
-			unsigned int v37 = LOWORD(v47);
-			v37 = ((v47 ^ ((v47 ^ v37) & 0xFFF0000 ^ v37) & 0xDFFFFFFF) & 0x10000000 ^ ((v47 ^ v37) & 0xFFF0000 ^ v37) & 0xDFFFFFFF) & 0x3FFFFFFF;
-
-			int64_t modelInfo = ((int64_t(*)(uint16_t*))(0x7FF6DF411E58))((unsigned __int16*)&v37);
-
-			uint32_t hash = *(uint32_t*)(modelInfo + 0x18);
-
-			m_CurrentRenderingFragmentHash = hash;
-			gImpl_DrawFragmentCommandHandler(a1, a2);
+			m_CurrentRenderingFragmentHash = modelInfo->GetNameHash();
+			gImpl_DrawFragmentCommandHandler(renderCtx, a2);
 			m_CurrentRenderingFragmentHash = -1;
 		}
 
@@ -140,7 +131,8 @@ namespace rh
 		{
 			gm::ScanAndHook("DrawTuningWheelsCommandHandler",
 				"48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 68 A1 48 81 EC F8 00 00 00 44 8B 3D",
-				aImpl_DrawTuningWheelsCommandHandler);
+				aImpl_DrawTuningWheelsCommandHandler,
+				&gImpl_DrawTuningWheelsCommandHandler);
 
 			gm::ScanAndHook(
 				"DrawCustomShaderEffectCommand",

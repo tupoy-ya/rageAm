@@ -127,27 +127,9 @@ namespace rage
 			return strStreamingMgr;
 		}
 	};
-
+	
 	class strStreamingModule
 	{
-		//int64_t vftable;
-		//int64_t unk8;
-		//int32_t size;
-		//int32_t dword14;
-		//char* m_DebugName;
-		//int64_t qword20_relatedToName;
-		//int8_t N000027F1;
-		//int8_t N00005ABD;
-		//int8_t N00005AC0;
-		//int8_t byte2B;
-		//int32_t N00005ABB;
-		//int32_t fileTypeId;
-	};
-
-	template<typename T1, typename T2>
-	class fwAssetStore : public strStreamingModule
-	{
-		// str streaming module
 		int64_t vftable;
 		int64_t unk8;
 		int32_t size;
@@ -160,10 +142,31 @@ namespace rage
 		int8_t byte2B;
 		int32_t N00005ABB;
 		int32_t fileTypeId;
+		int32_t dword34; // Not sure if it belongs to strStreamingModule or not (originally was in fwAssetStore)
+	};
 
+	class CModelInfoStreamingModule : public strStreamingModule // : public fwArchetypeStreamingModule
+	{
 
+	};
 
-		int32_t dword34; // Not sure if it belongs to strStreamingModule or not
+	template<typename T1, typename T2>
+	class fwAssetStore : public strStreamingModule
+	{
+		// str streaming module
+		/*int64_t vftable;
+		int64_t unk8;
+		int32_t size;
+		int32_t dword14;
+		char* m_DebugName;
+		int64_t qword20_relatedToName;
+		int8_t N000027F1;
+		int8_t N00005ABD;
+		int8_t N00005AC0;
+		int8_t byte2B;
+		int32_t N00005ABB;
+		int32_t fileTypeId;*/
+
 
 		// I Suppose pool (memory) + linked list (lookup) can be classified
 		// as hashset?
@@ -180,6 +183,7 @@ namespace rage
 		char pad_006C[4];
 		// Serves purpose of hash look-up table for pool, as pool by default
 		// doesn't have such functionality.
+		// https://www.geeksforgeeks.org/separate-chaining-collision-handling-technique-in-hashing/
 		atLinkedList linkedList;
 		char pad_008C[4];
 		int8_t m_PoolInitialized;
@@ -247,6 +251,7 @@ namespace rage
 			return true;
 		}
 	};
+	static_assert(sizeof(fwAssetStore<void, void>) == 0x98);
 
 	typedef fwAssetStore<pgDictionary<grcTexture>, fwTxdDef> TxdStore;
 	typedef fwAssetStore<gtaDrawable, fwDwdDef> DrawableStore;

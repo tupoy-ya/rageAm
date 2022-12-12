@@ -66,7 +66,7 @@ add_library(rageAm SHARED
     "rage_hook/rageHandlingHacks.h" 
     "rage_hook/rageHandling.h"
 
-    "CrashHandler.h")
+    "CrashHandler.h" "rage/fwModelId.h" "rage/CModelInfo.h")
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})
