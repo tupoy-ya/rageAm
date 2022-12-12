@@ -14,6 +14,8 @@ namespace sapp
 		int m_FragLodMode = 0;
 		bool m_CacheOutdated = true;
 
+		uint32_t m_ModelHash;
+
 		rage::grmShaderGroup* m_EditShaderGroup = nullptr;
 		std::vector<std::string> m_ShaderPackNames{};
 
@@ -34,7 +36,7 @@ namespace sapp
 			// to one with exactly the same amount of materials won't hurt even if our assert failed.
 			// It won't crash game though materials will be assigned wrong.
 
-			if (hash != fwHelpers::joaat(ms_ModelNameInput))
+			if (hash != m_ModelHash)
 				return;
 
 			if ((*lpShaderGroup)->GetMaterialCount() != m_EditShaderGroup->GetMaterialCount())
@@ -61,7 +63,7 @@ namespace sapp
 			// license plates will appear bugged.
 
 			// So simply prevent game overwriting material values
-			if (hash == fwHelpers::joaat(ms_ModelNameInput))
+			if (hash == m_ModelHash)
 				execute = false;
 		}
 
@@ -264,8 +266,12 @@ namespace sapp
 			static const char* editorModes[] = { "Model", "Instance" };
 			ImGui::Combo("Mode##MAT_MODE", &m_EditMode, editorModes, IM_ARRAYSIZE(editorModes));
 
+			// TODO: It still may have issues with _hi
 			if (ImGui::InputText("Name", ms_ModelNameInput, IM_ARRAYSIZE(ms_ModelNameInput)))
 				m_CacheOutdated = true;
+
+			if (m_CacheOutdated)
+				m_ModelHash = fwHelpers::joaat(ms_ModelNameInput);
 
 			FindDrawableAndDrawShaderGroup();
 
