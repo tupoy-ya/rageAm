@@ -14,6 +14,11 @@ gm::gmAddress gm::gmAddress::GetRef() const
 	return gmAddress(FindRef(m_address));
 }
 
+gm::gmAddress gm::gmAddress::GetCall() const
+{
+	return GetAt(0x1).GetRef();
+}
+
 gm::gmAddress gm::gmAddress::GetAt(int offset) const
 {
 	if (!MayBeValid())

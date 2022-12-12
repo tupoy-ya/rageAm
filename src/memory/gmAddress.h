@@ -83,6 +83,14 @@ namespace gm
 		gmAddress GetRef() const;
 
 		/**
+		 * \brief Gets function pointer by address with 'call' instruction.
+		 * For i.e. 'call CModelInfo::GetModelInfoFromId'
+		 * \return gmAddress instance with function address if address is valid,
+		 * otherwise address will null.
+		 */
+		gmAddress GetCall() const;
+
+		/**
 		 * \brief Gets address on given offset to current address.
 		 * \param offset Offset to add to current address.
 		 * \return gmAddress instance with added offset to address if address is valid,
