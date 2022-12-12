@@ -63,5 +63,20 @@ namespace rage
 		{
 			return pShaderResourceView;
 		}
+
+		void SetTexture(ID3D11Texture2D* texture)
+		{
+			pTexture = texture;
+		}
+
+		void SetTexture(ID3D11Resource* texture)
+		{
+			*reinterpret_cast<int64_t*>(&pTexture) = reinterpret_cast<int64_t>(texture);
+		}
+
+		void SetShaderResourceView(ID3D11ShaderResourceView* resourceView)
+		{
+			pShaderResourceView = resourceView;
+		}
 	};
 }

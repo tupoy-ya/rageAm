@@ -6,6 +6,9 @@
  * Ped, Map Shaders
  * Entity parts highlighting
  * Timecycle editor
+ *
+ * BUGS:
+ * Material editor breaks tuning rendering (related to CCustomShaderEffect)
  */
 
 #include <chrono>

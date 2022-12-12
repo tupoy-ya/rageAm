@@ -1,21 +1,29 @@
 #pragma once
 #include "boost/bind.hpp"
 #include "../ImGuiExtensions.h"
+#include "../vendor/directxtk/include/DDSTextureLoader.h"
 
 namespace sapp
 {
 	class ImGuiApp_MaterialEditor : public imgui_rage::ImGuiApp
 	{
 		static constexpr int INPUT_BUFFER_SIZE = 64;
+		static constexpr int TEXT_BUFFER_SIZE = 256;
+
 		static inline char ms_ModelNameInput[INPUT_BUFFER_SIZE] = "deluxo";
+		static inline char m_TextBuffer[TEXT_BUFFER_SIZE]{};
 
 		int m_EditMode = 0;
 		int m_SelectedMaterialIndex = 0;
 		int m_FragLodMode = 0;
 		bool m_CacheOutdated = true;
+		int m_SelectedTextureIndex = -1;
+
+		rage::grcTexture* m_SelectedTexture = nullptr;
 
 		uint32_t m_ModelHash;
 
+		rage::gtaDrawable* m_Drawable;
 		rage::grmShaderGroup* m_EditShaderGroup = nullptr;
 		std::vector<std::string> m_ShaderPackNames{};
 
@@ -67,47 +75,97 @@ namespace sapp
 				execute = false;
 		}
 
-		void DrawMaterialListForDrawable(rage::gtaDrawable* drawable)
+		void DrawMaterialTexturesForDrawable()
 		{
-			rage::grmShaderGroup* shaderGroup = drawable->grmShaderGroup;
+			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
+			rage::grmMaterial* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
 
-			ImGui::BeginChild("MaterialList", ImVec2(230, 0), true);
+			static float textureWidth = 256.0f;
+			ImGui::SliderFloat("Size", &textureWidth, 64.0f, 512.0f);
 
-			ImGui::Text("Drawable: %p", reinterpret_cast<uintptr_t>(drawable));
-			ImGui::Text("grmShaderGroup: %p", reinterpret_cast<uintptr_t>(shaderGroup));
+			// TODO: Make automatic load from folder with model names
 
-			if (m_CacheOutdated)
+			ImGui::BeginDisabled(!m_SelectedTexture);
+			if (ImGui::Button("Replace"))
 			{
-				g_Log.LogD("ImGuiApp_MaterialEditor::DrawMaterialListForDrawable() -> Rebuilding materials name list");
 
-				m_ShaderPackNames.clear();
+			}
+			ImGui::EndDisabled();
 
-				for (int i = 0; i < shaderGroup->GetMaterialCount(); i++)
+			for (int i = 0; i < selectedMaterial->numVariables; i++)
+			{
+				rage::grmMaterialVariable* materialVar = selectedMaterial->GetVariableAtIndex(i);
+				rage::grmShaderVariable* shaderVar = selectedMaterial->shaderPack->variables[i];
+				rage::eGrmValueType type = shaderVar->GetValueType();
+
+				if (type != rage::GRM_VALUE_TEXTURE)
+					continue;
+
+				rage::grcTexture* texture = materialVar->GetTexture();
+
+				if (texture == nullptr)
+					continue;
+
+				if (texture->GetName() == nullptr)
+					continue;
+
+				sprintf_s(m_TextBuffer, TEXT_BUFFER_SIZE, "rageAm/Textures/%s/%s.dds",
+					ms_ModelNameInput, texture->GetName());
+
+				HANDLE hnd = CreateFile(m_TextBuffer, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+				if (hnd != INVALID_HANDLE_VALUE)
 				{
-					rage::grmMaterial* material = shaderGroup->GetMaterialAt(i);
-					rage::grmShaderPack* shaderPack = material->GetShaderPack();
+					CloseHandle(hnd);
 
-					std::string shaderPackName = shaderPack->GetFileName();
-					m_ShaderPackNames.push_back(shaderPackName);
+					ID3D11Device* pDevice = rh::grcDX11::GetDevice();
+
+					ID3D11Texture2D* pOldTexture = texture->GetTexture();
+					ID3D11Resource* pNewTexture;
+					ID3D11ShaderResourceView* pOldResourceView = texture->GetShaderResourceView();
+					ID3D11ShaderResourceView* pNewResourceView;
+
+					int length = strlen(m_TextBuffer);
+					std::wstring text_wchar(length, L'#');
+					mbstowcs(&text_wchar[0], m_TextBuffer, length);
+
+					HRESULT result = DirectX::CreateDDSTextureFromFile(
+						pDevice, text_wchar.c_str(), &pNewTexture, &pNewResourceView);
+
+					// TODO: Error message
+					if (result == S_OK)
+					{
+						g_Log.LogD("Replacing texture: {}", texture->GetName());
+
+						texture->SetTexture(pNewTexture);
+						texture->SetShaderResourceView(pNewResourceView);
+
+						// Release them because they are no longer tracked by game.
+						// Instead game will release what we've inserted in texture.
+						pOldTexture->Release();
+						pOldResourceView->Release();
+					}
+				}
+
+				if (ID3D11ShaderResourceView* shaderResourceView = texture->GetShaderResourceView())
+				{
+					float factor = static_cast<float>(texture->GetWidth()) / textureWidth;
+					float height = static_cast<float>(texture->GetHeight()) / factor;
+
+					sprintf_s(m_TextBuffer, INPUT_BUFFER_SIZE, "%s - %s", shaderVar->Name, texture->GetName());
+
+					if (ImGui::Selectable(m_TextBuffer, i == m_SelectedTextureIndex))
+						m_SelectedTextureIndex = i;
+
+					if (i == m_SelectedTextureIndex)
+						m_SelectedTexture = texture;
+
+					ImGui::Image(shaderResourceView, ImVec2(textureWidth, height));
 				}
 			}
-
-			ImGui::SetNextItemWidth(230);
-			ImGui::ListBox("##MAT_LISTBOX", &m_SelectedMaterialIndex, m_ShaderPackNames);
-
-			ImGui::EndChild();
 		}
 
-		void DrawShaderGroupForDrawable(rage::gtaDrawable* drawable)
+		void DrawMaterialInfoForDrawable() const
 		{
-			DrawMaterialListForDrawable(drawable);
-
-			ImGui::SameLine();
-
-			// Material Info Window
-			ImGui::BeginChild("MAT_INFO", ImVec2(0, 0), true);
-			ImGui::Text("Material Information");
-
 			// Material Info Table
 			ImGui::BeginTable("MAT_INFO_TABLE", 3, APP_COMMON_TABLE_FLAGS);
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
@@ -115,7 +173,7 @@ namespace sapp
 			ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 			ImGui::TableHeadersRow();
 
-			rage::grmShaderGroup* shaderGroup = drawable->grmShaderGroup;
+			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
 			rage::grmMaterial* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
 
 			// Table Rows
@@ -141,21 +199,21 @@ namespace sapp
 
 				// Controls must have unique ID so use variable name
 				// since it doesn't appear twice on screen
-				const char* valueLabel = shaderVar->Name;
+				sprintf_s(m_TextBuffer, INPUT_BUFFER_SIZE, "##%s", shaderVar->Name);
 
 				// TODO: Add matrix support
 				switch (type)
 				{
 				case rage::GRM_VALUE_FLOAT:
-					ImGui::InputFloat(valueLabel, materialVar->GetFloatPtr()); break;
+					ImGui::InputFloat(m_TextBuffer, materialVar->GetFloatPtr()); break;
 				case rage::GRM_VALUE_VECTOR2:
-					ImGui::InputFloat2(valueLabel, materialVar->GetFloatPtr()); break;
+					ImGui::InputFloat2(m_TextBuffer, materialVar->GetFloatPtr()); break;
 				case rage::GRM_VALUE_VECTOR3:
-					ImGui::InputFloat3(valueLabel, materialVar->GetFloatPtr()); break;
+					ImGui::InputFloat3(m_TextBuffer, materialVar->GetFloatPtr()); break;
 				case rage::GRM_VALUE_VECTOR4:
-					ImGui::InputFloat4(valueLabel, materialVar->GetFloatPtr()); break;
+					ImGui::InputFloat4(m_TextBuffer, materialVar->GetFloatPtr()); break;
 				case rage::GRM_VALUE_BOOL:
-					ImGui::Checkbox(valueLabel, materialVar->GetBoolPtr()); break;;
+					ImGui::Checkbox(m_TextBuffer, materialVar->GetBoolPtr()); break;;
 				case rage::GRM_VALUE_TEXTURE:
 				{
 					rage::grcTexture* texture = materialVar->GetTexture();
@@ -167,6 +225,66 @@ namespace sapp
 				}
 			}
 			ImGui::EndTable(); // MAT_INFO_TABLE
+		}
+
+		void DrawMaterialListForDrawable()
+		{
+			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
+
+			ImGui::BeginChild("MaterialList", ImVec2(230, 0), true);
+
+			ImGui::Text("Drawable: %p", reinterpret_cast<uintptr_t>(m_Drawable));
+			ImGui::Text("grmShaderGroup: %p", reinterpret_cast<uintptr_t>(shaderGroup));
+
+			if (m_CacheOutdated)
+			{
+				g_Log.LogD("ImGuiApp_MaterialEditor::DrawMaterialListForDrawable() -> Rebuilding materials name list");
+
+				m_ShaderPackNames.clear();
+
+				for (int i = 0; i < shaderGroup->GetMaterialCount(); i++)
+				{
+					rage::grmMaterial* material = shaderGroup->GetMaterialAt(i);
+					rage::grmShaderPack* shaderPack = material->GetShaderPack();
+
+					std::string shaderPackName = shaderPack->GetFileName();
+					m_ShaderPackNames.push_back(shaderPackName);
+				}
+			}
+
+			ImGui::SetNextItemWidth(230);
+			if (ImGui::ListBox("##MAT_LISTBOX", &m_SelectedMaterialIndex, m_ShaderPackNames))
+			{
+				// Reset texture index when material changes
+				m_SelectedTextureIndex = -1;
+				m_SelectedTexture = nullptr;
+			}
+
+			ImGui::EndChild();
+		}
+
+		void DrawShaderGroupForDrawable()
+		{
+			DrawMaterialListForDrawable();
+			ImGui::SameLine();
+
+			// Material Info Window
+			ImGui::BeginChild("MAT_INFO", ImVec2(0, 0), true);
+			ImGui::Text("Material Information");
+
+			ImGui::BeginTabBar("MAT_INFO_TAB_BAR");
+			if (ImGui::BeginTabItem("Table"))
+			{
+				DrawMaterialInfoForDrawable();
+				ImGui::EndTabItem(); // Table
+			}
+			if (ImGui::BeginTabItem("Textures"))
+			{
+				DrawMaterialTexturesForDrawable();
+				ImGui::EndTabItem(); // Textures
+			}
+			ImGui::EndTabBar(); // MAT_INFO_TAB_BAR
+
 			ImGui::EndChild(); // MAT_INFO
 		}
 
@@ -197,7 +315,8 @@ namespace sapp
 				m_CacheOutdated = true;
 			}
 
-			DrawShaderGroupForDrawable(drawable);
+			m_Drawable = drawable;
+			DrawShaderGroupForDrawable();
 			m_EditShaderGroup = drawable->grmShaderGroup;
 		}
 
