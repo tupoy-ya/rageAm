@@ -44,18 +44,19 @@ namespace rh
 					bool existsAndValid = m_GlobalTextureStore.contains(fileName);
 					if (existsAndValid)
 					{
+						auto& slot = m_GlobalTextureStore.at(fileName);
+
+						slot.Exists = true;
+
 						// TODO: Check if file still being written
-						if (m_GlobalTextureStore.at(fileName).WriteTime != lastWriteTime)
+						if (slot.WriteTime != lastWriteTime)
 						{
 							g_Log.LogT("Swap Thread -> File {} changed.", fileName);
 
 							m_GlobalTexturesMutex.lock();
-
-							SwapStore& swap = m_GlobalTextureStore.at(fileName);
-							swap.pResource->Release();
-							swap.pResourceView->Release();
+							slot.pResource->Release();
+							slot.pResourceView->Release();
 							m_GlobalTextureStore.erase(fileName);
-
 							m_GlobalTexturesMutex.unlock();
 
 							existsAndValid = false;
@@ -77,7 +78,7 @@ namespace rh
 						{
 							m_GlobalTexturesMutex.lock();
 							m_GlobalTextureStore.emplace(fileName,
-								SwapStore(lastWriteTime, pResource, pResourceView));
+								SwapStore(lastWriteTime, pResource, pResourceView, true));
 							m_GlobalTexturesMutex.unlock();
 						}
 						else
@@ -85,8 +86,6 @@ namespace rh
 							g_Log.LogE("Unable to read texture: {}", fileName);
 						}
 					}
-
-					m_GlobalTextureStore.at(fileName).Exists = true;
 				}
 
 				// Find all removed textures from global directory
