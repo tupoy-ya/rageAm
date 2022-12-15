@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <Windows.h>
 
 namespace gm
@@ -15,7 +16,9 @@ namespace gm
 		uintptr_t m_address;
 
 	public:
-		explicit gmAddress(uintptr_t address)
+		static constexpr uintptr_t GM_ADDRESS_INVALID = 0;
+
+		gmAddress(uintptr_t address)
 		{
 			m_address = address;
 		}
@@ -96,7 +99,15 @@ namespace gm
 		 * \return gmAddress instance with added offset to address if address is valid,
 		 * otherwise address will null.
 		 */
-		gmAddress GetAt(int offset) const;
+		gmAddress GetAt(uint32_t offset) const;
+
+		/**
+		 * \brief Gets address on given offset to current address.
+		 * \param offset Offset to add to current address.
+		 * \return gmAddress instance with added offset to address if address is valid,
+		 * otherwise address will null.
+		 */
+		gmAddress GetAt64(uint64_t offset) const;
 
 		operator uintptr_t() const { return m_address; }
 	};

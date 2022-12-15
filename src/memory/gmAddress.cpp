@@ -19,10 +19,15 @@ gm::gmAddress gm::gmAddress::GetCall() const
 	return GetAt(0x1).GetRef();
 }
 
-gm::gmAddress gm::gmAddress::GetAt(int offset) const
+gm::gmAddress gm::gmAddress::GetAt(uint32_t offset) const
+{
+	return GetAt64(offset);
+}
+
+gm::gmAddress gm::gmAddress::GetAt64(uint64_t offset) const
 {
 	if (!MayBeValid())
-		return gmAddress(0);
+		return {0};
 
-	return gmAddress(m_address + offset);
+	return {m_address + offset};
 }
