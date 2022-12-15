@@ -2,7 +2,7 @@
 #include "imgui_impl_dx11.h"
 
 #include "ImGuiRage.h"
-#include "ImGuiImplRage.h"
+#include "imgui_impl_win32.h"
 
 #include "../rage_hook/grcore/rageDX11.h"
 #include "../rage_hook/rageWin32.h"
@@ -33,7 +33,7 @@ void imgui_rage::ImGuiRage::Init()
 	ImGui::StyleColorsDark();
 
 	// Setup Platform/Renderer back-ends
-	ImGui_ImplRage_Init(rh::PlatformWin32Impl::GetHwnd());
+	ImGui_ImplWin32_Init(rh::PlatformWin32Impl::GetHwnd());
 	ImGui_ImplDX11_Init(rh::grcDX11::GetDevice(), rh::grcDX11::GetContext());
 
 	m_isInitialized = true;
@@ -57,7 +57,7 @@ void imgui_rage::ImGuiRage::Shutdown()
 void imgui_rage::ImGuiRage::NewFrame()
 {
 	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplRage_NewFrame();
+	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
 	m_renderPending = true;

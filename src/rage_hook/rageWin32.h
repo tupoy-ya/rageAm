@@ -1,13 +1,13 @@
 #pragma once
 
-// for ImGui_ImplRage_WndProcHandler
-#include "../imgui_rage/ImGuiImplRage.h"
+// for ImGui_ImplWin32_WndProcHandler
+#include <imgui_impl_win32.h>
 
 #include "../memory/gmScanner.h"
 #include "../memory/gmHook.h"
 #include "../memory/gmHelper.h"
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplRage_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace rh
 {
@@ -20,7 +20,7 @@ namespace rh
 
 		static LRESULT aImpl_WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 		{
-			ImGui_ImplRage_WndProcHandler(hWnd, Msg, wParam, lParam);
+			ImGui_ImplWin32_WndProcHandler(hWnd, Msg, wParam, lParam);
 			return gImpl_WndProc(hWnd, Msg, wParam, lParam);
 		}
 
