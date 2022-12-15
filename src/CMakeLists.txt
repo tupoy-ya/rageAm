@@ -9,8 +9,8 @@ add_library(rageAm SHARED
     "Logger.h"
 
     "imgui_rage/ImGuiConfigRage.h"
-    "imgui_rage/ImGuiImplRage.h"
-    "imgui_rage/ImGuiImplRage.cpp"
+    
+    
     "imgui_rage/ImGuiRage.h"
     "imgui_rage/ImGuiRage.cpp"
     "imgui_rage/ImGuiApp.h" 
@@ -66,7 +66,7 @@ add_library(rageAm SHARED
     "rage_hook/rageHandlingHacks.h" 
     "rage_hook/rageHandling.h"
 
-    "CrashHandler.h" "rage/fwModelId.h" "rage/CModelInfo.h")
+    "CrashHandler.h" "rage/fwModelId.h" "rage/CModelInfo.h" "../vendor/imgui-1.89.1/imgui_impl_win32.cpp" "../vendor/imgui-1.89.1/imgui_impl_win32.h")
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})

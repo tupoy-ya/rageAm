@@ -1,11 +1,16 @@
 ﻿/*
  * TODO:
+ * An easy way to hook static variables
+ * Global & Local texture override
+ * Swap material shader
+ * Replace shaders
  * Developer comments in shader params (like for license plate letters)
  * Sliders in UI
  * Shader & Texture replace
  * Ped, Map Shaders
  * Entity parts highlighting
  * Timecycle editor
+ * Trains.xml node editor
  *
  * BUGS:
  * Material editor breaks tuning rendering (related to CCustomShaderEffect)
@@ -31,8 +36,8 @@ auto startTime = std::chrono::high_resolution_clock::now();
 // so these may be marked as unused but it's not true.
 // NOTICE: Order matters here.
 
-#include "rage_hook/rageStreaming.h"
 #include "rage_hook/grcore/rageDX11.h"
+#include "rage_hook/rageStreaming.h"
 #include "rage_hook/grcore/rageGrc.h"
 #include "rage_hook/grcore/rageRender.h"
 #include "rage_hook/rageGrm.h"
@@ -383,7 +388,7 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //					for (int i = 0; i < drawable->grmShaderGroup->numMaterials; i++)
 //					{
 //						auto shaderDef = drawable->grmShaderGroup->materials[i];
-//						ImGui::BulletText(std::format("Path: {}", shaderDef->shaderPack->shaderFilePath).c_str());
+//						ImGui::BulletText(std::format("Path: {}", shaderDef->effect->shaderFilePath).c_str());
 //					}
 //				}
 //				ImGui::TreePop();
@@ -397,9 +402,9 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //				for (int i = 0; i < grmShaderGroup->numMaterials; i++)
 //				{
 //					auto material = grmShaderGroup->materials[i];
-//					ImGui::Text(std::format("Path: {}", material->shaderPack->shaderFilePath).c_str());
+//					ImGui::Text(std::format("Path: {}", material->effect->shaderFilePath).c_str());
 //
-//					if (ImGui::BeginTable(material->shaderPack->shaderFilePath, 4, tableFlags))
+//					if (ImGui::BeginTable(material->effect->shaderFilePath, 4, tableFlags))
 //					{
 //						ImGui::TableSetupColumn("Name");
 //						ImGui::TableSetupColumn("Type");
@@ -407,7 +412,7 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //						ImGui::TableSetupColumn("Address");
 //						ImGui::TableHeadersRow();
 //
-//						auto shader = material->shaderPack;
+//						auto shader = material->effect;
 //						for (int k = 0; k < shader->variables.GetSize(); k++)
 //						{
 //							ImGui::TableNextRow();
@@ -542,6 +547,8 @@ void Init()
 	//gPtr_lastScaleformMovie = g_Hook.FindOffset<intptr_t>("WriteDebugState_lastScaleformMovie", writeDebugState + 0x100F + 0x3);
 	//gPtr_lastActionScriptMethod = g_Hook.FindOffset<intptr_t>("WriteDebugState_lastActionScriptMethod", writeDebugState + 0x1022 + 0x3);
 	//gPtr_lastActionScriptMethodParams = g_Hook.FindOffset<intptr_t>("WriteDebugState_lastActionScriptMethodParams", writeDebugState + 0x1035 + 0x3);
+
+	//rh::Rendering::m_SwapThread.join();
 }
 
 #include "memory/gmHook.h"

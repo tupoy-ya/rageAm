@@ -5,24 +5,29 @@
 #include "grcTexture.h"
 #include "pgDictionary.h"
 #include <d3d11.h>
+#include "grcFragmentProgram.h"
+
+#include "TlsManager.h"
 
 namespace rage
 {
+	struct grcConstantBuffer;
 	typedef int64_t grcVertexProgram;
 
-	struct grcFragmentProgram
-	{
-		int8_t gap0[552];
-		ID3D11PixelShader* pPixelShaderD3D11;
-		int64_t qword230;
-	};
-	static_assert(sizeof(grcFragmentProgram) == 0x238);
+	// MOVED TO grcFragmentProgram.h
+	//struct grcFragmentProgram
+	//{
+	//	int8_t gap0[552];
+	//	ID3D11PixelShader* pPixelShaderD3D11;
+	//	int64_t qword230;
+	//};
+	//static_assert(sizeof(grcFragmentProgram) == 0x238);
 
-	struct grmMaterialVariable
+	struct grcInstanceVar
 	{
 		uint8_t dataCount;
 		int8_t unk1;
-		int8_t unk2;
+		uint8_t unk2;
 		int8_t unk3;
 		int32_t unk4;
 		int64_t pDataValue;
@@ -53,7 +58,7 @@ namespace rage
 		}
 	};
 
-	struct grmPass
+	struct grcPass
 	{
 		uint8_t VS;
 		uint8_t PS;
@@ -69,43 +74,44 @@ namespace rage
 		uint8_t uintB;
 	};
 
-	struct grmTechnique
+	struct grcTechnique
 	{
 		int8_t gap0[8];
 		const char* name;
-		grmPass* pPasses;
+		grcPass* pPasses;
 		uint16_t numPasses;
 		int16_t unk1A;
 		int16_t unk1C;
 		int16_t unk20;
 	};
 
-	enum eGrmValueType
+	enum eEffectValueType
 	{
-		GRM_VALUE_FLOAT = 2, // 4 bytes
-		GRM_VALUE_VECTOR2 = 3, // 8 bytes
-		GRM_VALUE_VECTOR3 = 4, // 16 bytes (used only 3)
-		GRM_VALUE_VECTOR4 = 5, // 16 bytes
-		GRM_VALUE_TEXTURE = 6, // A pointer to grcTexture
-		GRM_VALUE_BOOL = 7, // 1 byte
-		GRM_VALUE_MATRIX = 9, // 64 bytes, 4x4 matrix apparently (see vehicle_tire.fxc)
+		EFFECT_VALUE_FLOAT = 2, // 4 bytes
+		EFFECT_VALUE_VECTOR2 = 3, // 8 bytes
+		EFFECT_VALUE_VECTOR3 = 4, // 16 bytes (used only 3)
+		EFFECT_VALUE_VECTOR4 = 5, // 16 bytes
+		EFFECT_VALUE_TEXTURE = 6, // A pointer to grcTexture
+		EFFECT_VALUE_BOOL = 7, // 1 byte
+		EFFECT_VALUE_MATRIX = 9, // 64 bytes, 4x4 matrix apparently (see vehicle_tire.fxc)
 	};
 
-	inline uint8_t GetGrmValueSizeForType(eGrmValueType type)
+	inline uint8_t GetEffectValueSize(eEffectValueType type)
 	{
 		switch (type)
 		{
-		case GRM_VALUE_FLOAT: return 4;
-		case GRM_VALUE_VECTOR2: return 8;
-		case GRM_VALUE_VECTOR3: return 16;
-		case GRM_VALUE_VECTOR4: return 16;
-		case GRM_VALUE_TEXTURE: return 8;
-		case GRM_VALUE_BOOL: return 1;
+		case EFFECT_VALUE_FLOAT: return 4;
+		case EFFECT_VALUE_VECTOR2: return 8;
+		case EFFECT_VALUE_VECTOR3:
+		case EFFECT_VALUE_VECTOR4: return 16;
+		case EFFECT_VALUE_TEXTURE: return 8;
+		case EFFECT_VALUE_BOOL: return 1;
+		case EFFECT_VALUE_MATRIX: return 64;
 		default: return 0;
 		}
 	}
 
-	struct grmShaderVariable
+	struct grcEffectVar
 	{
 		uint8_t dataType;
 		int8_t unk1;
@@ -119,16 +125,16 @@ namespace rage
 		int32_t unk30;
 		int32_t unk34;
 		int64_t unk38;
-		int64_t pLocalBuffer;
+		grcConstantBuffer* pLocalBuffer;
 
-		eGrmValueType GetValueType()
+		eEffectValueType GetValueType()
 		{
-			return static_cast<eGrmValueType>(dataType);
+			return static_cast<eEffectValueType>(dataType);
 		}
 	};
-	static_assert(sizeof(grmShaderVariable) == 0x48);
+	static_assert(sizeof(grcEffectVar) == 0x48);
 
-	struct grmConstantBufferData
+	struct grcConstantBufferData
 	{
 		int32_t dword0;
 		int8_t byte4;
@@ -136,23 +142,53 @@ namespace rage
 		int8_t byte6;
 		int8_t byte7;
 		int64_t qword8;
-		int8_t dataSrc;
+		int8_t dataBegin;
 	};
 
-	struct __declspec(align(4)) grmConstantBuffer
+	struct grcConstantBuffer
 	{
 		int32_t size;
 		int32_t word4;
 		int64_t qword8;
 		int64_t qword10;
 		const char* name;
-		int64_t pConstantBufferD3D;
-		grmConstantBufferData* pValues;
-		grmConstantBufferData* pValues2;
+		ID3D11Resource* pConstantBufferD3D;
+		grcConstantBufferData* pValues;
+		grcConstantBufferData* pValues2;
 		int32_t dword38;
-	};
+		int32_t dword3C;
 
-	struct grmShaderPack
+		void* Map() const
+		{
+			ID3D11DeviceContext* deviceContext = TlsManager::GetD3D11Context();
+			D3D11_MAPPED_SUBRESOURCE resource;
+
+			deviceContext->Map(
+				pConstantBufferD3D,
+				0,
+				D3D11_MAP_WRITE_DISCARD,
+				0,
+				&resource);
+
+			pValues->byte5 = 1;
+			pValues->byte6 = 0;
+
+			return resource.pData;
+		}
+
+		void Unmap() const
+		{
+			ID3D11DeviceContext* deviceContext = TlsManager::GetD3D11Context();
+
+			deviceContext->Unmap(pConstantBufferD3D, 0);
+
+			grcConstantBufferData* result = pValues;
+			*(int16_t*)&result->byte4 = 0; // Looks like flags?
+		}
+	};
+	static_assert(sizeof(grcConstantBuffer) == 0x40);
+
+	struct grcEffect
 	{
 		const char* GetFilePath() const
 		{
@@ -166,14 +202,14 @@ namespace rage
 			return fileName;
 		}
 
-		atArray<grmShaderVariable> GetVariables()
+		atArray<grcEffectVar> GetVariables()
 		{
 			return variables;
 		}
 
-		atArray<grmTechnique> techniques;
-		atArray<grmShaderVariable> variables;
-		atArray<grmConstantBuffer> locals;
+		atArray<grcTechnique> techniques;
+		atArray<grcEffectVar> variables;
+		atArray<grcConstantBuffer> locals;
 		atArray<grcVertexProgram> pVertexPrograms;
 		atArray<grcFragmentProgram> pFragmentPrograms;
 
@@ -221,30 +257,30 @@ namespace rage
 		int32_t dword330;
 	};
 
-	struct grmMaterial
+	struct grcInstanceData
 	{
-		grmMaterialVariable* variables;
-		grmShaderPack* shaderPack;
+		grcInstanceVar* variables;
+		grcEffect* effect;
 		int8_t numVariables;
 		int64_t qword18;
 		int64_t qword20;
 
-		eGrmValueType GetValueTypeAt(int index) const
+		eEffectValueType GetValueTypeAt(int index) const
 		{
-			return GetShaderPack()->GetVariables().GetAt(index)->GetValueType();
+			return GetEffect()->GetVariables().GetAt(index)->GetValueType();
 		}
 
-		grmShaderPack* GetShaderPack() const
-		{
-			return shaderPack;
-		}
-
-		grmMaterialVariable* GetVariableAtIndex(int index) const
+		grcInstanceVar* GetVariableAtIndex(int index) const
 		{
 			return &variables[index];
 		}
+
+		grcEffect* GetEffect() const
+		{
+			return effect;
+		}
 	};
-	static_assert(sizeof(grmMaterial) == 0x28);
+	static_assert(sizeof(grcInstanceData) == 0x28);
 
 	/**
 	 * \brief Though it's called shader group, in fact it's 'material library'
@@ -261,7 +297,7 @@ namespace rage
 	{
 		int64_t qword0;
 		pgDictionary<grcTexture>* pEmbedTextures;
-		grmMaterial** materials;
+		grcInstanceData** materials;
 		int16_t numMaterials;
 		int16_t unk1A;
 		int64_t qword20;
@@ -274,7 +310,7 @@ namespace rage
 			return numMaterials;
 		}
 
-		grmMaterial* GetMaterialAt(int index) const
+		grcInstanceData* GetMaterialAt(int index) const
 		{
 			return materials[index];
 		}

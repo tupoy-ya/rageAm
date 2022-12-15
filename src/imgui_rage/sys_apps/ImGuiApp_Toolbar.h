@@ -10,7 +10,7 @@ namespace sapp
 		ImGuiApp_Toolbar()
 		{
 			IsVisible = true;
-			m_MatEditor.IsVisible = true;
+			// m_MatEditor.IsVisible = true;
 		}
 
 		void OnRender() override
@@ -26,6 +26,11 @@ namespace sapp
 				} // BeginMenu
 				ImGui::EndMenuBar();
 			} // BeginMenuBar
+
+			ImGui::Checkbox("Global Texture Swap", &rh::TextureSwapThread::IsGlobalSwapOn);
+			ImGui::SameLine(); ImGui::HelpMarker(
+				"Switches global texture swap (rageAm/Textures/global/).\n"
+				"WARNING: For purposes development only! May affect game performance.");
 
 			m_MatEditor.Render();
 

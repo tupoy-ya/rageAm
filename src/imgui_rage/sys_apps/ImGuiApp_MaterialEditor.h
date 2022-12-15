@@ -78,7 +78,7 @@ namespace sapp
 		void DrawMaterialTexturesForDrawable()
 		{
 			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
-			rage::grmMaterial* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
+			rage::grcInstanceData* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
 
 			static float textureWidth = 256.0f;
 			ImGui::SliderFloat("Size", &textureWidth, 64.0f, 512.0f);
@@ -94,11 +94,11 @@ namespace sapp
 
 			for (int i = 0; i < selectedMaterial->numVariables; i++)
 			{
-				rage::grmMaterialVariable* materialVar = selectedMaterial->GetVariableAtIndex(i);
-				rage::grmShaderVariable* shaderVar = selectedMaterial->shaderPack->variables[i];
-				rage::eGrmValueType type = shaderVar->GetValueType();
+				rage::grcInstanceVar* materialVar = selectedMaterial->GetVariableAtIndex(i);
+				rage::grcEffectVar* shaderVar = selectedMaterial->GetEffect()->variables[i];
+				rage::eEffectValueType type = shaderVar->GetValueType();
 
-				if (type != rage::GRM_VALUE_TEXTURE)
+				if (type != rage::EFFECT_VALUE_TEXTURE)
 					continue;
 
 				rage::grcTexture* texture = materialVar->GetTexture();
@@ -174,17 +174,17 @@ namespace sapp
 			ImGui::TableHeadersRow();
 
 			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
-			rage::grmMaterial* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
+			rage::grcInstanceData* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
 
 			// Table Rows
 			for (int i = 0; i < selectedMaterial->numVariables; i++)
 			{
 				ImGui::TableNextRow();
 
-				rage::grmMaterialVariable* materialVar = selectedMaterial->GetVariableAtIndex(i);
-				rage::grmShaderVariable* shaderVar = selectedMaterial->shaderPack->variables[i];
+				rage::grcInstanceVar* materialVar = selectedMaterial->GetVariableAtIndex(i);
+				rage::grcEffectVar* shaderVar = selectedMaterial->GetEffect()->variables[i];
 
-				rage::eGrmValueType type = shaderVar->GetValueType();
+				rage::eEffectValueType type = shaderVar->GetValueType();
 
 				// Name
 				ImGui::TableSetColumnIndex(0);
@@ -204,17 +204,17 @@ namespace sapp
 				// TODO: Add matrix support
 				switch (type)
 				{
-				case rage::GRM_VALUE_FLOAT:
+				case rage::EFFECT_VALUE_FLOAT:
 					ImGui::InputFloat(m_TextBuffer, materialVar->GetFloatPtr()); break;
-				case rage::GRM_VALUE_VECTOR2:
+				case rage::EFFECT_VALUE_VECTOR2:
 					ImGui::InputFloat2(m_TextBuffer, materialVar->GetFloatPtr()); break;
-				case rage::GRM_VALUE_VECTOR3:
+				case rage::EFFECT_VALUE_VECTOR3:
 					ImGui::InputFloat3(m_TextBuffer, materialVar->GetFloatPtr()); break;
-				case rage::GRM_VALUE_VECTOR4:
+				case rage::EFFECT_VALUE_VECTOR4:
 					ImGui::InputFloat4(m_TextBuffer, materialVar->GetFloatPtr()); break;
-				case rage::GRM_VALUE_BOOL:
+				case rage::EFFECT_VALUE_BOOL:
 					ImGui::Checkbox(m_TextBuffer, materialVar->GetBoolPtr()); break;;
-				case rage::GRM_VALUE_TEXTURE:
+				case rage::EFFECT_VALUE_TEXTURE:
 				{
 					rage::grcTexture* texture = materialVar->GetTexture();
 					ImGui::Text(texture != nullptr ? texture->GetName() : "-");
@@ -244,10 +244,10 @@ namespace sapp
 
 				for (int i = 0; i < shaderGroup->GetMaterialCount(); i++)
 				{
-					rage::grmMaterial* material = shaderGroup->GetMaterialAt(i);
-					rage::grmShaderPack* shaderPack = material->GetShaderPack();
+					rage::grcInstanceData* material = shaderGroup->GetMaterialAt(i);
+					rage::grcEffect* effect = material->GetEffect();
 
-					std::string shaderPackName = shaderPack->GetFileName();
+					std::string shaderPackName = effect->GetFileName();
 					m_ShaderPackNames.push_back(shaderPackName);
 				}
 			}

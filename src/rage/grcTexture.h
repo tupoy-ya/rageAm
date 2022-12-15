@@ -3,9 +3,76 @@
 
 namespace rage
 {
+	/*
+	 * grcTextureDX11
+	 * - vftable
+	 *		0x0		~grcTextureDX11();
+	 *		0x8		uint32_t Get0x44();
+	 *		0x10	Set0x44(uint32_t);
+	 *		0x18	// ret 0
+	 *		0x20	// ret 0
+	 *		0x28	GetWidth();
+	 *		0x30	GetHeight();
+	 *		0x38	GetDepth();
+	 *		0x40	uint8_t Get0x5D();
+	 *		0x48
+	 *		0x50	// calls grcTextureFactory
+	 *		0x58	// ret 1
+	 *		0x60
+	 *		0x68	// ret 0
+	 *		0x70	// ret 0
+	 *		0x78	// ret 0
+	 *		0x80	// ret 0
+	 *		0x88	// ret this
+	 *		0x90	// ret this
+	 *		0x98	// ret byte5F & 1
+	 *		0x100	// ret 0x38
+	 *		0x108	// ret 0x38
+	 *		0x110	GetShaderResourceView();
+	 */
+
+	struct grcTextureDX11_vftable
+	{
+		void(__stdcall* Dctor)();
+		void(__stdcall* Get_0x44)();
+		void(__stdcall* Set_0x44)();
+		int64_t nullsub1;
+		int64_t nullsub2;
+		void(__stdcall* GetWidth)();
+		void(__stdcall* GetHeight)();
+		void(__stdcall* GetDepth)();
+		void(__stdcall* Get_5D)();
+		void(__stdcall* Function9)();
+		void(__stdcall* Get_SmthFromGrcTxtFactory)();
+		void(__stdcall* nullsub_ret_true)();
+		int64_t nullsub3;
+		int64_t nullsub4;
+		int64_t nullsub5;
+		int64_t nullsub6;
+		int64_t nullsub7;
+		int64_t nullsub8;
+		int64_t nullsub9;
+		void(__stdcall* Get0x5F_HasFlag0x1)();
+		void(__stdcall* GetTexture)();
+		void(__stdcall* GetTexture_duplicate)();
+		ID3D11ShaderResourceView* (__stdcall* GetShaderResourceView)();
+		int64_t nullsub10;
+		void(__stdcall* GetUnk24)();
+		void(__stdcall* Function25)();
+		void(__stdcall* Function26)();
+		int64_t nullsub11;
+		int64_t nullsub12;
+		int64_t nullsub13;
+		int64_t nullsub14;
+		int64_t nullsub15;
+		int64_t nullsub16;
+	};
+
 	class grcTexture
 	{
-		intptr_t vftable;
+	public:
+
+		grcTextureDX11_vftable* vftable;
 		char pad_0008[32]; //0x0008
 		const char* name; //0x0028
 		char pad_0030[8]; //0x0030
@@ -30,7 +97,6 @@ namespace rage
 		ID3D11ShaderResourceView* pShaderResourceView; //0x0078
 		char pad_0080[16]; //0x0080
 
-	public:
 		int GetWidth() const
 		{
 			return width;
@@ -61,7 +127,10 @@ namespace rage
 
 		ID3D11ShaderResourceView* GetShaderResourceView() const
 		{
-			return pShaderResourceView;
+			// TODO: grcRenderTargetTextureDX11 structure is different
+			//return pShaderResourceView;
+
+			return vftable->GetShaderResourceView();
 		}
 
 		void SetTexture(ID3D11Texture2D* texture)
@@ -79,4 +148,7 @@ namespace rage
 			pShaderResourceView = resourceView;
 		}
 	};
+	static_assert(sizeof(grcTexture) == 0x90);
+	static_assert(offsetof(grcTexture, pTexture) == 0x38);
+	static_assert(offsetof(grcTexture, pShaderResourceView) == 0x78);
 }
