@@ -539,7 +539,13 @@ namespace rh
 					if (!texture)
 						goto LABEL_17;
 
+					// TODO: Temp crash fix for release
+					//Sleep(5000);
 					resourceView = texture->GetShaderResourceView();
+					//resourceView = (*(ID3D11ShaderResourceView * (__fastcall**)(rage::grcTexture*, __int64, unsigned __int64))(*(_QWORD*)texture + 0xB0i64))(
+					//	texture,
+					//	bucket,
+					//	0x7FF71E8B0000ui64);
 
 					// 'Global' texture swap
 					// TODO: This is slow!

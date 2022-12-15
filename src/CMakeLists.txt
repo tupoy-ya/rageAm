@@ -75,10 +75,17 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost REQUIRED)
 target_include_directories(rageAm PUBLIC ${Boost_INCLUDE_DIRS})
 
+unset(DirectXTK)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(DirectXTK "${CMAKE_SOURCE_DIR}/vendor/directxtk/lib/DirectXTK_Release.lib")
+else()
+    set(DirectXTK "${CMAKE_SOURCE_DIR}/vendor/directxtk/lib/DirectXTK_Debug.lib")
+endif()
+
 target_link_libraries(rageAm PUBLIC
     "${CMAKE_SOURCE_DIR}/vendor/minhook-1.3.3/lib/libMinHook-x64-v141-md.lib" 
     # "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib" 
-    "${CMAKE_SOURCE_DIR}/vendor/directxtk/lib/DirectXTK.lib" 
+    "${DirectXTK}"
     "${CMAKE_SOURCE_DIR}/vendor/backtrace/libbacktrace.a" 
     d3d11.lib
     imgui
@@ -151,6 +158,6 @@ if(INJECT_DLL)
         )
     endif(WAIT_FOR_GAME)
 endif(INJECT_DLL)
-        
+
 unset(WAIT_FOR_GAME CACHE)
 unset(INJECT_DLL CACHE)

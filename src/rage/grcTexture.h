@@ -3,6 +3,7 @@
 
 namespace rage
 {
+	class grcTexture;
 	/*
 	 * grcTextureDX11
 	 * - vftable
@@ -55,7 +56,7 @@ namespace rage
 		void(__stdcall* Get0x5F_HasFlag0x1)();
 		void(__stdcall* GetTexture)();
 		void(__stdcall* GetTexture_duplicate)();
-		ID3D11ShaderResourceView* (__stdcall* GetShaderResourceView)();
+		ID3D11ShaderResourceView* (__thiscall* GetShaderResourceView)(grcTexture*);
 		int64_t nullsub10;
 		void(__stdcall* GetUnk24)();
 		void(__stdcall* Function25)();
@@ -125,12 +126,12 @@ namespace rage
 			return pTexture;
 		}
 
-		ID3D11ShaderResourceView* GetShaderResourceView() const
+		ID3D11ShaderResourceView* GetShaderResourceView()
 		{
 			// TODO: grcRenderTargetTextureDX11 structure is different
 			//return pShaderResourceView;
 
-			return vftable->GetShaderResourceView();
+			return this->vftable->GetShaderResourceView(this);
 		}
 
 		void SetTexture(ID3D11Texture2D* texture)
