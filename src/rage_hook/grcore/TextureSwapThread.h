@@ -13,6 +13,9 @@ namespace rh
 			std::filesystem::file_time_type WriteTime;
 			ID3D11Resource* pResource;
 			ID3D11ShaderResourceView* pResourceView;
+
+			// Flag to check if file is still exists after iterating directory
+			bool Exists;
 		};
 
 		static inline HANDLE m_SwapThread;
@@ -82,7 +85,34 @@ namespace rh
 							g_Log.LogE("Unable to read texture: {}", fileName);
 						}
 					}
+
+					m_GlobalTextureStore.at(fileName).Exists = true;
 				}
+
+				// Find all removed textures from global directory
+				std::vector<std::string> toRemove;
+				for (auto& entry : m_GlobalTextureStore)
+				{
+					if (!entry.second.Exists)
+					{
+						entry.second.pResourceView->Release();
+						entry.second.pResource->Release();
+						toRemove.push_back(entry.first);
+						continue;
+					}
+
+					// If entry wouldn't be in folder next loop, flag wont be set to
+					// true and we will remove it
+					entry.second.Exists = false;
+				}
+
+				// Remove all removed textures from global directory
+				m_GlobalTexturesMutex.lock();
+				for (auto& entry : toRemove)
+				{
+					m_GlobalTextureStore.erase(entry);
+				}
+				m_GlobalTexturesMutex.unlock();
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(SWAP_TEXTURE_UPDATE_DELAY_MS));
 			}
