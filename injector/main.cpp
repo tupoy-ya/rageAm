@@ -17,6 +17,8 @@ HMODULE GetGtaModuleHandle(const std::string& name);
 DWORD gtaPid;
 HANDLE hGta;
 
+const char* exeName = "GTA5.exe";
+
 DWORD GetGtaProcessId()
 {
 	PROCESSENTRY32 PE32{};
@@ -30,7 +32,7 @@ DWORD GetGtaProcessId()
 	BOOL hasProcess = Process32First(hSnapshot, &PE32);
 	while (hasProcess)
 	{
-		if (!strcmp("GTA5.exe", PE32.szExeFile))
+		if (!strcmp(exeName, PE32.szExeFile))
 		{
 			PID = PE32.th32ProcessID;
 			printf("GTA5.exe PID: %lu\n", PID);
@@ -186,6 +188,11 @@ int main(int argc, char* argv[])
 		std::string arg = argv[i];
 
 		printf("Argument [%i]: %s\n", i, argv[i]);
+
+		if(arg == "-n")
+		{
+			exeName = argv[++i];
+		}
 
 		if (arg == "-w")
 		{
