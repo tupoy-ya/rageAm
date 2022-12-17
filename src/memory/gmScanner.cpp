@@ -50,7 +50,7 @@ void gm::gmScanner::Save() const
 {
 	g_Log.LogT("gmScanner::Save()");
 
-	CreateDataFolderIfNotExists();
+	EnsureDataFoldersExist();
 
 	std::ofstream fs(m_addrStorageName, std::ofstream::trunc);
 
@@ -128,15 +128,19 @@ uintptr_t gm::gmScanner::GetAddressFromStorage(const char* name) const
 gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* module, const std::string& pattern)
 {
 	uintptr_t address;
-#ifdef GM_SCANNER_USE_STORAGE
-	address = GetAddressFromStorage(name);
 
-	if (address != 0)
+	if (name[0] != '\0')
 	{
-		g_Log.LogT("gmScanner::ScanPattern({}): Found in storage - {:X}", name, address);
-		return gmAddress(address);
-	}
+#ifdef GM_SCANNER_USE_STORAGE
+		address = GetAddressFromStorage(name);
+
+		if (address != 0)
+		{
+			g_Log.LogT("gmScanner::ScanPattern({}): Found in storage - {:X}", name, address);
+			return { address };
+		}
 #endif
+	}
 
 	auto startTime = std::chrono::high_resolution_clock::now();
 	address = FindPattern(module, pattern);
@@ -145,7 +149,7 @@ gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* mod
 	if (address == 0)
 	{
 		g_Log.LogE("gmScanner::ScanPattern({}): 0x0", name);
-		return gmAddress(0);
+		return { 0 };
 	}
 
 #ifdef _DEBUG
@@ -155,9 +159,10 @@ gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* mod
 	g_Log.LogT("gmScanner::ScanPattern({}): {:X}", name, address);
 #endif
 
-	m_addrStorage.emplace(name, address);
+	if (name[0] != '\0')
+		m_addrStorage.emplace(name, address);
 
-	return gmAddress(address);
+	return { address };
 }
 
 gm::gmAddress gm::gmScanner::ScanPattern(const char* name, const std::string& pattern)

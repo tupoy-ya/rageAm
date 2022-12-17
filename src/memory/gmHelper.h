@@ -32,6 +32,11 @@ namespace gm
 		return g_Scanner.ScanPattern(name, pattern);
 	}
 
+	inline void SetToNullsub(const char* name, const std::string& pattern)
+	{
+		g_Hook.SetToNullsub(Scan(name, pattern));
+	}
+
 	template<typename T>
 	T GetGlobal(const char* name)
 	{

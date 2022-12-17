@@ -2,7 +2,7 @@
 #include "imgui_rage/sys_apps/ImGuiApp_MaterialEditor.h"
 #include "imgui_rage/sys_apps/ImGuiApp_Effects.h"
 #include "imgui_rage/sys_apps/ImGuiApp_Log.h"
-#include "../../rage_hook/file_observer/FileObserverThread.h"
+#include "../../rage_hook/file_observer/FileObserverThreadInterface.h"
 
 namespace sapp
 {
@@ -36,7 +36,7 @@ namespace sapp
 				ImGui::EndMenuBar();
 			} // BeginMenuBar
 
-			ImGui::Checkbox("Global Texture Swap", &g_TextureSwapThread.IsGlobalSwapOn);
+			ImGui::Checkbox("Global Texture Swap", &g_TextureSwapThreadInterface.IsGlobalSwapOn);
 			ImGui::SameLine(); ImGui::HelpMarker(
 				"Switches global texture swap (rageAm/Textures/global/).\n"
 				"WARNING: For purposes development only! May affect game performance.");

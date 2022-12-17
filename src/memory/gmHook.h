@@ -3,7 +3,6 @@
 
 #include "../logger.h"
 #include "../../vendor/minhook-1.3.3/include/MinHook.h"
-#include "gmAddress.h"
 
 namespace gm
 {
@@ -15,6 +14,8 @@ namespace gm
 		static const char* GetMHStatusStr(MH_STATUS e);
 
 		bool m_IsInitialized;
+
+		static void Nullsub() {}
 	public:
 		gmHook();
 		~gmHook();
@@ -40,6 +41,11 @@ namespace gm
 		void SetHook(uintptr_t func, Detour detour)
 		{
 			SetHook_Internal(reinterpret_cast<LPVOID>(func), reinterpret_cast<LPVOID>(detour), nullptr);
+		}
+
+		void SetToNullsub(uintptr_t func)
+		{
+			SetHook_Internal(reinterpret_cast<LPVOID>(func), reinterpret_cast<LPVOID>(Nullsub), nullptr);
 		}
 	};
 }
