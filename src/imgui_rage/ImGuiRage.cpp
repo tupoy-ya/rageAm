@@ -4,7 +4,7 @@
 #include "ImGuiRage.h"
 #include "imgui_impl_win32.h"
 
-#include "../rage_hook/grcore/rageDX11.h"
+#include "../rage_hook/grcore/D3D.h"
 #include "../rage_hook/rageWin32.h"
 
 #include "../Logger.h"
@@ -28,13 +28,14 @@ void imgui_rage::ImGuiRage::Init()
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Game-pad Controls
+	io.FontDefault = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\CascadiaCode.ttf", 13.0f);
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
 
 	// Setup Platform/Renderer back-ends
 	ImGui_ImplWin32_Init(rh::PlatformWin32Impl::GetHwnd());
-	ImGui_ImplDX11_Init(rh::grcDX11::GetDevice(), rh::grcDX11::GetContext());
+	ImGui_ImplDX11_Init(rh::D3D::GetDevice(), rh::D3D::GetContext());
 
 	m_isInitialized = true;
 }

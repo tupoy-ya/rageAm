@@ -1,5 +1,5 @@
 #pragma once
-#include "../rage_hook/grcore/rageDX11.h"
+#include "../rage_hook/grcore/D3D.h"
 
 namespace imgui_rage
 {
