@@ -3,7 +3,7 @@
 
 namespace rage::hooks
 {
-	static inline gm::gmFuncHook<grcEffect*, uint32_t> __FindEffectByHashKey(
+	static inline gm::gmFuncHook<grcEffect*, uint32_t> gImpl_FindEffectByHashKey(
 		"grcEffectMgr::FindEffectByHashKey",
 		"48 89 5C 24 08 4C 63 1D ?? ?? ?? ?? 48");
 }
@@ -15,7 +15,7 @@ namespace rage
 	public:
 		static grcEffect* FindEffectByHashKey(uint32_t hashKey)
 		{
-			return hooks::__FindEffectByHashKey(hashKey);
+			return hooks::gImpl_FindEffectByHashKey(hashKey);
 		}
 	};
 }
