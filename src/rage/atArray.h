@@ -20,7 +20,7 @@ namespace rage
 
 		T* GetAt(int index) const
 		{
-			if (index < 0 || index > size)
+			if (index < 0 || index >= size)
 				return nullptr;
 
 			// Not my brightest moment but how to get pointer
