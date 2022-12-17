@@ -36,7 +36,7 @@ namespace sapp
 				ImGui::EndMenuBar();
 			} // BeginMenuBar
 
-			ImGui::Checkbox("Global Texture Swap", &fiobs::g_TextureSwapThread.IsGlobalSwapOn);
+			ImGui::Checkbox("Global Texture Swap", &g_TextureSwapThread.IsGlobalSwapOn);
 			ImGui::SameLine(); ImGui::HelpMarker(
 				"Switches global texture swap (rageAm/Textures/global/).\n"
 				"WARNING: For purposes development only! May affect game performance.");

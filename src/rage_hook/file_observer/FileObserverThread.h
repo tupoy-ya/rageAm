@@ -72,6 +72,7 @@ namespace fiobs
 		std::unordered_map<std::string, std::unique_ptr<FileStoreEntry>> m_FileStore;
 		const wchar_t* m_Path;
 		bool m_IncludeDirInKey;
+		bool m_IsShutdown = false;
 
 		static constexpr int OBSERVER_DELAY_MS = 200;
 
@@ -90,6 +91,13 @@ namespace fiobs
 				{
 					if (entry.is_directory())
 						continue;
+
+					// Is this a place for it?
+					if (g_CrashHandler.GetExceptionOccured())
+					{
+						inst->Shutdown();
+						return 0;
+					}
 
 					std::filesystem::file_time_type lastWriteTime;
 					_Last_write_time(entry, lastWriteTime);
@@ -209,6 +217,16 @@ namespace fiobs
 
 		virtual ~FileObserverThread()
 		{
+			Shutdown();
+		}
+
+		void Shutdown()
+		{
+			if (m_IsShutdown)
+				return;
+
+			m_IsShutdown = true;
+
 			// Terminate thread because joining it causes game deadlock for some reason
 			TerminateThread(m_ObserveThread, 0);
 			CloseHandle(m_ObserveThread);
@@ -248,7 +266,7 @@ namespace fiobs
 	class TextureSwapThread : public FileObserverThread<TextureSwapStoreEntry>
 	{
 	public:
-		static inline bool IsGlobalSwapOn;
+		bool IsGlobalSwapOn;
 
 		using FileObserverThread<TextureSwapStoreEntry>::FileObserverThread;
 
@@ -264,6 +282,5 @@ namespace fiobs
 			*shaderResourceView = entry->pResourceView;
 		}
 	};
-
-	inline TextureSwapThread g_TextureSwapThread{ L"rageAm/Textures/global", false };
 }
+inline fiobs::TextureSwapThread g_TextureSwapThread{ L"rageAm/Textures/global", false };

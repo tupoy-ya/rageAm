@@ -21,6 +21,17 @@ namespace rage
 		int8_t gapB8[368];
 		IUnknown* pShaderD3D;
 		int64_t qword230;
+
+		/**
+		 * \brief Gets name & effect name of program in format: 'EFFECT:PROGRAM',
+		 * for i.e. 'vehicle_paint1:PS_DeferredVehicleTextured'.
+		 * \remark NOTE: Name can contain relative mount point, 'common:/shaders/im:PS_Clear'.
+		 * \return A string containing program name.
+		 */
+		const char* GetPath() const
+		{
+			return shaderName;
+		}
 	};
 	static_assert(sizeof(grcProgram) == 0x238);
 	static_assert(offsetof(grcProgram, pShaderD3D) == 0x228);

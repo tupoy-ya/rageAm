@@ -35,8 +35,10 @@ class CrashHandler
 			if (!ms_hasExceptionOccurred)
 			{
 				g_Log.LogE("An unhandled exception occurred in rageAm: \n{}", ss.str());
+
 				g_ImGui.Shutdown();
 				g_Hook.Shutdown();
+
 				ms_hasExceptionOccurred = true;
 			}
 
@@ -86,6 +88,11 @@ public:
 #ifdef USE_UNHANDLED_CRASH_HANDLER
 		SetUnhandledExceptionFilter(ms_PreviousTopLevelUnhandledExceptionHandler);
 #endif
+	}
+
+	bool GetExceptionOccured() const
+	{
+		return ms_hasExceptionOccurred;
 	}
 };
 

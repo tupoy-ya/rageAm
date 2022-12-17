@@ -411,6 +411,8 @@ namespace rh
 
 		static void __fastcall grcPixelProgram_Bind(rage::grcFragmentProgram* program)
 		{
+			// g_Log.LogD("{}", program->shaderName);
+
 			if (*ms_CurrentFragmentProgram == program)
 				return;
 
@@ -543,7 +545,7 @@ namespace rh
 
 					// Global texture swap
 					// TODO: This is slow in debug mode!
-					fiobs::g_TextureSwapThread.GetTextureSwap(texture->GetName(), &resourceView);
+					g_TextureSwapThread.GetTextureSwap(texture->GetName(), &resourceView);
 				}
 				else
 				{
