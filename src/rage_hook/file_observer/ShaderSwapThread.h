@@ -58,6 +58,8 @@ namespace fiobs
 	protected:
 		void OnEntryUpdated(std::string dir, std::string name, std::unique_ptr<FileStoreEntry>* entry) const override
 		{
+			g_Log.LogT("ShaderSwapThread::OnEntryUpdated() -> {}, {}", dir.c_str(), name.c_str());
+
 			rage::grcEffect* effect = rage::grcEffectMgr::FindEffectByHashKey(fwHelpers::joaat(dir.c_str()));
 			if (!effect)
 			{
@@ -70,6 +72,7 @@ namespace fiobs
 			ShaderSwapStoreEntry* swapSlot = (ShaderSwapStoreEntry*)entry->get();
 
 			rage::grcProgram* program;
+			// We don't know exact array size, increment until atArray returns nullptr
 			for (int i = 0; ; i++)
 			{
 				// AtArray doesn't support dynamic types, have to do this.
@@ -87,19 +90,20 @@ namespace fiobs
 				if (!program)
 					break;
 
-				// Program names are in format 'fxc:hlsl', compare both parts.
-				const char* hlslName = strchr(program->shaderName, ':') + 1;
+				// Shader name is in format of 'fxc:hlsl', for i.e. 'vehicle_paint1:PS_DeferredVehicleTextured'
+				static char programPathBuffer[256];
+				sprintf_s(programPathBuffer, 256, "%s:%s", dir.c_str(), name.c_str());
 
-				if (strcmp(name.c_str(), hlslName) != 0)
-					continue;
+				// Sometimes, fxc name contains relative mounting point, like 'common:/shaders/im:PS_Clear'
+				// So instead of comparing string we check if program name contains it
+				if (strstr(program->GetPath(), programPathBuffer))
+					break;
+			}
 
-				// TODO: Rewrite this
-				std::string fxcName(program->shaderName);
-				fxcName = fxcName.substr(0, fxcName.find(':'));
-				if (strcmp(dir.c_str(), fxcName.c_str()) != 0)
-					continue;
-
-				break;
+			if (!program)
+			{
+				g_Log.LogE("ShaderSwapThread::OnEntryUpdated() -> Unable to find program.");
+				return;
 			}
 
 			IUnknown** lpShader = &program->pShaderD3D;
@@ -117,5 +121,5 @@ namespace fiobs
 		using FileObserverThread<ShaderSwapStoreEntry>::FileObserverThread;
 	};
 
-	inline ShaderSwapThread g_ShaderSwapThread{ L"rageAm/Shaders", true };
 }
+inline fiobs::ShaderSwapThread g_ShaderSwapThread{ L"rageAm/Shaders", true };
