@@ -50,11 +50,13 @@ auto startTime = std::chrono::high_resolution_clock::now();
 // #include "rage_hook/rageHandlingHacks.h"
 // #include "rage_hook/rageHandling.h"
 
+#include "rage/framework/fwRenderThreadInterface.h"
+
 /* HOOK INCLUDES */
 
 /* FILE OBSERVERS */
 
-#include "rage_hook/file_observer/ShaderSwapThread.h"
+#include "rage_hook/file_observer/ShaderSwapThreadInterface.h"
 
 /* FILE OBSERVERS */
 
@@ -532,8 +534,6 @@ void Init()
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	g_Log.LogT("Core systems initialization took {}ms", std::chrono::duration<double, std::milli>(currentTime - startTime).count());
-
-	// gm::Show(nullptr, "Message", "Title", 0);
 
 	// TODO:
 	// mov rax, cs:CApp

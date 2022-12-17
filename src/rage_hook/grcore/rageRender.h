@@ -24,41 +24,41 @@
 #include "boost/signals2.hpp"
 #include "../../rage/Vec3V.h"
 
-#include "../file_observer/FileObserverThread.h"
+#include "../file_observer/TextureSwapThreadInterface.h"
 
 namespace rh
 {
-	class fwRenderThreadInterface
-	{
-		typedef void(*gDef_DefaultRenderFunction)(int64_t);
-		typedef void(*gDef_DoRenderFunction)(int64_t);
+	//class fwRenderThreadInterface
+	//{
+	//	typedef void(*gDef_DefaultRenderFunction)(int64_t);
+	//	typedef void(*gDef_DoRenderFunction)(int64_t);
 
-		static inline gDef_DefaultRenderFunction gImpl_DefaultRenderFunction;
-		static inline gDef_DoRenderFunction gImpl_DoRenderFunction;
+	//	static inline gDef_DefaultRenderFunction gImpl_DefaultRenderFunction;
+	//	static inline gDef_DoRenderFunction gImpl_DoRenderFunction;
 
-		static void aImpl_DoRenderFunction(int64_t inst)
-		{
-			gImpl_DoRenderFunction(inst);
-		}
+	//	static void aImpl_DoRenderFunction(int64_t inst)
+	//	{
+	//		gImpl_DoRenderFunction(inst);
+	//	}
 
-	public:
-		fwRenderThreadInterface()
-		{
-			// TODO: Somehow being invoked after DLL unloaded, causing exception (doesn't seem to happen on release target)
-			/*
-			gm::ScanAndHook(
-				"fwRenderThreadInterface::DoRenderFunction",
-				"48 89 5C 24 08 57 48 83 EC 20 48 8D 99 B0 00 00 00 48 8B F9 48 83",
-				aImpl_DoRenderFunction,
-				&gImpl_DoRenderFunction);
+	//public:
+	//	fwRenderThreadInterface()
+	//	{
+	//		// TODO: Somehow being invoked after DLL unloaded, causing exception (doesn't seem to happen on release target)
+	//		/*
+	//		gm::ScanAndHook(
+	//			"fwRenderThreadInterface::DoRenderFunction",
+	//			"48 89 5C 24 08 57 48 83 EC 20 48 8D 99 B0 00 00 00 48 8B F9 48 83",
+	//			aImpl_DoRenderFunction,
+	//			&gImpl_DoRenderFunction);
 
-			gm::ScanAndSet(
-				"fwRenderThreadInterface::DefaultRenderFunction",
-				"48 89 5C 24 08 56 48 83 EC 20 48 8B F1 E8 ?? ?? ?? ?? 33 DB 84 C0 0F 84 96 00 00 00 38 1D",
-				&gImpl_DefaultRenderFunction);
-			*/
-		}
-	};
+	//		gm::ScanAndSet(
+	//			"fwRenderThreadInterface::DefaultRenderFunction",
+	//			"48 89 5C 24 08 56 48 83 EC 20 48 8B F1 E8 ?? ?? ?? ?? 33 DB 84 C0 0F 84 96 00 00 00 38 1D",
+	//			&gImpl_DefaultRenderFunction);
+	//		*/
+	//	}
+	//};
 
 	class Rendering
 	{
@@ -545,7 +545,7 @@ namespace rh
 
 					// Global texture swap
 					// TODO: This is slow in debug mode!
-					g_TextureSwapThread.GetTextureSwap(texture->GetName(), &resourceView);
+					g_TextureSwapThreadInterface.GetTextureSwap(texture->GetName(), &resourceView);
 				}
 				else
 				{
@@ -683,6 +683,6 @@ namespace rh
 	};
 
 	inline Rendering g_Rendering;
-	inline fwRenderThreadInterface g_FwRenderThreadInterface;
+	//inline fwRenderThreadInterface g_FwRenderThreadInterface;
 	inline RenderThread g_RenderThread;
 }

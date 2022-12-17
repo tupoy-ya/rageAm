@@ -53,7 +53,7 @@ namespace fiobs
 		}
 	};
 
-	class ShaderSwapThread : public FileObserverThread<ShaderSwapStoreEntry>
+	class ShaderSwapThreadInterface : public FileObserverThreadInterface<ShaderSwapStoreEntry>
 	{
 	protected:
 		void OnEntryUpdated(std::string dir, std::string name, std::unique_ptr<FileStoreEntry>* entry) const override
@@ -118,8 +118,8 @@ namespace fiobs
 			*lpShader = swapSlot->pShader;
 		}
 	public:
-		using FileObserverThread<ShaderSwapStoreEntry>::FileObserverThread;
+		using FileObserverThreadInterface<ShaderSwapStoreEntry>::FileObserverThreadInterface;
 	};
 
 }
-inline fiobs::ShaderSwapThread g_ShaderSwapThread{ L"rageAm/Shaders", true };
+inline fiobs::ShaderSwapThreadInterface g_ShaderSwapThreadInterface{ L"rageAm/Shaders", true };

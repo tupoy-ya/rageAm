@@ -38,35 +38,13 @@ namespace fiobs
 		virtual void Release() = 0;
 	};
 
-	struct TextureSwapStoreEntry : FileStoreEntry
-	{
-		ID3D11Resource* pResource;
-		ID3D11ShaderResourceView* pResourceView;
-
-		using FileStoreEntry::FileStoreEntry;
-
-		HRESULT Load(const std::wstring& path) override
-		{
-			ID3D11Device* pDevice = rh::D3D::GetDevice();
-
-			return DirectX::CreateDDSTextureFromFile(
-				pDevice, path.c_str(), &pResource, &pResourceView);
-		}
-
-		void Release() override
-		{
-			pResource->Release();
-			pResourceView->Release();
-		}
-	};
-
 	/**
 	 * \brief Stores and dynamically manages file resources.
 	 * This is base class for shader / texture swap.
 	 * \tparam TEntry Data format to store derived from FileStoreEntry.
 	 */
 	template<typename TEntry>
-	class FileObserverThread
+	class FileObserverThreadInterface
 	{
 		HANDLE m_ObserveThread;
 		std::unordered_map<std::string, std::unique_ptr<FileStoreEntry>> m_FileStore;
@@ -80,7 +58,7 @@ namespace fiobs
 		{
 			g_Log.LogT("Swap Thread -> Start");
 
-			FileObserverThread* inst = (FileObserverThread*)lpParam;
+			FileObserverThreadInterface* inst = (FileObserverThreadInterface*)lpParam;
 
 			const wchar_t* path = inst->m_Path;
 			while (true)
@@ -130,8 +108,6 @@ namespace fiobs
 						auto& slot = inst->m_FileStore.at(fileNameKey);
 
 						slot->Exists = true;
-
-						// TODO: Check if file still being written
 						if (slot->WriteTime != lastWriteTime)
 						{
 							g_Log.LogT("Observer Thread -> File {} changed.", fileNameKey);
@@ -204,8 +180,10 @@ namespace fiobs
 
 		virtual void OnEntryUpdated(std::string dir, std::string name, std::unique_ptr<FileStoreEntry>* entry) const {};
 	public:
-		FileObserverThread(const wchar_t* path, bool includeDirInKey)
+		FileObserverThreadInterface(const wchar_t* path, bool includeDirInKey)
 		{
+			EnsureDataFoldersExist();
+
 			// Create directory if it doesn't exists
 			CreateDirectoryW(path, nullptr);
 
@@ -215,7 +193,7 @@ namespace fiobs
 				nullptr, 0, ObserverThreadEntryPoint, (LPVOID)this, 0, nullptr);
 		}
 
-		virtual ~FileObserverThread()
+		virtual ~FileObserverThreadInterface()
 		{
 			Shutdown();
 		}
@@ -262,25 +240,4 @@ namespace fiobs
 			return result;
 		}
 	};
-
-	class TextureSwapThread : public FileObserverThread<TextureSwapStoreEntry>
-	{
-	public:
-		bool IsGlobalSwapOn;
-
-		using FileObserverThread<TextureSwapStoreEntry>::FileObserverThread;
-
-		void GetTextureSwap(const char* name, ID3D11ShaderResourceView** shaderResourceView)
-		{
-			if (!IsGlobalSwapOn)
-				return;
-
-			TextureSwapStoreEntry* entry = Find(name);
-			if (entry == nullptr)
-				return;
-
-			*shaderResourceView = entry->pResourceView;
-		}
-	};
 }
-inline fiobs::TextureSwapThread g_TextureSwapThread{ L"rageAm/Textures/global", false };

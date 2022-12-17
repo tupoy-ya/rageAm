@@ -3,7 +3,6 @@
 #include <fstream>
 #include <shared_mutex>
 #include <vector>
-#include <memory>
 
 #include "format"
 
@@ -63,7 +62,7 @@ public:
 	{
 		LogT("Logger()");
 
-		CreateDataFolderIfNotExists();
+		EnsureDataFoldersExist();
 
 		// Rename existing log
 		MoveFileExA(m_logFile.c_str(), m_logFileBack.c_str(), MOVEFILE_REPLACE_EXISTING);
