@@ -1,11 +1,15 @@
 #pragma once
 #include <string>
 #include <fstream>
+#include <shared_mutex>
 #include <vector>
+#include <memory>
 
 #include "format"
 
 #include "FileHelper.h"
+
+#define trace(fmt, args) = g_Log.LogT(fmt, args);
 
 enum eLoggerLevel
 {
@@ -20,17 +24,40 @@ enum eLoggerLevel
 #endif
 };
 
+struct LogEntry
+{
+	eLoggerLevel Level;
+
+	LogEntry(eLoggerLevel level)
+	{
+		Level = level;
+	}
+};
+
 class Logger
 {
-	std::vector<std::string> m_entries;
+	// For unknown reason if std::string is inside structure it causes heap exceptions
+	// This doesn't happen in release target though. As solution use 2 separate lists
+	// for log metadata and message.
+	// TODO: Try struct again, it might have been related to thread safety
+
+	std::vector<LogEntry> m_Entries;
+	std::vector<std::string> m_Messages;
 
 	std::ofstream m_fs;
 	std::string m_logFile = "rageAm/rageAm.txt";
 	std::string m_logFileBack = "rageAm/rageAm_backup.txt";
 
-	std::mutex m_fileMutex;
+	std::shared_mutex m_fileMutex;
 
 	eLoggerLevel m_logLevel = LOG_DEFAULT;
+
+	void Log(const std::string& msg)
+	{
+		m_fileMutex.lock();
+		m_fs << msg << std::endl;
+		m_fileMutex.unlock();
+	}
 public:
 	Logger()
 	{
@@ -50,15 +77,7 @@ public:
 		m_fs.close();
 	}
 
-	void Log(const std::string& msg)
-	{
-		m_fileMutex.lock();
-		m_fs << msg << std::endl;
-		m_entries.push_back(msg);
-		m_fileMutex.unlock();
-	}
-
-	void LogLevel(eLoggerLevel level, const std::string& msg)
+	void LogLevel(eLoggerLevel level, const std::string msg)
 	{
 		const char* prefix = nullptr;
 
@@ -82,6 +101,11 @@ public:
 			return;
 
 		Log("{}: {}", prefix, msg);
+
+		m_fileMutex.lock();
+		m_Entries.push_back(level);
+		m_Messages.push_back(msg);
+		m_fileMutex.unlock();
 	}
 
 	template<typename... Args>
@@ -115,10 +139,24 @@ public:
 		LogLevel(LOG_ERROR, std::format(fmt, std::forward<Args>(args)...));
 	}
 
-	std::vector<std::string> GetEntries()
+	int GetLogCount() const
 	{
-		// TODO: Doesn't this returns a copy?
-		return m_entries;
+		return m_Entries.size();
+	}
+
+	LogEntry* GetLogEntryAt(int index)
+	{
+		return &m_Entries[index];
+	}
+
+	std::string GetLogMessageAt(int index)
+	{
+		return m_Messages[index];
+	}
+
+	std::shared_mutex* GetMutex()
+	{
+		return &m_fileMutex;
 	}
 };
 
