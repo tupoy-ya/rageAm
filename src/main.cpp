@@ -1,9 +1,7 @@
 ﻿/*
  * TODO:
- * An easy way to hook static variables
  * Global & Local texture override
  * Swap material shader
- * Replace shaders
  * Developer comments in shader params (like for license plate letters)
  * Sliders in UI
  * Shader & Texture replace
@@ -20,6 +18,7 @@
 #include <Windows.h>
 #include <d3d11.h>
 #include "Logger.h"
+#include "memory/gmFunc.h"
 
  // Keep it above everything
 auto startTime = std::chrono::high_resolution_clock::now();
@@ -36,7 +35,7 @@ auto startTime = std::chrono::high_resolution_clock::now();
 // so these may be marked as unused but it's not true.
 // NOTICE: Order matters here.
 
-#include "rage_hook/grcore/rageDX11.h"
+#include "rage_hook/grcore/D3D.h"
 #include "rage_hook/rageStreaming.h"
 #include "rage_hook/grcore/rageGrc.h"
 #include "rage_hook/grcore/rageRender.h"
@@ -45,12 +44,19 @@ auto startTime = std::chrono::high_resolution_clock::now();
 #include "rage_hook/rageWin32.h"
 #include "rage_hook/rageFwTimer.h"
 #include "rage_hook/rageControls.h"
+#include "rage_hook/rageScaleform.h"
 
 // Global Deluxo Flying Tests
 // #include "rage_hook/rageHandlingHacks.h"
 // #include "rage_hook/rageHandling.h"
 
 /* HOOK INCLUDES */
+
+/* FILE OBSERVERS */
+
+#include "rage_hook/file_observer/ShaderSwapThread.h"
+
+/* FILE OBSERVERS */
 
 #include "imgui_rage/ImGuiRage.h"
 #include "imgui_rage/ImGuiAppMgr.h"
@@ -501,7 +507,7 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //
 //			if (ImGui::TreeNode("Log"))
 //			{
-//				for (const std::string& entry : g_Log.GetEntries())
+//				for (const std::string& entry : g_Log.GetEntriesIterator())
 //				{
 //					ImGui::Text("%s", entry.c_str());
 //				}
@@ -527,6 +533,8 @@ void Init()
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	g_Log.LogT("Core systems initialization took {}ms", std::chrono::duration<double, std::milli>(currentTime - startTime).count());
 
+	// gm::Show(nullptr, "Message", "Title", 0);
+
 	// TODO:
 	// mov rax, cs:CApp
 	// CApp* game = *(CApp**)g_Hook.FindOffset("writeDebugState_CApp", writeDebugState + 0xAB + 0x3);
@@ -548,7 +556,10 @@ void Init()
 	//gPtr_lastActionScriptMethod = g_Hook.FindOffset<intptr_t>("WriteDebugState_lastActionScriptMethod", writeDebugState + 0x1022 + 0x3);
 	//gPtr_lastActionScriptMethodParams = g_Hook.FindOffset<intptr_t>("WriteDebugState_lastActionScriptMethodParams", writeDebugState + 0x1035 + 0x3);
 
-	//rh::Rendering::m_SwapThread.join();
+	//rh::Rendering::m_ObserveThread.join();
+
+	//auto slot = g_ScaleformStore->FindSlot("minimap");
+	//g_Log.LogT("minimap.gxf slot: {:X}", (int64_t)slot);
 }
 
 #include "memory/gmHook.h"

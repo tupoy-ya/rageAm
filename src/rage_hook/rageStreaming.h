@@ -7,6 +7,7 @@ inline rage::strStreamingModuleMgr* g_StreamingMgr;
 inline rage::TxdStore* g_TxdStore;
 inline rage::DrawableStore* g_DrawableStore;
 inline rage::FragmentStore* g_FragmentStore;
+inline rage::ScaleformStore* g_ScaleformStore;
 
 namespace rh
 {
@@ -26,6 +27,7 @@ namespace rh
 			g_TxdStore = g_StreamingMgr->GetStreamingModule<rage::TxdStore>(rage::STORE_TXD);
 			g_DrawableStore = g_StreamingMgr->GetStreamingModule<rage::DrawableStore>(rage::STORE_DRAWABLE);
 			g_FragmentStore = g_StreamingMgr->GetStreamingModule<rage::FragmentStore>(rage::STORE_FRAGMENTS);
+			g_ScaleformStore = g_StreamingMgr->GetStreamingModule<rage::ScaleformStore>(rage::STORE_SCALEFORM);
 
 			g_Log.LogT("-- STREAMING MODULES --");
 			g_Log.LogT("g_strStreamingModuleMgr found at: {:X}", reinterpret_cast<uintptr_t>(g_StreamingMgr));

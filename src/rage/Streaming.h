@@ -73,6 +73,26 @@ namespace rage
 	}; //Size: 0x0018
 	static_assert(sizeof(fwDwdDef) == 0x18);
 
+	struct CScaleformDef
+	{
+		int64_t qword0;
+		int64_t qword8;
+		int64_t qword10;
+		int64_t qword18;
+		int64_t qword20;
+		int64_t qword28;
+		int64_t qword30;
+		int64_t qword38;
+		char FiMemoryAddress[96];
+		char Name[48];
+	};
+	static_assert(sizeof(CScaleformDef) == 0xD0);
+
+	class CScaleformMovieObject
+	{
+
+	}; // 96 bytes
+
 	class gtaDrawable
 	{
 	public:
@@ -93,10 +113,11 @@ namespace rage
 	// enumeration of every supported one.
 	enum eStreamingModule
 	{
-		STORE_DRAWABLE = 0x2,
-		STORE_TXD = 0x3,
-		STORE_FRAGMENTS = 0x4,
-		STORE_MODELS = 0x15,
+		STORE_DRAWABLE = 2,
+		STORE_TXD = 3,
+		STORE_FRAGMENTS = 4,
+		STORE_SCALEFORM = 13,
+		STORE_MODELS = 21,
 	};
 
 	class strStreamingModuleMgr
@@ -127,7 +148,7 @@ namespace rage
 			return strStreamingMgr;
 		}
 	};
-	
+
 	class strStreamingModule
 	{
 		int64_t vftable;
@@ -253,6 +274,7 @@ namespace rage
 	};
 	static_assert(sizeof(fwAssetStore<void, void>) == 0x98);
 
+	typedef fwAssetStore<CScaleformMovieObject, CScaleformDef> ScaleformStore;
 	typedef fwAssetStore<pgDictionary<grcTexture>, fwTxdDef> TxdStore;
 	typedef fwAssetStore<gtaDrawable, fwDwdDef> DrawableStore;
 	typedef fwAssetStore<fragType, fwFragmentDef> FragmentStore;

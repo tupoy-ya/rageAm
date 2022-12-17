@@ -18,13 +18,13 @@
 #include "rage/CModelInfo.h"
 #include "../../rage/Streaming.h"
 #include "../../memory/gmHelper.h"
-#include "rageDX11.h"
+#include "D3D.h"
 #include "rage/TlsManager.h"
 
 #include "boost/signals2.hpp"
 #include "../../rage/Vec3V.h"
 
-#include "TextureSwapThread.h"
+#include "../file_observer/FileObserverThread.h"
 
 namespace rh
 {
@@ -417,9 +417,9 @@ namespace rh
 			*ms_CurrentFragmentProgram = program;
 
 			ID3D11DeviceContext* context = rage::TlsManager::GetD3D11Context();
-			context->PSSetShader(program->pPixelShaderD3D11, nullptr, 0);
+			context->PSSetShader((ID3D11PixelShader*)program->pShaderD3D, nullptr, 0);
 
-			if (program->pPixelShaderD3D11)
+			if (program->pShaderD3D)
 				*ms_CurrentFragmentProgramFlag |= 2u;
 			else
 				*ms_CurrentFragmentProgramFlag &= 0xFFFFFFFD; // ~2u
@@ -539,17 +539,11 @@ namespace rh
 					if (!texture)
 						goto LABEL_17;
 
-					// TODO: Temp crash fix for release
-					//Sleep(5000);
 					resourceView = texture->GetShaderResourceView();
-					//resourceView = (*(ID3D11ShaderResourceView * (__fastcall**)(rage::grcTexture*, __int64, unsigned __int64))(*(_QWORD*)texture + 0xB0i64))(
-					//	texture,
-					//	bucket,
-					//	0x7FF71E8B0000ui64);
 
-					// 'Global' texture swap
-					// TODO: This is slow!
-					TextureSwapThread::GetTextureSwap(texture->GetName(), &resourceView);
+					// Global texture swap
+					// TODO: This is slow in debug mode!
+					fiobs::g_TextureSwapThread.GetTextureSwap(texture->GetName(), &resourceView);
 				}
 				else
 				{

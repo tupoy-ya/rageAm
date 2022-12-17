@@ -73,7 +73,7 @@ namespace imgui_rage
 	public:
 		void Init() const
 		{
-			rh::grcDX11::AddRenderTask(OnRender);
+			rh::D3D::AddRenderTask(OnRender);
 		}
 
 		template<typename T>

@@ -5,23 +5,13 @@
 #include "grcTexture.h"
 #include "pgDictionary.h"
 #include <d3d11.h>
-#include "grcFragmentProgram.h"
+#include "grcProgram.h"
 
 #include "TlsManager.h"
 
 namespace rage
 {
 	struct grcConstantBuffer;
-	typedef int64_t grcVertexProgram;
-
-	// MOVED TO grcFragmentProgram.h
-	//struct grcFragmentProgram
-	//{
-	//	int8_t gap0[552];
-	//	ID3D11PixelShader* pPixelShaderD3D11;
-	//	int64_t qword230;
-	//};
-	//static_assert(sizeof(grcFragmentProgram) == 0x238);
 
 	struct grcInstanceVar
 	{
@@ -234,7 +224,8 @@ namespace rage
 		int32_t dword2B4;
 		int64_t fileTime;
 		const char* shaderFilePath;
-		int8_t shaderNameHash[8];
+		int32_t shaderNameHash;
+		int32_t dword2CC;
 		int64_t qword2D0;
 		int32_t dword2D8;
 		int32_t qword2dc;
@@ -244,17 +235,10 @@ namespace rage
 		int64_t qword2E8;
 		int32_t dword2F0;
 		int8_t gap2F4[4];
-		int64_t pComputePrograms;
-		int32_t dword300;
-		int8_t gap304[4];
-		int64_t pDomainPrograms;
-		int32_t dword310;
-		int8_t gap314[4];
-		int64_t pGeometryPrograms;
-		int32_t dword320;
-		int8_t gap324[4];
-		int64_t pHullPrograms;
-		int32_t dword330;
+		atArray<grcComputeProgram> pComputePrograms;
+		atArray<grcDomainProgram> pDomainPrograms;
+		atArray<grcGeometryProgram> pGeometryPrograms;
+		atArray<grcHullProgram> pHullPrograms;
 	};
 
 	struct grcInstanceData

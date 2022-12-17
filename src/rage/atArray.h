@@ -6,7 +6,8 @@ namespace rage
 	template<typename T>
 	class atArray
 	{
-		intptr_t items;
+		//intptr_t items;
+		T* items;
 		int16_t size;
 		int16_t unk10;
 		int32_t unk18;
@@ -25,8 +26,18 @@ namespace rage
 			// Not my brightest moment but how to get pointer
 			// otherwise? It's not pointer array so indexing
 			// is not an option
+
+			return &items[index];
+
 			// TODO: &items[index]; should work
-			return reinterpret_cast<T*>(items + sizeof(T) * index);
+			//return reinterpret_cast<T*>(items + sizeof(T) * index);
+		}
+
+		template<typename T2>
+		T* GetAt(int index) const
+		{
+			uintptr_t addr = (uintptr_t)items + sizeof(T2) * index;
+			return (T*)addr;
 		}
 
 		T* operator[](int index) const

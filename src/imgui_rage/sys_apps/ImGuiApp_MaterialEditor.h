@@ -117,7 +117,7 @@ namespace sapp
 				{
 					CloseHandle(hnd);
 
-					ID3D11Device* pDevice = rh::grcDX11::GetDevice();
+					ID3D11Device* pDevice = rh::D3D::GetDevice();
 
 					ID3D11Texture2D* pOldTexture = texture->GetTexture();
 					ID3D11Resource* pNewTexture;
@@ -271,6 +271,10 @@ namespace sapp
 			// Material Info Window
 			ImGui::BeginChild("MAT_INFO", ImVec2(0, 0), true);
 			ImGui::Text("Material Information");
+
+			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
+			rage::grcInstanceData* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
+			ImGui::Text("grcEffect: %p", (uint64_t)selectedMaterial->GetEffect());
 
 			ImGui::BeginTabBar("MAT_INFO_TAB_BAR");
 			if (ImGui::BeginTabItem("Table"))

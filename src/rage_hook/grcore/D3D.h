@@ -7,7 +7,7 @@ namespace rh
 {
 	typedef void(*RenderTask)();
 
-	class grcDX11
+	class D3D
 	{
 		typedef HRESULT(STDMETHODCALLTYPE* gDef_SwapChain_Present)(IDXGISwapChain* Inst, UINT SyncInterval, UINT Flags);
 
@@ -31,7 +31,7 @@ namespace rh
 
 		static inline std::vector<RenderTask> ms_renderTasks;
 	public:
-		grcDX11()
+		D3D()
 		{
 			gm::gmAddress addr = g_Scanner.ScanPattern("CreateGameWindowAndGraphics", "48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 48");
 
@@ -39,10 +39,10 @@ namespace rh
 			gPtr_Context = *addr.GetAt(0x597 + 0x3).CastRef<ID3D11DeviceContext**>();
 			gPtr_SwapChain = *addr.GetAt(0x5C3 + 0x3).CastRef<IDXGISwapChain**>();
 
-			g_Log.LogT("grcDX11::Init() -> D3D11Device: {:X}", reinterpret_cast<uintptr_t>(gPtr_Device));
-			g_Log.LogT("grcDX11::Init() -> D3D11DeviceContext: {:X}", reinterpret_cast<uintptr_t>(gPtr_Context));
-			g_Log.LogT("grcDX11::Init() -> IDXGISwapChain: {:X}", reinterpret_cast<uintptr_t>(gPtr_SwapChain));
-			g_Log.LogT("grcDX11::Init() -> DxFeatureLevel: {:X}", static_cast<int>(GetDevice()->GetFeatureLevel()));
+			g_Log.LogT("D3D::Init() -> D3D11Device: {:X}", reinterpret_cast<uintptr_t>(gPtr_Device));
+			g_Log.LogT("D3D::Init() -> D3D11DeviceContext: {:X}", reinterpret_cast<uintptr_t>(gPtr_Context));
+			g_Log.LogT("D3D::Init() -> IDXGISwapChain: {:X}", reinterpret_cast<uintptr_t>(gPtr_SwapChain));
+			g_Log.LogT("D3D::Init() -> DxFeatureLevel: {:X}", static_cast<int>(GetDevice()->GetFeatureLevel()));
 
 			// IDXGISwapChain::Present is on offset 0x40 (8th function)
 			// TODO: Replace this mess with something reasonable
@@ -75,5 +75,5 @@ namespace rh
 		}
 	};
 
-	inline grcDX11 g_grcDX11;
+	inline D3D g_D3D;
 }
