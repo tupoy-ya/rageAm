@@ -80,7 +80,7 @@ namespace D3DHelper
 
 		if (errorMsg)
 		{
-			error = std::string((const char*)errorMsg->GetBufferPointer());
+			error = std::string((const char*)errorMsg->GetBufferPointer(), errorMsg->GetBufferSize() - 1);
 			errorMsg->Release();
 		}
 
