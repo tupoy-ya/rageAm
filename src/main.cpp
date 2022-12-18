@@ -519,7 +519,7 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //			ImGui::End();
 //		}
 //
-//		g_ImGui.Render();
+//		g_ImGui.Update();
 //	}
 //}
 

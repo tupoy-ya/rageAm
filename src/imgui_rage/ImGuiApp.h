@@ -12,13 +12,16 @@ namespace imgui_rage
 
 	protected:
 		virtual void OnRender() = 0;
+		virtual void OnUpdate() {}
 
 	public:
 		ImGuiApp() = default;
 		virtual ~ImGuiApp() = default;
 
-		void Render()
+		void Update()
 		{
+			OnUpdate();
+
 			if (!IsVisible)
 				return;
 

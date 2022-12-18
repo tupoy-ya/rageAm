@@ -16,8 +16,8 @@ namespace sapp
 		{
 			IsVisible = true;
 			// m_MatEditor.IsVisible = true;
-			//m_Effects.IsVisible = true;
-			m_Log.IsVisible = true;
+			// m_Effects.IsVisible = true;
+			// m_Log.IsVisible = true;
 		}
 
 		void OnRender() override
@@ -41,9 +41,9 @@ namespace sapp
 				"Switches global texture swap (rageAm/Textures/global/).\n"
 				"WARNING: For purposes development only! May affect game performance.");
 
-			m_MatEditor.Render();
-			m_Effects.Render();
-			m_Log.Render();
+			m_MatEditor.Update();
+			m_Effects.Update();
+			m_Log.Update();
 
 			ImGui::End();
 		}

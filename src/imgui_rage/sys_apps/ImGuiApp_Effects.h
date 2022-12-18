@@ -10,19 +10,19 @@ namespace sapp
 	protected:
 		void OnRender() override
 		{
-			ImGui::Begin("Effect Viewer", &IsVisible);
+			//ImGui::Begin("Effect Viewer", &IsVisible);
 
-			rage::grcEffect** effectArray = (rage::grcEffect**)0x7FF6E2158930;
-			int effectArrayIndex = *(int*)0x7FF6E2159930;
+			//rage::grcEffect** effectArray = (rage::grcEffect**)0x7FF6E2158930;
+			//int effectArrayIndex = *(int*)0x7FF6E2159930;
 
-			for (int i = 0; i < effectArrayIndex; i++)
-			{
-				rage::grcEffect* effect = effectArray[i];
+			//for (int i = 0; i < effectArrayIndex; i++)
+			//{
+			//	rage::grcEffect* effect = effectArray[i];
 
-				ImGui::Text("%s", effect->GetFilePath());
-			}
+			//	ImGui::Text("%s", effect->GetFilePath());
+			//}
 
-			ImGui::End(); // Effect Viewer
+			//ImGui::End(); // Effect Viewer
 		}
 	};
 }

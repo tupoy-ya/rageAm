@@ -13,14 +13,24 @@ namespace sapp
 		{
 			switch (level)
 			{
-			case LOG_ERROR: return ImVec4(1.0f, 0.15f, 0.15f, 1.0f);
+			case LOG_ERROR: return { 1.0f, 0.15f, 0.15f, 1.0f };
 			case LOG_TRACE:
 			case LOG_DEBUG:
 			case LOG_DEFAULT:
-			default: return ImVec4(1, 1, 1, 1);
+			default: return { 1, 1, 1, 1 };
 			}
 		}
 	protected:
+		void OnUpdate() override
+		{
+			if (!g_Log.GetHasError())
+				return;
+
+			// Show up log viewer on error
+			IsVisible = true;
+			g_Log.ResetError();
+		}
+
 		void OnRender() override
 		{
 			ImGui::Begin("Log Viewer", &IsVisible);

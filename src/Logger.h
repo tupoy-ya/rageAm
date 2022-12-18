@@ -51,6 +51,8 @@ class Logger
 
 	eLoggerLevel m_logLevel = LOG_DEFAULT;
 
+	bool m_HasError = false;
+
 	void Log(const std::string& msg)
 	{
 		m_fileMutex.lock();
@@ -102,8 +104,13 @@ public:
 		Log("{}: {}", prefix, msg);
 
 		m_fileMutex.lock();
+
+		if (level == LOG_ERROR)
+			m_HasError = true;
+
 		m_Entries.push_back(level);
 		m_Messages.push_back(msg);
+
 		m_fileMutex.unlock();
 	}
 
@@ -156,6 +163,16 @@ public:
 	std::shared_mutex* GetMutex()
 	{
 		return &m_fileMutex;
+	}
+
+	bool GetHasError() const
+	{
+		return m_HasError;
+	}
+
+	void ResetError()
+	{
+		m_HasError = false;
 	}
 };
 

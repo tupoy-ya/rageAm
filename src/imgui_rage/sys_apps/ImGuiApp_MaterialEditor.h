@@ -383,7 +383,8 @@ namespace sapp
 	protected:
 		void OnRender() override
 		{
-			ImGui::Begin("Material Editor", &IsVisible);
+			if (!ImGui::Begin("Material Editor", &IsVisible))
+				return;
 
 			// TODO: Support these
 			static const char* editorModes[] = { "Model", "Instance" };
