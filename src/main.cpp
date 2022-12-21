@@ -20,8 +20,10 @@
 #include "Logger.h"
 #include "memory/gmFunc.h"
 
-// Keep it above everything
+ // Keep it above everything
 auto startTime = std::chrono::high_resolution_clock::now();
+
+#include "GameVersion.h"
 
 #define USE_UNHANDLED_CRASH_HANDLER
 #ifdef _RELEASE
