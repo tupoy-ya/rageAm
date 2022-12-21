@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d11.h>
+#include "../GameVersion.h"
 
 namespace rage
 {
@@ -7,6 +8,7 @@ namespace rage
 	/*
 	 * grcTextureDX11
 	 * - vftable
+	 *		2802 Adds 6 methods with static variable in beginning
 	 *		0x0		~grcTextureDX11();
 	 *		0x8		uint32_t Get0x44();
 	 *		0x10	Set0x44(uint32_t);
@@ -130,6 +132,14 @@ namespace rage
 		{
 			// TODO: grcRenderTargetTextureDX11 structure is different
 			//return pShaderResourceView;
+
+			// TODO: 2802 altered virtual table slightly, find a good solution for this
+			//return this->vftable->GetShaderResourceView(this);
+
+			if (GameVersion::IsGreaterOrEqual(VER_2802))
+			{
+				return decltype(this->vftable->GetShaderResourceView)(*(uintptr_t*)(*(uintptr_t*)this + 0xE0))(this);
+			}
 
 			return this->vftable->GetShaderResourceView(this);
 		}

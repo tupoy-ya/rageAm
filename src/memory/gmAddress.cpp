@@ -9,9 +9,9 @@ bool gm::gmAddress::MayBeValid() const
 gm::gmAddress gm::gmAddress::GetRef() const
 {
 	if (!MayBeValid())
-		return gmAddress(0);
+		return { 0 };
 
-	return gmAddress(FindRef(m_address));
+	return { FindRef(m_address) };
 }
 
 gm::gmAddress gm::gmAddress::GetCall() const
@@ -27,7 +27,7 @@ gm::gmAddress gm::gmAddress::GetAt(uint32_t offset) const
 gm::gmAddress gm::gmAddress::GetAt64(uint64_t offset) const
 {
 	if (!MayBeValid())
-		return {0};
+		return { 0 };
 
-	return {m_address + offset};
+	return { m_address + offset };
 }

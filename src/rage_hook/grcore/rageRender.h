@@ -683,6 +683,5 @@ namespace rh
 	};
 
 	inline Rendering g_Rendering;
-	//inline fwRenderThreadInterface g_FwRenderThreadInterface;
 	inline RenderThread g_RenderThread;
 }

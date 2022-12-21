@@ -92,7 +92,9 @@ namespace gm
 		template<typename Detour, typename Original>
 		gmFuncHook(const char* name, std::string pattern, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(ScanAndHook(name, pattern, detour, original)) {}
 		template<typename Detour, typename Original>
-		gmFuncHook(std::function<uintptr_t()> const& onScan, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(ScanAndHook(onScan(), detour, original)) {}
+		gmFuncHook(std::function<uintptr_t()> const& onScan, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(g_Hook.SetHook(onScan(), detour, original)) {}
+		template<typename Detour, typename Original>
+		gmFuncHook(LPVOID address, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(g_Hook.SetHook(address, detour, original)) {}
 	};
 
 	/**
