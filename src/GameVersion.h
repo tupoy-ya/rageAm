@@ -77,9 +77,9 @@ public:
 	static bool IsGreaterOrEqual(uint16_t version, uint16_t sub = 0)
 	{
 		// Greater version will have higher subversion in any case
-		if (version == ms_SubVersion)
-			return version >= ms_Version && sub >= ms_SubVersion;
-		return version >= ms_Version;
+		if (ms_Version == version)
+			return ms_Version >= version && ms_SubVersion >= sub;
+		return ms_Version >= version;
 	}
 };
 inline GameVersion g_GameVersionMgr;

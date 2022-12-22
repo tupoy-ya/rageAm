@@ -71,8 +71,8 @@ namespace gm
 	class gmFuncScan : public gmFuncFastcall<TReturn, Args...>
 	{
 	public:
-		gmFuncScan(std::string pattern) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(Scan("", pattern)) {}
-		gmFuncScan(const char* name, std::string pattern) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(Scan(name, pattern)) {}
+		gmFuncScan(const char* pattern) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(Scan("", pattern)) {}
+		gmFuncScan(const char* name, const char* pattern) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(Scan(name, pattern)) {}
 		gmFuncScan(std::function<uintptr_t()> const& onScan) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(onScan()) {}
 	};
 
@@ -88,9 +88,9 @@ namespace gm
 	{
 	public:
 		template<typename Detour, typename Original>
-		gmFuncHook(std::string pattern, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(ScanAndHook("", pattern, detour, original)) {}
+		gmFuncHook(const char* pattern, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(ScanAndHook("", pattern, detour, original)) {}
 		template<typename Detour, typename Original>
-		gmFuncHook(const char* name, std::string pattern, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(ScanAndHook(name, pattern, detour, original)) {}
+		gmFuncHook(const char* name, const char* pattern, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(ScanAndHook(name, pattern, detour, original)) {}
 		template<typename Detour, typename Original>
 		gmFuncHook(std::function<uintptr_t()> const& onScan, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(g_Hook.SetHook(onScan(), detour, original)) {}
 		template<typename Detour, typename Original>
@@ -108,13 +108,13 @@ namespace gm
 	{
 	public:
 		template<typename Detour>
-		gmFuncSwap(std::string pattern, Detour detour)
+		gmFuncSwap(const char* pattern, Detour detour)
 		{
 			ScanAndHook("", pattern, detour);
 		}
 
 		template<typename Detour>
-		gmFuncSwap(const char* name, std::string pattern, Detour detour)
+		gmFuncSwap(const char* name, const char* pattern, Detour detour)
 		{
 			ScanAndHook(name, pattern, detour);
 		}

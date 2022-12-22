@@ -7,32 +7,32 @@
 namespace gm
 {
 	template<typename Detour, typename Original>
-	void ScanAndHook(const char* name, const std::string& pattern, Detour detour, Original original)
+	void ScanAndHook(const char* name, const char* pattern, Detour detour, Original original)
 	{
 		gmAddress addr = g_Scanner.ScanPattern(name, pattern);
 		g_Hook.SetHook(addr.GetAddress(), detour, original);
 	}
 
 	template<typename Detour>
-	void ScanAndHook(const char* name, const std::string& pattern, Detour detour)
+	void ScanAndHook(const char* name, const char* pattern, Detour detour)
 	{
 		gmAddress addr = g_Scanner.ScanPattern(name, pattern);
 		g_Hook.SetHook(addr.GetAddress(), detour);
 	}
 
 	template<typename Func>
-	void ScanAndSet(const char* name, const std::string& pattern, Func* func)
+	void ScanAndSet(const char* name, const char* pattern, Func* func)
 	{
 		gmAddress addr = g_Scanner.ScanPattern(name, pattern);
 		*func = reinterpret_cast<Func>(addr.GetAddress());
 	}
 
-	inline gmAddress Scan(const char* name, const std::string& pattern)
+	inline gmAddress Scan(const char* name, const char* pattern)
 	{
 		return g_Scanner.ScanPattern(name, pattern);
 	}
 
-	inline void SetToNullsub(const char* name, const std::string& pattern)
+	inline void SetToNullsub(const char* name, const char* pattern)
 	{
 		g_Hook.SetToNullsub(Scan(name, pattern));
 	}

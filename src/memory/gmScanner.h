@@ -20,6 +20,9 @@ namespace gm
 
 		const int8_t SCANNER_STORE_FORMAT_VER = 1;
 
+		uint32_t m_GtaSize;
+		uint8_t* m_GtaStartAddress;
+
 		void Load();
 		void Save() const;
 		void ValidateStorage();
@@ -30,8 +33,8 @@ namespace gm
 
 		uintptr_t GetAddressFromStorage(const char* name) const;
 
-		gmAddress ScanPatternModule(const char* name, const char* module, const std::string& pattern);
-		gmAddress ScanPattern(const char* name, const std::string& pattern);
+		gmAddress ScanPatternModule(const char* name, const char* module, const char* pattern);
+		gmAddress ScanPattern(const char* name, const char* pattern);
 	};
 }
 

@@ -1,8 +1,13 @@
 #include "gmScanner.h"
+
+#include <Psapi.h>
+
 #include "pattern.h"
 
 void gm::gmScanner::Load()
 {
+#ifdef GM_SCANNER_USE_STORAGE
+
 	std::ifstream fs(m_addrStorageName);
 
 	if (!fs.is_open())
@@ -40,10 +45,9 @@ void gm::gmScanner::Load()
 
 	if (numLoaded != 0)
 	{
-#ifdef GM_SCANNER_USE_STORAGE
 		ValidateStorage();
-#endif
 	}
+#endif
 }
 
 void gm::gmScanner::Save() const
@@ -107,6 +111,12 @@ gm::gmScanner::gmScanner()
 {
 	g_Log.LogT("gmScanner::gmScanner()");
 
+	MODULEINFO modInfo{};
+	GetModuleInformation(GetCurrentProcess(), GetModuleHandle(nullptr), &modInfo, sizeof(MODULEINFO));
+	// GTAV 2699.16 image size is 0x3d20600 bytes, store in 32 bits
+	m_GtaSize = (uint32_t)modInfo.SizeOfImage;
+	m_GtaStartAddress = (uint8_t*)modInfo.lpBaseOfDll;
+
 	Load();
 }
 
@@ -125,7 +135,7 @@ uintptr_t gm::gmScanner::GetAddressFromStorage(const char* name) const
 	return m_addrStorage.at(name);
 }
 
-gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* module, const std::string& pattern)
+gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* module, const char* pattern)
 {
 	uintptr_t address;
 
@@ -143,7 +153,19 @@ gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* mod
 	}
 
 	auto startTime = std::chrono::high_resolution_clock::now();
-	address = FindPattern(module, pattern);
+	if(module != nullptr)
+	{
+		MODULEINFO modInfo{};
+		GetModuleInformation(GetCurrentProcess(), GetModuleHandle(nullptr), &modInfo, sizeof(MODULEINFO));
+		uint32_t size = (uint32_t)modInfo.SizeOfImage;
+		uint8_t* startAddress = (uint8_t*)modInfo.lpBaseOfDll;
+
+		address = FindPattern(pattern, startAddress, size);
+	}
+	else
+	{
+		address = FindPattern(pattern, m_GtaStartAddress, m_GtaSize);
+	}
 	auto endTime = std::chrono::high_resolution_clock::now();
 
 	if (address == 0)
@@ -165,7 +187,7 @@ gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* mod
 	return { address };
 }
 
-gm::gmAddress gm::gmScanner::ScanPattern(const char* name, const std::string& pattern)
+gm::gmAddress gm::gmScanner::ScanPattern(const char* name, const char* pattern)
 {
 	return ScanPatternModule(name, nullptr, pattern);
 }

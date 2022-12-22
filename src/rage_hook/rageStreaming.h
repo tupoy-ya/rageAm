@@ -38,20 +38,5 @@ namespace rh
 		}
 	};
 
-	class Archetypes
-	{
-	public:
-		Archetypes()
-		{
-			gm::gmAddress addr = g_Scanner.ScanPattern("CModelInfo::Init", "40 53 48 83 EC 20 E8 ?? ?? ?? ?? 0F");
-
-			addr = g_Scanner.ScanPattern("CModelInfo::GetModelInfoFromId", "E8 ? ? ? ? 44 8B 78 18");
-			addr = addr.GetCall();
-			g_Log.LogT("CModelInfo::GetModelInfoFromId at: {:X}", addr.GetAddress());
-			rage::CModelInfo::gImpl_GetModelInfoFromId = addr.Cast<rage::CModelInfo::gDef_GetModelInfoFromId>();
-		}
-	};
-
 	inline strStreamingModuleMgr g_strStreamingModuleMgr;
-	inline Archetypes g_Archetypes;
 }

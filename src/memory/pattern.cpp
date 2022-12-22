@@ -1,40 +1,54 @@
 #include "pattern.h"
-
 #include <Windows.h>
-#include <Psapi.h>
 #include <sstream>
 #include <vector>
 
-uintptr_t gm::FindPattern(const char* module, const std::string& pattern)
+constexpr uint16_t PATTERN_WILDCARD = 0xFFFF;
+
+uintptr_t gm::FindPattern(const char* pattern, const uint8_t* address, uint32_t size, uint8_t align)
 {
-	std::vector<std::string> tokens;
-	std::stringstream ss(pattern);
-	std::string item;
-	while (std::getline(ss, item, ' ')) {
-		tokens.push_back(item);
-	}
+	static uint16_t byteBuffer[256];
 
-	MODULEINFO modInfo{};
-	GetModuleInformation(GetCurrentProcess(), GetModuleHandle(module), &modInfo, sizeof(MODULEINFO));
-
-	auto* start_offset = static_cast<uint8_t*>(modInfo.lpBaseOfDll);
-	const auto size = static_cast<uintptr_t>(modInfo.SizeOfImage);
-
-	uintptr_t pos = 0;
-	const uintptr_t searchLen = tokens.size();
-
-	for (auto* retAddress = start_offset; retAddress < start_offset + size; retAddress++) {
-		if (tokens[pos] == "??" || tokens[pos] == "?" ||
-			*retAddress == static_cast<uint8_t>(std::strtoul(tokens[pos].c_str(), nullptr, 16))) {
-			if (pos + 1 == tokens.size())
-				return (reinterpret_cast<uintptr_t>(retAddress) - searchLen + 1);
-			pos++;
-		}
+	uint8_t numBytes = 0;
+	uint8_t len = (uint8_t)strlen(pattern);
+	for (uint8_t i = 0; i < len; i += 3)
+	{
+		const char* offset = pattern + i;
+		if (offset[0] == '?')
+			byteBuffer[numBytes] = PATTERN_WILDCARD;
 		else
-		{
-			pos = 0;
-		}
+			byteBuffer[numBytes] = (uint8_t)strtol(offset, nullptr, 16);
+		numBytes++;
+
+		// Support single '?', since they took only one symbol, fall back by one
+		if (offset[1] == ' ')
+			i--;
 	}
+
+	for (uint32_t i = 0; i < size; i += align)
+	{
+		const uint8_t* offset = address + i;
+		for (uint8_t j = 0; j < numBytes; j++)
+		{
+			uint16_t byte = byteBuffer[j];
+			if (byte == PATTERN_WILDCARD)
+				continue;
+
+			uint8_t target = offset[j];
+
+			if (target != byte)
+				goto miss;
+		}
+		return (uintptr_t)offset;
+	miss:;
+	}
+
+	// In best case scenario, we'll successfully scan with alignment of 8, worst - 1
+	// (can this ever happen?) need to profile it
+	if (align == 8)
+		return FindPattern(pattern, address, size, 4);
+	if (align == 4)
+		return FindPattern(pattern, address, size, 1);
 	return 0;
 }
 

@@ -17,15 +17,21 @@ namespace rage
 		}
 	};
 
+	namespace hooks
+	{
+		static inline gm::gmFuncScan<CBaseModelInfo*, fwModelId*> gImpl_GetModelInfoFromId([]() -> auto
+			{
+				return gm::Scan("CModelInfo::GetModelInfoFromId", "E8 ?? ?? ?? ?? 44 8B 78 18")
+					.GetCall();
+			});
+	}
+
 	class CModelInfo
 	{
 	public:
 		static CBaseModelInfo* GetModelInfoFromId(fwModelId* modelId)
 		{
-			return gImpl_GetModelInfoFromId(modelId);
+			return hooks::gImpl_GetModelInfoFromId(modelId);
 		}
-
-		typedef CBaseModelInfo* (__fastcall* gDef_GetModelInfoFromId)(fwModelId*);
-		static inline gDef_GetModelInfoFromId gImpl_GetModelInfoFromId;
 	};
 }
