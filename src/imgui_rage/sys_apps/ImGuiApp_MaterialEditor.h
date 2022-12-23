@@ -10,8 +10,8 @@ namespace sapp
 		static constexpr int INPUT_BUFFER_SIZE = 64;
 		static constexpr int TEXT_BUFFER_SIZE = 256;
 
-		static inline char ms_ModelNameInput[INPUT_BUFFER_SIZE] = "deluxo";
-		static inline char m_TextBuffer[TEXT_BUFFER_SIZE]{};
+		static inline char sm_ModelNameInput[INPUT_BUFFER_SIZE] = "deluxo";
+		static inline char sm_TextBuffer[TEXT_BUFFER_SIZE]{};
 
 		int m_EditMode = 0;
 		int m_SelectedMaterialIndex = 0;
@@ -109,10 +109,10 @@ namespace sapp
 				if (texture->GetName() == nullptr)
 					continue;
 
-				sprintf_s(m_TextBuffer, TEXT_BUFFER_SIZE, "rageAm/Textures/%s/%s.dds",
-					ms_ModelNameInput, texture->GetName());
+				sprintf_s(sm_TextBuffer, TEXT_BUFFER_SIZE, "rageAm/Textures/%s/%s.dds",
+					sm_ModelNameInput, texture->GetName());
 
-				HANDLE hnd = CreateFile(m_TextBuffer, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+				HANDLE hnd = CreateFile(sm_TextBuffer, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 				if (hnd != INVALID_HANDLE_VALUE)
 				{
 					CloseHandle(hnd);
@@ -124,9 +124,9 @@ namespace sapp
 					ID3D11ShaderResourceView* pOldResourceView = texture->GetShaderResourceView();
 					ID3D11ShaderResourceView* pNewResourceView;
 
-					int length = strlen(m_TextBuffer);
+					int length = strlen(sm_TextBuffer);
 					std::wstring text_wchar(length, L'#');
-					mbstowcs(&text_wchar[0], m_TextBuffer, length);
+					mbstowcs(&text_wchar[0], sm_TextBuffer, length);
 
 					HRESULT result = DirectX::CreateDDSTextureFromFile(
 						pDevice, text_wchar.c_str(), &pNewTexture, &pNewResourceView);
@@ -151,9 +151,9 @@ namespace sapp
 					float factor = static_cast<float>(texture->GetWidth()) / textureWidth;
 					float height = static_cast<float>(texture->GetHeight()) / factor;
 
-					sprintf_s(m_TextBuffer, INPUT_BUFFER_SIZE, "%s - %s", shaderVar->Name, texture->GetName());
+					sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "%s - %s", shaderVar->Name, texture->GetName());
 
-					if (ImGui::Selectable(m_TextBuffer, i == m_SelectedTextureIndex))
+					if (ImGui::Selectable(sm_TextBuffer, i == m_SelectedTextureIndex))
 						m_SelectedTextureIndex = i;
 
 					if (i == m_SelectedTextureIndex)
@@ -199,21 +199,21 @@ namespace sapp
 
 				// Controls must have unique ID so use variable name
 				// since it doesn't appear twice on screen
-				sprintf_s(m_TextBuffer, INPUT_BUFFER_SIZE, "##%s", shaderVar->Name);
+				sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "##%s", shaderVar->Name);
 
 				// TODO: Add matrix support
 				switch (type)
 				{
 				case rage::EFFECT_VALUE_FLOAT:
-					ImGui::InputFloat(m_TextBuffer, materialVar->GetFloatPtr()); break;
+					ImGui::InputFloat(sm_TextBuffer, materialVar->GetFloatPtr()); break;
 				case rage::EFFECT_VALUE_VECTOR2:
-					ImGui::InputFloat2(m_TextBuffer, materialVar->GetFloatPtr()); break;
+					ImGui::InputFloat2(sm_TextBuffer, materialVar->GetFloatPtr()); break;
 				case rage::EFFECT_VALUE_VECTOR3:
-					ImGui::InputFloat3(m_TextBuffer, materialVar->GetFloatPtr()); break;
+					ImGui::InputFloat3(sm_TextBuffer, materialVar->GetFloatPtr()); break;
 				case rage::EFFECT_VALUE_VECTOR4:
-					ImGui::InputFloat4(m_TextBuffer, materialVar->GetFloatPtr()); break;
+					ImGui::InputFloat4(sm_TextBuffer, materialVar->GetFloatPtr()); break;
 				case rage::EFFECT_VALUE_BOOL:
-					ImGui::Checkbox(m_TextBuffer, materialVar->GetBoolPtr()); break;;
+					ImGui::Checkbox(sm_TextBuffer, materialVar->GetBoolPtr()); break;;
 				case rage::EFFECT_VALUE_TEXTURE:
 				{
 					rage::grcTexture* texture = materialVar->GetTexture();
@@ -330,19 +330,19 @@ namespace sapp
 		 */
 		void ConvertModelNameTo(bool highDetail) const
 		{
-			int len = strlen(ms_ModelNameInput);
+			int len = strlen(sm_ModelNameInput);
 
-			char* hiPtr = strstr(ms_ModelNameInput, "_hi");
+			char* hiPtr = strstr(sm_ModelNameInput, "_hi");
 			if (highDetail && hiPtr == nullptr) // _hi
 			{
-				ms_ModelNameInput[len + 0] = '_';
-				ms_ModelNameInput[len + 1] = 'h';
-				ms_ModelNameInput[len + 2] = 'i';
-				ms_ModelNameInput[len + 3] = '\0';
+				sm_ModelNameInput[len + 0] = '_';
+				sm_ModelNameInput[len + 1] = 'h';
+				sm_ModelNameInput[len + 2] = 'i';
+				sm_ModelNameInput[len + 3] = '\0';
 			}
 			else if (m_FragLodMode == 1 && hiPtr != nullptr)
 			{
-				*strstr(ms_ModelNameInput, "_hi") = '\0';
+				*strstr(sm_ModelNameInput, "_hi") = '\0';
 			}
 		}
 
@@ -356,7 +356,7 @@ namespace sapp
 			if (m_CacheOutdated)
 				ConvertModelNameTo(m_FragLodMode == 0);
 
-			auto slot = g_FragmentStore->FindSlot(ms_ModelNameInput);
+			auto slot = g_FragmentStore->FindSlot(sm_ModelNameInput);
 
 			if (!slot) return nullptr;
 
@@ -391,11 +391,11 @@ namespace sapp
 			ImGui::Combo("Mode##MAT_MODE", &m_EditMode, editorModes, IM_ARRAYSIZE(editorModes));
 
 			// TODO: It still may have issues with _hi
-			if (ImGui::InputText("Name", ms_ModelNameInput, IM_ARRAYSIZE(ms_ModelNameInput)))
+			if (ImGui::InputText("Name", sm_ModelNameInput, IM_ARRAYSIZE(sm_ModelNameInput)))
 				m_CacheOutdated = true;
 
 			if (m_CacheOutdated)
-				m_ModelHash = fwHelpers::joaat(ms_ModelNameInput);
+				m_ModelHash = fwHelpers::joaat(sm_ModelNameInput);
 
 			FindDrawableAndDrawShaderGroup();
 

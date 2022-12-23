@@ -100,10 +100,7 @@ namespace gm
 	/**
 	 * \brief Represents a template wrapper for function swap by pattern.
 	 * \n Swap disables game function, calling Detour instead.
-	 * \tparam TReturn Type of return value.
-	 * \tparam Args Function arguments.
 	 */
-	template<typename TReturn, typename... Args>
 	class gmFuncSwap
 	{
 	public:
@@ -122,7 +119,7 @@ namespace gm
 		template<typename Detour>
 		gmFuncSwap(std::function<uintptr_t()> const& onScan, Detour detour)
 		{
-			ScanAndHook(onScan(), detour);
+			g_Hook.SetHook(onScan(), detour);
 		}
 	};
 }

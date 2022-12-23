@@ -12,26 +12,26 @@ constexpr uint16_t VER_2802 = 2802;
 
 class GameVersion
 {
-	static inline char ms_GameVersion[16]{};
-	static inline std::vector ms_SupportedVersions =
+	static inline char sm_GameVersion[16]{};
+	static inline std::vector sm_SupportedVersions =
 	{
 		"1.0.2699.16",
 		"1.0.2802.0",
 	};
-	static inline uint16_t ms_Version = 0;
-	static inline uint16_t ms_SubVersion = 0;
+	static inline uint16_t sm_Version = 0;
+	static inline uint16_t sm_SubVersion = 0;
 
 	static bool CheckGameVersion()
 	{
-		for (const char* version : ms_SupportedVersions)
+		for (const char* version : sm_SupportedVersions)
 		{
-			if (strcmp(version, ms_GameVersion) == 0)
+			if (strcmp(version, sm_GameVersion) == 0)
 			{
 				tracef("Supported game version found: {}", version);
 				return true;
 			}
 		}
-		tracef("Unsupported game version found: {}", ms_GameVersion);
+		tracef("Unsupported game version found: {}", sm_GameVersion);
 		return false;
 	}
 
@@ -49,14 +49,14 @@ class GameVersion
 		bool ok = VerQueryValueA(versionInfoBuffer, "\\", (LPVOID*)&pVsInfo, &vsInfoSize);
 		if (ok)
 		{
-			sprintf_s(ms_GameVersion, sizeof ms_GameVersion, "%d.%d.%d.%d",
+			sprintf_s(sm_GameVersion, sizeof sm_GameVersion, "%d.%d.%d.%d",
 				HIWORD(pVsInfo->dwFileVersionMS),
 				LOWORD(pVsInfo->dwFileVersionMS),
 				HIWORD(pVsInfo->dwFileVersionLS),
 				LOWORD(pVsInfo->dwFileVersionLS));
 
-			ms_Version = HIWORD(pVsInfo->dwFileVersionLS);
-			ms_SubVersion = LOWORD(pVsInfo->dwFileVersionLS);
+			sm_Version = HIWORD(pVsInfo->dwFileVersionLS);
+			sm_SubVersion = LOWORD(pVsInfo->dwFileVersionLS);
 		}
 		else
 		{
@@ -77,9 +77,9 @@ public:
 	static bool IsGreaterOrEqual(uint16_t version, uint16_t sub = 0)
 	{
 		// Greater version will have higher subversion in any case
-		if (ms_Version == version)
-			return ms_Version >= version && ms_SubVersion >= sub;
-		return ms_Version >= version;
+		if (sm_Version == version)
+			return sm_Version >= version && sm_SubVersion >= sub;
+		return sm_Version >= version;
 	}
 };
 inline GameVersion g_GameVersionMgr;

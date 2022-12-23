@@ -2,84 +2,98 @@
 
 rage::fiStream::fiStream()
 {
-	p_Device = nullptr;
-	m_buffer = nullptr;
-	m_handle = RAGE_INVALID_HANDLE;
+	m_pDevice = nullptr;
+	m_Buffer = nullptr;
+	m_FileHandle = FI_INVALID_HANDLE;
 
-	m_deviceCursorPos = 0;
-	m_bufferCursorPos = 0;
-	m_bufferContentEnd = 0;
-	m_dword2C = 0;
+	m_DeviceCursorPos = 0;
+	m_BufferCursorPos = 0;
+	m_BufferContentEnd = 0;
 
-	m_bufferSize = 0;
+	m_BufferSize = 0;
 }
 
-rage::fiStream::fiStream(fiDevice* pDevice, RAGE_HANDLE handle, char* buffer) : fiStream()
+rage::fiStream::fiStream(fiDevice* pDevice, FI_HANDLE handle, char* buffer) : fiStream()
 {
-	p_Device = pDevice;
-	m_buffer = buffer;
-	m_handle = handle;
+	m_pDevice = pDevice;
+	m_Buffer = buffer;
+	m_FileHandle = handle;
 
 	// Not sure what is the point of every stream having
 	// size of buffer when it's constant. (is it?)
 	// Though game has checks if it's set to zero.
-	m_bufferSize = STREAM_BUFFER_SIZE;
+	m_BufferSize = STREAM_BUFFER_SIZE;
 }
 
 int rage::fiStream::GetNumActiveStreams()
 {
-	return sm_activeStreams;
+	sm_mutex.lock();
+	int result = sm_ActiveStreams;
+	sm_mutex.unlock();
+	return result;
 }
 
 bool rage::fiStream::HasAvailableStreams()
 {
-	return sm_activeStreams < sm_maxStreams;
+	sm_mutex.lock();
+	bool result = sm_ActiveStreams < sm_MaxStreams;
+	sm_mutex.unlock();
+	return result;
+}
+
+rage::fiStream* rage::fiStream::CreateWithDevice(const char* resourceName, fiDevice* pDevice)
+{
+	if (!pDevice)
+		return nullptr;
+
+	if (!HasAvailableStreams())
+		return nullptr;
+
+	FI_HANDLE handle = pDevice->vftable->Create(pDevice, resourceName);
+
+	if (handle == FI_INVALID_HANDLE)
+		return nullptr;
+
+	return AllocStream(resourceName, handle, pDevice);
 }
 
 rage::fiStream* rage::fiStream::Create(const char* resourceName)
 {
+	fiDevice* device = fiDevice::GetDeviceImpl(resourceName, false);
+	return CreateWithDevice(resourceName, device);
+}
+
+rage::fiStream* rage::fiStream::OpenWithDevice(const char* resourceName, fiDevice* pDevice, bool isReadOnly)
+{
+	g_Log.LogT("fiStream::Open({}, {})", resourceName, isReadOnly);
+
+	if (!pDevice)
+		return nullptr;
+
 	if (!HasAvailableStreams())
 		return nullptr;
 
-	// TODO: fiDevice::GetDeviceImpl
-	fiDevice* device = nullptr;
+	FI_HANDLE handle = pDevice->vftable->Open(pDevice, resourceName, isReadOnly);
 
-	if (!device)
+	if (handle == FI_INVALID_HANDLE)
 		return nullptr;
 
-	RAGE_HANDLE handle = device->vftable->Create(device, resourceName);
-
-	if (handle == RAGE_INVALID_HANDLE)
-		return nullptr;
-
-	return AllocStream(resourceName, handle, device);
+	return AllocStream(resourceName, handle, pDevice);
 }
 
 rage::fiStream* rage::fiStream::Open(const char* resourceName, bool isReadOnly)
 {
-	if (!HasAvailableStreams())
-		return nullptr;
-
-	// TODO: fiDevice::GetDeviceImpl
-	fiDevice* device = nullptr;
-
-	if (!device)
-		return nullptr;
-
-	RAGE_HANDLE handle = device->vftable->Open(device, resourceName, isReadOnly);
-
-	if (handle == RAGE_INVALID_HANDLE)
-		return nullptr;
-
-	return AllocStream(resourceName, handle, device);
+	fiDevice* pDevice = fiDevice::GetDeviceImpl(resourceName, isReadOnly);
+	return OpenWithDevice(resourceName, pDevice, isReadOnly);
 }
 
-rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, intptr_t pData, fiDevice* device)
+rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, FI_HANDLE handle, fiDevice* pDevice)
 {
 	// Resource name is actually passed in fiStream::AllocStream but not used,
 	// most likely was simply logged somewhere.
-	g_Log.Log("Allocating stream for: {}. Data Ptr: {:X}. Device: {:X}",
-		resourceName, pData, reinterpret_cast<intptr_t>(device));
+
+	//g_Log.Log("Allocating stream for: {}. Handle: {:X}. Device: {:X}",
+	//	resourceName, handle, reinterpret_cast<intptr_t>(pDevice));
 
 	if (!HasAvailableStreams())
 		return nullptr;
@@ -88,16 +102,18 @@ rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, intptr_t p
 
 	// Find slot with closed stream
 	int i = 0;
-	for (i = 0; i < sm_maxStreams; i++)
+	for (; i < sm_MaxStreams; i++)
 	{
 		fiStream& slot = sm_streams[i];
 
-		if (slot.p_Device == nullptr)
+		if (slot.m_pDevice == nullptr)
 			break;
 	}
 
-	sm_streams[i] = fiStream(device, pData, sm_streamBuffers[i]);
-	sm_activeStreams++;
+	// We'd use sm_streamBuffers[i] but compiler doesn't know about array dimensions
+	char* buffer = sm_streamBuffers + STREAM_BUFFER_SIZE * (uintptr_t)i;
+	sm_streams[i] = fiStream(pDevice, handle, buffer);
+	sm_ActiveStreams++;
 
 	sm_mutex.unlock();
 
@@ -106,45 +122,96 @@ rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, intptr_t p
 
 void rage::fiStream::Close()
 {
-	if (m_bufferContentEnd == 0 && m_bufferCursorPos != 0)
+	if (m_BufferContentEnd == 0 && m_BufferCursorPos != 0)
 		Flush();
 
-	// TODO:
-	// Mark as no longer needed?
-	// p_Device->vftable + 0x60 (pData)
+	sm_mutex.lock();
 
-	m_handle = RAGE_INVALID_HANDLE;
-	p_Device = nullptr;
+	m_pDevice->vftable->Close(m_pDevice, m_FileHandle);
+	m_pDevice = nullptr;
+	m_FileHandle = FI_INVALID_HANDLE;
+	sm_ActiveStreams--;
 
-	sm_activeStreams--;
+	sm_mutex.unlock();
 }
 
-void rage::fiStream::Flush()
+bool rage::fiStream::Flush()
 {
-	throw;
+	if (m_BufferContentEnd)
+	{
+		m_pDevice->vftable->Seek64(
+			m_pDevice, m_FileHandle, m_DeviceCursorPos + m_BufferCursorPos, SEEK_FILE_BEGIN);
+	}
+	else if (m_BufferCursorPos)
+	{
+		m_pDevice->vftable->WriteBuffer(m_pDevice, m_FileHandle, m_Buffer, m_BufferCursorPos);
+	}
+
+	m_BufferContentEnd = 0;
+	m_DeviceCursorPos += m_BufferCursorPos;
+	m_BufferCursorPos = 0;
+	return m_pDevice->vftable->Flush(m_pDevice, m_FileHandle);
 }
 
 u32 rage::fiStream::Size()
 {
 	// TODO:
-	// p_Device->vftable + 0x70 (p_FileData)
+	// m_pDevice->vftable + 0x70 (p_FileData)
 
 	throw;
 }
 
-int rage::fiStream::Read(const void* dest, u32 size)
+int rage::fiStream::Read(const char* dest, u32 size)
 {
 	throw;
 }
 
-int rage::fiStream::Write(const void* data, u32 size)
+int rage::fiStream::Write(const char* data, u32 size)
 {
-	throw;
+	__int64 result; // rax
+	signed int bufferSize; // eax MAPDST
+	int v10; // eax
+	signed int availableLength; // eax
+	int32_t cursorPos; // ecx
+	int v14; // eax
+
+	if (this->m_BufferContentEnd)
+	{
+		if (!Flush())
+			return -1;
+	}
+	bufferSize = this->m_BufferSize;
+	if (size >= bufferSize)                     // data doesn't fit buffer at all, write directly to device
+	{
+		if (Flush())
+		{
+			result = (this->m_pDevice->vftable->Write)(this->m_pDevice, this->m_FileHandle, (LPVOID)data, size);
+			if (result >= 0)
+			{
+				this->m_DeviceCursorPos += result;
+				return result;
+			}
+		}
+		return -1;
+	}
+	availableLength = bufferSize - this->m_BufferCursorPos;
+	if (size >= availableLength)                // buffer has enough space, but left space is not enough. add to buffer what we can and then send to device
+	{
+		memmove(&this->m_Buffer[this->m_BufferCursorPos], data, availableLength);
+		cursorPos = this->m_BufferCursorPos;
+		bufferSize = this->m_BufferSize;
+		this->m_BufferCursorPos = bufferSize;
+		size += cursorPos - bufferSize;             // since part of data was already written, we need to set pointer and size for the remaining of it
+		data += bufferSize - cursorPos;
+		if (!Flush())
+			return -1;
+	}
+	memmove(&this->m_Buffer[this->m_BufferCursorPos], data, size);// write all data / whats left after partial flushing
+	this->m_BufferCursorPos += size;
+	return size;
 }
 
-bool rage::fiStream::WriteChar(char c)
+bool rage::fiStream::WriteChar(const char c)
 {
 	return Write(&c, 1) != -1;
 }
-
-rage::fiStream rage::fiStream::sm_streams[] = {};

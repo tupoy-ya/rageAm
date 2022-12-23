@@ -4,6 +4,8 @@
 #include "../logger.h"
 #include "fwTypes.h"
 #include "fiDevice.h"
+#include "../memory/gmFunc.h"
+#include "../memory/unionCast.h"
 
 namespace rage
 {
@@ -20,36 +22,36 @@ namespace rage
 
 		// Is it parsed from GameConfig.xml? It's not constant.
 		// Additionally there's checks if it's not set to zero.
-		static constexpr int sm_maxStreams = 64;
+		static constexpr int sm_MaxStreams = 64;
 
 		inline static std::mutex sm_mutex;
-		static fiStream sm_streams[sm_maxStreams];
 
-		inline static int sm_activeStreams;
+		inline static fiStream* sm_streams = gm::GetGlobal<fiStream*>("sm_Streams"); // [sm_MaxStreams];
+		inline static char* sm_streamBuffers = gm::GetGlobal<char*>("sm_Buffers"); // [sm_MaxStreams][STREAM_BUFFER_SIZE]{ {0} };
+		inline static int sm_ActiveStreams;
 
-		inline static char sm_streamBuffers[sm_maxStreams][STREAM_BUFFER_SIZE]{ {0} };
-
-		fiDevice* p_Device;
-		// Device specific handle. For i.e. in fiDeviceLocal (win api) it's file handle.
-		RAGE_HANDLE m_handle;
-		char* m_buffer;
-
-		int64 m_deviceCursorPos;
-		// Read / write operations are processed relative to position of cursor in buffer.
-		int m_bufferCursorPos;
-		// If steam reads any data in buffer it will point to position where this data ends.
-		int m_bufferContentEnd;
-
-		int m_bufferSize;
-
-		int m_dword2C;
-
+		fiDevice* m_pDevice;
+		FI_HANDLE m_FileHandle; // Device specific handle. For i.e. in fiDeviceLocal (win api) it's file handle.
+		char* m_Buffer; // Temporary buffer where stream writes and reads data from
+		int64 m_DeviceCursorPos;
+		int m_BufferCursorPos; // Read / write operations are processed relative to position of cursor in buffer.
+		int m_BufferContentEnd; // If steam reads any data in buffer it will point to position where this data ends.
+		int m_BufferSize;
 	public:
 		fiStream();
-		fiStream(fiDevice* pDevice, intptr_t handle, char* buffer);
+		fiStream(fiDevice* pDevice, FI_HANDLE handle, char* buffer);
 
 		static int GetNumActiveStreams();
 		static bool HasAvailableStreams();
+
+		/**
+		 * \brief Creates new resource, overwriting existing and allocates stream.
+		 * \param resourceName Name of the resource that will be resolved by fiDevice.
+		 * \param pDevice Device to use for working with file.
+		 * \return Allocated stream for created resource or nullptr if unable to create resource.
+		 * \remark Not supported on following devices: fiPackfile
+		 */
+		static fiStream* CreateWithDevice(const char* resourceName, fiDevice* pDevice);
 
 		/**
 		 * \brief Creates new resource, overwriting existing and allocates stream.
@@ -58,6 +60,16 @@ namespace rage
 		 * \remark Not supported on following devices: fiPackfile
 		 */
 		static fiStream* Create(const char* resourceName);
+
+		/**
+		 * \brief Opens existing resource using given device and allocates stream.
+		 * \param resourceName Name of the resource that will be resolved by fiDevice.
+		 * \param pDevice Device to use for working with file.
+		 * \param isReadOnly Whether file needs to be opened only with read access or read & write.
+		 * \return Allocated stream for the resource or nullptr if resource was not found.
+		 * \remark Write mode not supported on following devices: fiPackfile
+		 */
+		static fiStream* OpenWithDevice(const char* resourceName, fiDevice* pDevice, bool isReadOnly = true);
 
 		/**
 		 * \brief Opens existing resource and allocates stream.
@@ -72,11 +84,11 @@ namespace rage
 		 * \brief Creates a new stream for given resource.
 		 * After stream is no longer needed, call Close().
 		 * \param resourceName Name of the resource. i.e. 'x64/audio/audio_rel.rpf'.
-		 * \param pData Pointer to data that can be interpreted by fiDevice.
-		 * \param device Pointer to fiDevice, which data belongs to.
+		 * \param handle Handle returned by fiDevice.
+		 * \param pDevice Pointer to fiDevice, which data belongs to.
 		 * \return Pointer to fiStream or nullptr if was unable to allocate new stream.
 		 */
-		static fiStream* AllocStream(const char* resourceName, intptr_t pData, fiDevice* device);
+		static fiStream* AllocStream(const char* resourceName, FI_HANDLE handle, fiDevice* pDevice);
 
 		/**
 		 * \brief Frees up allocated slot. Has to be called after stream is no longer needed.
@@ -85,8 +97,9 @@ namespace rage
 
 		/**
 		 * \brief Immediately sends all data in buffer to fiDevice.
+		 * \return Value indicating whether any data was written or not.
 		 */
-		void Flush();
+		bool Flush();
 
 		/**
 		 * \brief Gets size of resource.
@@ -100,7 +113,7 @@ namespace rage
 		 * \param size Number of bytes to read.
 		 * \return Number of bytes was read. -1 if unsuccessful.
 		 */
-		int Read(const void* dest, u32 size);
+		int Read(const char* dest, u32 size);
 
 		/**
 		 * \brief Writes given data to stream.
@@ -110,7 +123,7 @@ namespace rage
 		 * \param size Number of bytes to write from data.
 		 * \return Number of bytes written. -1 if data was unable to write.
 		 */
-		int Write(const void* data, u32 size);
+		int Write(const char* data, u32 size);
 
 		/**
 		 * \brief Writes single character to stream.
@@ -135,5 +148,40 @@ namespace rage
 			return Write(str.c_str(), str.length());
 		}
 	};
-	static_assert(sizeof(fiStream) == 0x30);
+	static_assert(sizeof(fiStream) == 0x30); // + 4 byte alignment
+
+	namespace hooks
+	{
+		static inline gm::gmFuncSwap gSwap_FiStream_CreateWithDeivce(
+			"fiStream::CreateWithDevice",
+			"48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 41 56 48 83 EC 20 4C 8B F2 48 8B F1",
+			fiStream::CreateWithDevice);
+
+		static inline gm::gmFuncSwap gSwap_FiStream_Create(
+			[]() -> uintptr_t
+			{
+				return gm::Scan("fiStream::Create", "E8 ? ? ? ? 48 8B F8 48 8B 73 08").GetCall();
+			},
+			fiStream::Create);
+
+		static inline gm::gmFuncSwap gSwap_FiStream_OpenWithDevice(
+			"fiStream::OpenWithDevice",
+			"48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48 89 78 20 41 56 48 83 EC 20 48 8B 02 48 8B FA",
+			fiStream::OpenWithDevice);
+
+		static inline gm::gmFuncSwap gSwap_FiStream_Open(
+			"fiStream::Open",
+			"48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 40 8A EA 48 8B F1 E8",
+			fiStream::Open);
+
+		static inline gm::gmFuncSwap gSwap_FiStream_AllocStream(
+			"fiStream::AllocStream",
+			"48 89 5C 24 08 57 48 83 EC 20 48 8D 0D ? ? ? ? ? ? ? ? 49",
+			fiStream::AllocStream);
+
+		static inline gm::gmFuncSwap gSwap_FiStream_Close(
+			"fiStream::Close",
+			"40 53 48 83 EC 20 83 79 24 00 48 8B D9 75",
+			gm::CastLPVOID(&fiStream::Close));
+	}
 }

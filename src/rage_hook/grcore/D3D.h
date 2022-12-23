@@ -35,7 +35,7 @@ namespace rh
 			UINT SyncInterval,
 			UINT Flags)
 		{
-			for (auto& task : ms_renderTasks)
+			for (auto& task : sm_renderTasks)
 			{
 				task();
 			}
@@ -53,7 +53,7 @@ namespace rh
 
 		}
 
-		static inline std::vector<RenderTask> ms_renderTasks;
+		static inline std::vector<RenderTask> sm_renderTasks;
 	public:
 		D3D()
 		{
@@ -116,7 +116,7 @@ namespace rh
 		template<typename T>
 		static void AddRenderTask(T task)
 		{
-			ms_renderTasks.push_back(reinterpret_cast<RenderTask>(task));
+			sm_renderTasks.push_back(reinterpret_cast<RenderTask>(task));
 		}
 	};
 

@@ -15,7 +15,7 @@ namespace imgui_rage
 {
 	class ImGuiAppMgr
 	{
-		static inline std::vector<std::unique_ptr<ImGuiApp>> ms_apps;
+		static inline std::vector<std::unique_ptr<ImGuiApp>> sm_apps;
 
 		bool m_isBackground = false;
 		bool m_isVisible = true;
@@ -52,7 +52,7 @@ namespace imgui_rage
 				if (!isFocused)
 					ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 
-				for (auto& app : ms_apps)
+				for (auto& app : sm_apps)
 				{
 					app->Update();
 				}
@@ -79,7 +79,7 @@ namespace imgui_rage
 		template<typename T>
 		void RegisterApp()
 		{
-			ms_apps.push_back(std::make_unique<T>());
+			sm_apps.push_back(std::make_unique<T>());
 		}
 	};
 }

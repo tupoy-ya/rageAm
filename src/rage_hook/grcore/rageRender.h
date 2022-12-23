@@ -69,7 +69,7 @@ namespace rh
 		// This command handler (called by draw fragment draw command) executed by render thread
 		// to draw fragment. Disabling this will disable vehicles, street lamps and other .yft models.
 		typedef void (*gDef_DrawFragmentCommandHandler)(int64_t renderCtx, bool a2);
-		// Draws non-standard (tuning) wheels on cars. Shares ms_CurrentShaderFxVehicle variable with
+		// Draws non-standard (tuning) wheels on cars. Shares sm_CurrentShaderFxVehicle variable with
 		// DrawCustomShaderEffectCommand (which sets it).
 		typedef void (*gDef_DrawTuningWheelsCommandHandler)(int64_t renderCtx);
 		// Override of rmcDrawable::DrawSkinned.
@@ -258,7 +258,7 @@ namespace rh
 			}
 
 			*(uint64_t*)(0x7FF6E2151598) = 0;
-			//ms_lastShaderTechnique = 0i64;
+			//sm_lastShaderTechnique = 0i64;
 		}
 
 		// Used only once 
@@ -309,18 +309,18 @@ namespace rh
 
 		// Possibly draw bucket, water_rivershallow.sps has bucket 6th render bucket
 		// This is actually multi-dimensional array
-		static inline rage::grcTexture** ms_TextureBucketArray = // [GRC_MAX_NUM_SAMPLERS * GRC_NUM_DRAW_BUCKETS]{};
-			gm::GetGlobal<rage::grcTexture**>("ms_TextureBucketArray");
+		static inline rage::grcTexture** sm_TextureBucketArray = // [GRC_MAX_NUM_SAMPLERS * GRC_NUM_DRAW_BUCKETS]{};
+			gm::GetGlobal<rage::grcTexture**>("sm_TextureBucketArray");
 
 		static void RenderThread_AddTextureInRenderBucketSlot(uint8_t bucket, uint8_t slot, rage::grcTexture* texture)
 		{
 			uint8_t index = GRC_MAX_NUM_SAMPLERS * bucket;
 			index += slot;
 
-			ms_TextureBucketArray[index] = texture;
+			sm_TextureBucketArray[index] = texture;
 		}
 
-		static inline ID3D11SamplerState** ms_SamplerList = *gm::GetGlobal<ID3D11SamplerState***>("ms_SamplerList");
+		static inline ID3D11SamplerState** sm_SamplerList = *gm::GetGlobal<ID3D11SamplerState***>("sm_SamplerList");
 
 		static void __fastcall SetTextureSampler(int slot, rage::grcTexture* texture, unsigned __int16 samplerIndex)
 		{
@@ -331,7 +331,7 @@ namespace rh
 				if (slot >= 16)
 					return;
 
-				auto sampler = ms_SamplerList + samplerIndex;
+				auto sampler = sm_SamplerList + samplerIndex;
 				deviceContext->PSSetSamplers(
 					slot,
 					1u,
@@ -369,11 +369,11 @@ namespace rh
 			rage::grcConstantBuffer* pLocalBuffer,
 			unsigned __int8 dataType)
 		{
-			return grcConstantBuffer_SetValue(pLocalBuffer, 0, pDataValue, dataCount, a5, ms_GrmDataSizes[dataType]);
+			return grcConstantBuffer_SetValue(pLocalBuffer, 0, pDataValue, dataCount, a5, sm_GrmDataSizes[dataType]);
 		}
 
 		// Matrix values not match here for some reason, 16 instead of 64 (one row?)
-		static inline uint8_t ms_GrmDataSizes[40]
+		static inline uint8_t sm_GrmDataSizes[40]
 		{
 			0,
 			0x4,
@@ -403,33 +403,33 @@ namespace rh
 			0x0, 0x0, 0x0, 0x0
 		};
 
-		static inline rage::grcFragmentProgram** ms_CurrentFragmentProgram =
-			gm::GetGlobal<rage::grcFragmentProgram**>("ms_CurrentFragmentProgram");
+		static inline rage::grcFragmentProgram** sm_CurrentFragmentProgram =
+			gm::GetGlobal<rage::grcFragmentProgram**>("sm_CurrentFragmentProgram");
 
-		static inline uint32_t* ms_CurrentFragmentProgramFlag =
-			gm::GetGlobal<uint32_t*>("ms_CurrentFragmentProgramFlag");
+		static inline uint32_t* sm_CurrentFragmentProgramFlag =
+			gm::GetGlobal<uint32_t*>("sm_CurrentFragmentProgramFlag");
 
 		static void __fastcall grcPixelProgram_Bind(rage::grcFragmentProgram* program)
 		{
 			// g_Log.LogD("{}", program->shaderName);
 
-			if (*ms_CurrentFragmentProgram == program)
+			if (*sm_CurrentFragmentProgram == program)
 				return;
 
-			*ms_CurrentFragmentProgram = program;
+			*sm_CurrentFragmentProgram = program;
 
 			ID3D11DeviceContext* context = rage::TlsManager::GetD3D11Context();
 			context->PSSetShader((ID3D11PixelShader*)program->pShaderD3D, nullptr, 0);
 
 			if (program->pShaderD3D)
-				*ms_CurrentFragmentProgramFlag |= 2u;
+				*sm_CurrentFragmentProgramFlag |= 2u;
 			else
-				*ms_CurrentFragmentProgramFlag &= 0xFFFFFFFD; // ~2u
+				*sm_CurrentFragmentProgramFlag &= 0xFFFFFFFD; // ~2u
 		}
 
-		static inline uint16_t* ms_SamplerIndices = gm::GetGlobal<uint16_t*>("ms_SamplerIndices");
+		static inline uint16_t* sm_SamplerIndices = gm::GetGlobal<uint16_t*>("sm_SamplerIndices");
 		// Size of 42 too
-		static inline rage::grcTexture** ms_TextureArray = gm::GetGlobal<rage::grcTexture**>("ms_TextureArray");
+		static inline rage::grcTexture** sm_TextureArray = gm::GetGlobal<rage::grcTexture**>("sm_TextureArray");
 
 		static void __fastcall grcEffect_BeginPass_FragmentProgram(
 			rage::grcInstanceData* material,
@@ -486,11 +486,11 @@ namespace rh
 							// maybe some spec related texture?
 							// Also remove 'blur / roughness' from textures
 							//samplerArrayIndex = ((uint16_t*)0x7FF6E21517F0)[slot]; // sampler indices
-							samplerArrayIndex = ms_SamplerIndices[slot]; // sampler indices
+							samplerArrayIndex = sm_SamplerIndices[slot]; // sampler indices
 						else
 							samplerArrayIndex = 0;
 						//texture = ((rage::grcTexture**)0x7FF6E21516A0)[slot]; // texture list
-						texture = ms_TextureArray[slot];
+						texture = sm_TextureArray[slot];
 					LABEL_14:
 
 						SetTextureSampler(slot, texture, samplerArrayIndex);
@@ -501,8 +501,8 @@ namespace rh
 			grcPixelProgram_Bind(program);
 		}
 
-		static inline ID3D11ShaderResourceView** ms_ShaderResourceViews = //[GRC_MAX_NUM_SAMPLERS]{};
-			gm::GetGlobal<ID3D11ShaderResourceView**>("ms_ShaderResourceViews");
+		static inline ID3D11ShaderResourceView** sm_ShaderResourceViews = //[GRC_MAX_NUM_SAMPLERS]{};
+			gm::GetGlobal<ID3D11ShaderResourceView**>("sm_ShaderResourceViews");
 
 		static void __fastcall grcFragmentProgram_SetBucketResources(rage::grcFragmentProgram* shaderProgram, uint8_t bucket)
 		{
@@ -537,7 +537,7 @@ namespace rh
 				if (dataType == rage::EFFECT_VALUE_TEXTURE)
 				{
 					shaderResourceIndex = resourceViewIndex;
-					rage::grcTexture* texture = ms_TextureBucketArray[GRC_MAX_NUM_SAMPLERS * bucket + resourceViewIndex];
+					rage::grcTexture* texture = sm_TextureBucketArray[GRC_MAX_NUM_SAMPLERS * bucket + resourceViewIndex];
 					if (!texture)
 						goto LABEL_17;
 
@@ -555,16 +555,16 @@ namespace rh
 					shaderResourceIndex = effectVar->unk34;
 
 					// Some unknown structure (grc texture alternative)
-					resourceView = *(ID3D11ShaderResourceView**)(((uint64_t*)ms_TextureBucketArray)[GRC_MAX_NUM_SAMPLERS * bucket + resourceViewIndex] + 0x28);
+					resourceView = *(ID3D11ShaderResourceView**)(((uint64_t*)sm_TextureBucketArray)[GRC_MAX_NUM_SAMPLERS * bucket + resourceViewIndex] + 0x28);
 				}
-				if (!resourceView || ms_ShaderResourceViews[shaderResourceIndex] == resourceView)
+				if (!resourceView || sm_ShaderResourceViews[shaderResourceIndex] == resourceView)
 				{
 				LABEL_17:
 					v6 = v17;
 					continue;
 				}
 				v6 = 1;
-				ms_ShaderResourceViews[shaderResourceIndex] = resourceView;
+				sm_ShaderResourceViews[shaderResourceIndex] = resourceView;
 				if (startSlot >= resourceViewIndex)
 					startSlot = resourceViewIndex;
 				v17 = 1;
@@ -575,7 +575,7 @@ namespace rh
 			if (v6 && bucket && bucket == 1)
 			{
 				ID3D11DeviceContext* pContext = rage::TlsManager::GetD3D11Context();
-				ID3D11ShaderResourceView** resourceViews = ms_ShaderResourceViews + startSlot;
+				ID3D11ShaderResourceView** resourceViews = sm_ShaderResourceViews + startSlot;
 
 				uint32_t numViews = __endSlot - startSlot + 1;
 				pContext->PSSetShaderResources(startSlot, numViews, resourceViews);

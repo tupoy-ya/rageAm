@@ -23,7 +23,7 @@ namespace rh
 			return gImpl_WndProc(hWnd, Msg, wParam, lParam);
 		}
 
-		static inline HWND* ms_pHwnd;
+		static inline HWND* sm_pHwnd;
 
 	public:
 		PlatformWin32Impl()
@@ -34,7 +34,7 @@ namespace rh
 					"CreateGameWindowAndGraphics",
 					"48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 38 F7");
 
-				ms_pHwnd = addr
+				sm_pHwnd = addr
 					.GetAt(0x436 + 0x3)
 					.CastRef<HWND*>();
 			}
@@ -43,7 +43,7 @@ namespace rh
 				gm::gmAddress addr = gm::Scan("CreateGameWindowAndGraphics",
 					"48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 48");
 
-				ms_pHwnd = addr
+				sm_pHwnd = addr
 					.GetAt(0x46A + 0x3)
 					.CastRef<HWND*>();
 			}
@@ -53,12 +53,12 @@ namespace rh
 				aImpl_WndProc,
 				&gImpl_WndProc);
 
-			g_Log.LogT("::PlatformWin32Impl -> hwnd: {}", reinterpret_cast<int64_t>(ms_pHwnd));
+			g_Log.LogT("::PlatformWin32Impl -> hwnd: {}", reinterpret_cast<int64_t>(sm_pHwnd));
 		}
 
 		static HWND GetHwnd()
 		{
-			return *ms_pHwnd;
+			return *sm_pHwnd;
 		}
 	};
 

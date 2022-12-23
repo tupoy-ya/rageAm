@@ -9,9 +9,9 @@ extern inline HMODULE g_RageAmHnd = nullptr;
 
 class CrashHandler
 {
-	static inline PVOID ms_VectorExceptionHandlerHnd;
-	static inline bool ms_hasExceptionOccurred = false;
-	static inline LPTOP_LEVEL_EXCEPTION_FILTER ms_PreviousTopLevelUnhandledExceptionHandler;
+	static inline PVOID sm_VectorExceptionHandlerHnd;
+	static inline bool sm_hasExceptionOccurred = false;
+	static inline LPTOP_LEVEL_EXCEPTION_FILTER sm_PreviousTopLevelUnhandledExceptionHandler;
 
 	static HMODULE GetCurrentModule()
 	{ // NB: XP+ solution!
@@ -32,14 +32,14 @@ class CrashHandler
 		HMODULE hModule = GetCurrentModule();
 		if (hModule == g_RageAmHnd)
 		{
-			if (!ms_hasExceptionOccurred)
+			if (!sm_hasExceptionOccurred)
 			{
 				g_Log.LogE("An unhandled exception occurred in rageAm: \n{}", ss.str());
 
 				g_ImGui.Shutdown();
 				g_Hook.Shutdown();
 
-				ms_hasExceptionOccurred = true;
+				sm_hasExceptionOccurred = true;
 			}
 
 			// This probably will make every c++ developer in the world angry
@@ -71,10 +71,10 @@ public:
 		g_Log.LogT("CrashHandler()");
 
 #ifdef USE_VEH_CRASH_HANDLER
-		ms_VectorExceptionHandlerHnd = AddVectoredExceptionHandler(true, RageVectoredExceptionHandler);
+		sm_VectorExceptionHandlerHnd = AddVectoredExceptionHandler(true, RageVectoredExceptionHandler);
 #endif
 #ifdef USE_UNHANDLED_CRASH_HANDLER
-		ms_PreviousTopLevelUnhandledExceptionHandler = SetUnhandledExceptionFilter(RageUnhandledExceptionFilter);
+		sm_PreviousTopLevelUnhandledExceptionHandler = SetUnhandledExceptionFilter(RageUnhandledExceptionFilter);
 #endif
 	}
 
@@ -83,16 +83,16 @@ public:
 		g_Log.LogT("~CrashHandler()");
 
 #ifdef USE_VEH_CRASH_HANDLER
-		RemoveVectoredExceptionHandler(ms_VectorExceptionHandlerHnd);
+		RemoveVectoredExceptionHandler(sm_VectorExceptionHandlerHnd);
 #endif
 #ifdef USE_UNHANDLED_CRASH_HANDLER
-		SetUnhandledExceptionFilter(ms_PreviousTopLevelUnhandledExceptionHandler);
+		SetUnhandledExceptionFilter(sm_PreviousTopLevelUnhandledExceptionHandler);
 #endif
 	}
 
 	bool GetExceptionOccured() const
 	{
-		return ms_hasExceptionOccurred;
+		return sm_hasExceptionOccurred;
 	}
 };
 
