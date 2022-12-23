@@ -65,7 +65,7 @@ rage::fiStream* rage::fiStream::Create(const char* resourceName)
 
 rage::fiStream* rage::fiStream::OpenWithDevice(const char* resourceName, fiDevice* pDevice, bool isReadOnly)
 {
-	g_Log.LogT("fiStream::Open({}, {})", resourceName, isReadOnly);
+	// g_Log.LogT("fiStream::Open({}, {})", resourceName, isReadOnly);
 
 	if (!pDevice)
 		return nullptr;
