@@ -5,6 +5,12 @@
 
 namespace sapp
 {
+	enum eMatDrawableType
+	{
+		MAT_TYPE_DRAWABLE,
+		MAT_TYPE_FRAGMENT,
+	};
+
 	class ImGuiApp_MaterialEditor : public imgui_rage::ImGuiApp
 	{
 		static constexpr int INPUT_BUFFER_SIZE = 64;
@@ -19,6 +25,8 @@ namespace sapp
 		bool m_CacheOutdated = true;
 		int m_SelectedTextureIndex = -1;
 
+		eMatDrawableType m_MatDrawableType;
+
 		rage::grcTexture* m_SelectedTexture = nullptr;
 
 		uint32_t m_ModelHash;
@@ -29,6 +37,9 @@ namespace sapp
 
 		void OnFragmentRender(uint32_t hash, rage::grmShaderGroup** lpShaderGroup) const
 		{
+			if (m_MatDrawableType != MAT_TYPE_FRAGMENT)
+				return;
+
 			if (m_EditShaderGroup == nullptr)
 				return;
 
@@ -297,11 +308,28 @@ namespace sapp
 			ImGui::Text("Model Type:");
 			ImGui::SameLine();
 
+			// TODO: Cache it
 			rage::gtaDrawable* drawable;
 
 			// TODO: Other drawable types
-			if ((drawable = TryGetFragmentDrawable()))
+			if ((drawable = TryGetFragment()))
+			{
 				ImGui::Text("Fragment");
+				m_MatDrawableType = MAT_TYPE_FRAGMENT;
+
+				static const char* modelMode[] = { "High Detail (_hi)", "Standard" };
+				if (ImGui::Combo("LOD##FRAG_LOD", &m_FragLodMode, modelMode, IM_ARRAYSIZE(modelMode)))
+					m_CacheOutdated = true;
+
+				// If High Detail mode chosen, append '_hi' to model name, other wise remove it
+				if (m_CacheOutdated)
+					ConvertModelNameTo(m_FragLodMode == 0);
+			}
+			else if ((drawable = TryGetDrawable()))
+			{
+				ImGui::Text("Drawable");
+				m_MatDrawableType = MAT_TYPE_DRAWABLE;
+			}
 
 			if (drawable == nullptr)
 			{
@@ -330,7 +358,7 @@ namespace sapp
 		 */
 		void ConvertModelNameTo(bool highDetail) const
 		{
-			int len = strlen(sm_ModelNameInput);
+			int len = (int)strlen(sm_ModelNameInput);
 
 			char* hiPtr = strstr(sm_ModelNameInput, "_hi");
 			if (highDetail && hiPtr == nullptr) // _hi
@@ -346,16 +374,8 @@ namespace sapp
 			}
 		}
 
-		rage::gtaDrawable* TryGetFragmentDrawable()
+		rage::gtaDrawable* TryGetFragment() const
 		{
-			static const char* modelMode[] = { "High Detail (_hi)", "Standard" };
-			if (ImGui::Combo("LOD##FRAG_LOD", &m_FragLodMode, modelMode, IM_ARRAYSIZE(modelMode)))
-				m_CacheOutdated = true;
-
-			// If High Detail mode chosen, append '_hi' to model name, other wise remove it
-			if (m_CacheOutdated)
-				ConvertModelNameTo(m_FragLodMode == 0);
-
 			auto slot = g_FragmentStore->FindSlot(sm_ModelNameInput);
 
 			if (!slot) return nullptr;
@@ -368,6 +388,17 @@ namespace sapp
 				// TODO: Proper structure def
 				return *reinterpret_cast<rage::gtaDrawable**>(fragType + 0x30);
 			}
+			return nullptr;
+		}
+
+		rage::gtaDrawable* TryGetDrawable() const
+		{
+			auto slot = g_DrawableStore->FindSlot(sm_ModelNameInput);
+
+			if (!slot) return nullptr;
+
+			if (slot->value != nullptr)
+				return slot->value;
 			return nullptr;
 		}
 
