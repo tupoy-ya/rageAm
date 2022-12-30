@@ -8,8 +8,10 @@
 
 #include "FileHelper.h"
 
-#define trace(msg) g_Log.LogT(msg)
-#define tracef(fmt, args) g_Log.LogT(fmt, args)
+#define AM_TRACE(msg) g_Log.LogT(msg)
+#define AM_TRACEF(fmt, args) g_Log.LogT(fmt, args)
+#define AM_ERR(msg) g_Log.LogE(msg);
+#define AM_ERRF(fmt, args) g_Log.LogE(fmt, args);
 
 enum eLoggerLevel
 {

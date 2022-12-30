@@ -49,8 +49,8 @@ auto startTime = std::chrono::high_resolution_clock::now();
 #include "rage_hook/rageScaleform.h"
 
 // Global Deluxo Flying Tests
-// #include "rage_hook/rageHandlingHacks.h"
-// #include "rage_hook/rageHandling.h"
+//#include "rage_hook/rageHandlingHacks.h"
+//#include "rage_hook/rageHandling.h"
 
 #include "rage/framework/fwRenderThreadInterface.h"
 

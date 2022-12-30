@@ -27,11 +27,11 @@ class GameVersion
 		{
 			if (strcmp(version, sm_GameVersion) == 0)
 			{
-				tracef("Supported game version found: {}", version);
+				AM_TRACEF("Supported game version found: {}", version);
 				return true;
 			}
 		}
-		tracef("Unsupported game version found: {}", sm_GameVersion);
+		AM_TRACEF("Unsupported game version found: {}", sm_GameVersion);
 		return false;
 	}
 

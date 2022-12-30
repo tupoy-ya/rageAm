@@ -13,7 +13,7 @@ namespace rh
 	{
 		HRESULT CreateTexture2D(const D3D11_TEXTURE2D_DESC* pDesc, const D3D11_SUBRESOURCE_DATA* pInitialData, ID3D11Texture2D** ppTexture2D) override
 		{
-			trace("ID3D11DeviceWrapper::CreateTexture2D");
+			AM_TRACE("ID3D11DeviceWrapper::CreateTexture2D");
 			return ID3D11Device::CreateTexture2D(pDesc, pInitialData, ppTexture2D);
 		}
 	};
@@ -48,7 +48,7 @@ namespace rh
 			const D3D11_SUBRESOURCE_DATA* pInitialData,
 			ID3D11Texture2D** ppTexture2D)
 		{
-			trace("aImpl_ID3D11Device_CreateTexture2D()");
+			AM_TRACE("aImpl_ID3D11Device_CreateTexture2D()");
 			return gImpl_ID3D11Device_CreateTexture2D(inst, pDesc, pInitialData, ppTexture2D);
 
 		}
