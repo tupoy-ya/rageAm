@@ -34,8 +34,8 @@ namespace rh
 			m_CustomFlightData.fRollTorqueScale = 7.5f;
 			m_CustomFlightData.fTransitionDuration = 1.0f;
 			m_CustomFlightData.fPitchTorqueScale = 8.0f;
-			m_CustomFlightData.vecAngularDamping = Vec3V(3.0f, 2.0f, 1.2f, 3.0f); // W component repeats X
-			m_CustomFlightData.vecLinearDamping = Vec3V(0.9f, 0.1f, 0.7f, 0.9f); // W component repeats X
+			m_CustomFlightData.vecAngularDamping = rage::Vec3V(3.0f, 2.0f, 1.2f, 3.0f); // W component repeats X
+			m_CustomFlightData.vecLinearDamping = rage::Vec3V(0.9f, 0.1f, 0.7f, 0.9f); // W component repeats X
 
 			// From in game (defaults)
 			m_CustomFlightData.fCriticalLiftAngle = 45.0f;
