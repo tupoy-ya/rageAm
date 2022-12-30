@@ -7,6 +7,8 @@
 #include "../memory/gmFunc.h"
 #include "../memory/unionCast.h"
 
+#define RAGE_HOOK_SWAP_FISTREAM
+
 namespace rage
 {
 	/**
@@ -150,8 +152,10 @@ namespace rage
 	};
 	static_assert(sizeof(fiStream) == 0x30); // + 4 byte alignment
 
+	// TODO: Crash on 2802
 	namespace hooks
 	{
+#ifdef RAGE_HOOK_SWAP_FISTREAM
 		static inline gm::gmFuncSwap gSwap_FiStream_CreateWithDeivce(
 			"fiStream::CreateWithDevice",
 			"48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 41 56 48 83 EC 20 4C 8B F2 48 8B F1",
@@ -183,5 +187,6 @@ namespace rage
 			"fiStream::Close",
 			"40 53 48 83 EC 20 83 79 24 00 48 8B D9 75",
 			gm::CastLPVOID(&fiStream::Close));
+#endif
 	}
 }

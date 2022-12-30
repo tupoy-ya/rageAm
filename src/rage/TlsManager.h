@@ -2,6 +2,12 @@
 
 namespace rage
 {
+	static constexpr uint32_t TLS_INDEX_DATRESOURCE = 0x190;
+	static constexpr uint32_t TLS_INDEX_NUM_DATRESOURCES = 0x18C;
+	static constexpr uint32_t TLS_INDEX_D3DCONTEXT = 0x1B0;
+
+	struct datResource;
+
 	class TlsManager
 	{
 		static constexpr uint32_t TLS_SLOT = 0; // Never changes, always zero.
@@ -30,7 +36,17 @@ namespace rage
 
 		static ID3D11DeviceContext* GetD3D11Context()
 		{
-			return Get<ID3D11DeviceContext*>(0x1B0);
+			return Get<ID3D11DeviceContext*>(TLS_INDEX_D3DCONTEXT);
+		}
+
+		static datResource* GetResource()
+		{
+			return Get<datResource*>(TLS_INDEX_DATRESOURCE);
+		}
+
+		static void SetResource(datResource* value)
+		{
+			Set<datResource*>(TLS_INDEX_DATRESOURCE, value);
 		}
 	};
 }

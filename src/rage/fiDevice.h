@@ -44,7 +44,7 @@ namespace rage
 		// Packfile has default implementation that returns -1
 		FI_HANDLE(*Create)(fiDevice*, const char* fileName); // 0x28
 		uint32_t(*Read)(fiDevice*, FI_HANDLE, void* buffer, u32 size); // 0x30
-		int64_t nullsub_6;			// 0x38
+		uint64_t* (ReadOverlapped)(fiDevice*, FI_HANDLE, int64 a3, void* buffer, u32 size); // 0x38
 		int64_t nullsub_7;			// 0x40
 		int64_t(*Write)(fiDevice*, FI_HANDLE, void* buffer, u32 size); // 0x48
 		int64_t(*Seek)(fiDevice*, FI_HANDLE, int32_t offset, eFiSeekWhence whence); // 0x50

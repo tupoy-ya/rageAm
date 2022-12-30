@@ -8,6 +8,8 @@
 #include "fwFragmentDef.h"
 #include "atHashString.h"
 
+#include "paging/datResource.h"
+
 namespace rage
 {
 	class strStreamingModule;
