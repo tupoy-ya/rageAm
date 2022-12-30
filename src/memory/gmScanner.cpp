@@ -1,4 +1,4 @@
-#include "gmScanner.h"
+﻿#include "gmScanner.h"
 
 #include <Psapi.h>
 
@@ -77,7 +77,7 @@ void gm::gmScanner::ValidateStorage()
 	// one of them is "Grand Theft Auto V" passed in GameInitialize function
 
 	// TODO: This actually gets scanned only on second run, because on first storage doesn't exists
-	// This m_address will be stored so we'll know if its outdated or not
+	// This m_Фddress will be stored so we'll know if its outdated or not
 	auto result = ScanPattern("InitializeGame",
 		"48 89 5C 24 08 48 89 7C 24 18 55 48 8D AC 24 B0 FE FF FF 48 81 EC 50 02 00 00 48");
 
@@ -153,7 +153,7 @@ gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* mod
 	}
 
 	auto startTime = std::chrono::high_resolution_clock::now();
-	if(module != nullptr)
+	if (module != nullptr)
 	{
 		MODULEINFO modInfo{};
 		GetModuleInformation(GetCurrentProcess(), GetModuleHandle(nullptr), &modInfo, sizeof(MODULEINFO));
@@ -171,7 +171,7 @@ gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* mod
 	if (address == 0)
 	{
 		g_Log.LogE("gmScanner::ScanPattern({}): 0x0", name);
-		return { 0 };
+		return { nullptr };
 	}
 
 #ifdef _DEBUG

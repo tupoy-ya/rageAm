@@ -6,58 +6,32 @@
 
 namespace gm
 {
-	/**
-	 * \brief Represents a template wrapper for function address.
-	 * Purpose is to simplify declaration of game functions.
-	 * \tparam TReturn Type of return value.
-	 * \tparam Args Function arguments.
+	/*
+	 * What to use:
+	 * - I need to call function and I know it's address: gmFunc (useful for testing)
+	 * - I need to call function, but I have only pattern: gmFuncScan
+	 * - I want to hook game function with detour: gmFuncHook
+	 * - I want to completely replace existing game function with one I want: gmFuncSwap
 	 */
+
+	 /**
+	  * \brief Represents a template wrapper for function address.
+	  * \n Purpose is to simplify declaration of game functions.
+	  *	\n Uses __fastcall calling convention.
+	  * \n __fastcall is a function call convention that requires first 4 arguments to be put in
+	  * RCX, RDX, R8, R9 registers, and remaining on top of the stack.
+	  * \tparam TReturn Type of return value.
+	  * \tparam Args Function arguments.
+	  */
 	template<typename TReturn, typename... Args>
-	class gmFunc
+	class gmFunc : public gmAddress
 	{
-	protected:
-		uintptr_t m_Addr = 0;
 	public:
-		gmFunc(LPVOID addr)
-		{
-			m_Addr = reinterpret_cast<uintptr_t>(addr);
-		}
-
-		gmFunc(uintptr_t addr)
-		{
-			m_Addr = addr;
-		}
-
-		virtual ~gmFunc() {}
+		using gmAddress::gmAddress;
 
 		virtual TReturn operator()(Args... args)
 		{
-			return reinterpret_cast<TReturn(*)(Args...)>(m_Addr)(args...);
-		}
-
-		gmAddress GetAddress() const
-		{
-			return m_Addr;
-		}
-	};
-
-	/**
-	 * \brief Represents a template wrapper for __fastcall function address.
-	 * \n __fastcall is a function call convention that requires first 4 arguments to be put in
-	 * RCX, RDX, R8, R9 registers, and remaining on top of the stack.
-	 * \tparam TReturn Type of return value.
-	 * \tparam Args Function arguments.
-	 */
-	template<typename TReturn, typename... Args>
-	class gmFuncFastcall : public gmFunc<TReturn, Args...>
-	{
-	public:
-		using gmFunc<TReturn, Args...>::gmFunc;
-
-		TReturn operator()(Args... args) override
-		{
-			uintptr_t addr = gmFunc<TReturn, Args...>::m_Addr;
-			return reinterpret_cast<TReturn(__fastcall*)(Args...)>(addr)(args...);
+			return reinterpret_cast<TReturn(__fastcall*)(Args...)>(m_Address)(args...);
 		}
 	};
 
@@ -68,33 +42,54 @@ namespace gm
 	 * \tparam Args Function arguments.
 	 */
 	template<typename TReturn, typename... Args>
-	class gmFuncScan : public gmFuncFastcall<TReturn, Args...>
+	class gmFuncScan : public gmFunc<TReturn, Args...>
 	{
 	public:
-		gmFuncScan(const char* pattern) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(Scan("", pattern)) {}
-		gmFuncScan(const char* name, const char* pattern) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(Scan(name, pattern)) {}
-		gmFuncScan(std::function<uintptr_t()> const& onScan) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(onScan()) {}
+		gmFuncScan(const char* pattern) : gmFunc<TReturn, Args...>::gmFunc(Scan("", pattern)) {}
+		gmFuncScan(const char* name, const char* pattern) : gmFunc<TReturn, Args...>::gmFunc(Scan(name, pattern)) {}
+		gmFuncScan(std::function<uintptr_t()> const& onScan) : gmFunc<TReturn, Args...>::gmFunc(onScan()) {}
 	};
 
 	/**
-	 * \brief Represents a template wrapper for function swap by pattern.
-	 * \n Swap disables game function, calling Detour instead.
-	 * \n Uses __fastcall convention, see gmFuncFastcall.
-	 * \tparam TReturn Type of return value.
-	 * \tparam Args Function arguments.
+	 * \brief Represents a template wrapper for function hook by pattern.
+	 * \n After hook being installed, instead of game function 'Detour' will be called.
 	 */
-	template<typename TReturn, typename... Args>
-	class gmFuncHook : public gmFuncFastcall<TReturn, Args...>
+	class gmFuncHook
 	{
 	public:
+		// gmFuncBase wrappers
+
+		template<typename Detour>
+		gmFuncHook(const char* name, const char* pattern, Detour detour, gmAddress* original)
+		{
+			ScanAndHook(name, pattern, detour, (LPVOID*)original->GetAddressPtr());
+		}
+
+		// Template wrappers
+
 		template<typename Detour, typename Original>
-		gmFuncHook(const char* pattern, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(ScanAndHook("", pattern, detour, original)) {}
+		gmFuncHook(const char* pattern, Detour detour, Original original)
+		{
+			ScanAndHook("", pattern, detour, original);
+		}
+
 		template<typename Detour, typename Original>
-		gmFuncHook(const char* name, const char* pattern, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(ScanAndHook(name, pattern, detour, original)) {}
+		gmFuncHook(const char* name, const char* pattern, Detour detour, Original original)
+		{
+			ScanAndHook(name, pattern, detour, original);
+		}
+
 		template<typename Detour, typename Original>
-		gmFuncHook(std::function<uintptr_t()> const& onScan, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(g_Hook.SetHook(onScan(), detour, original)) {}
+		gmFuncHook(std::function<uintptr_t()> const& onScan, Detour detour, Original original)
+		{
+			g_Hook.SetHook(onScan(), detour, original);
+		}
+
 		template<typename Detour, typename Original>
-		gmFuncHook(LPVOID address, Detour detour, Original original) : gmFuncFastcall<TReturn, Args...>::gmFuncFastcall(g_Hook.SetHook(address, detour, original)) {}
+		gmFuncHook(LPVOID address, Detour detour, Original original)
+		{
+			g_Hook.SetHook(address, detour, original);
+		}
 	};
 
 	/**

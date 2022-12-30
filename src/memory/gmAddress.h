@@ -12,20 +12,32 @@ namespace gm
 	 */
 	struct gmAddress
 	{
-	private:
-		uintptr_t m_address;
+	protected:
+		uintptr_t m_Address;
 
 	public:
 		static constexpr uintptr_t GM_ADDRESS_INVALID = 0;
 
 		gmAddress(uintptr_t address)
 		{
-			m_address = address;
+			m_Address = address;
 		}
+
+		gmAddress(LPVOID address)
+		{
+			m_Address = (uintptr_t)address;
+		}
+
+		virtual ~gmAddress() = default;
 
 		uintptr_t GetAddress() const
 		{
-			return m_address;
+			return m_Address;
+		}
+
+		uintptr_t* GetAddressPtr()
+		{
+			return &m_Address;
 		}
 
 		/**
@@ -74,7 +86,7 @@ namespace gm
 			if (!MayBeValid())
 				return nullptr;
 
-			return reinterpret_cast<T>(m_address);
+			return reinterpret_cast<T>(m_Address);
 		}
 
 		/**
@@ -109,6 +121,6 @@ namespace gm
 		 */
 		gmAddress GetAt64(uint64_t offset) const;
 
-		operator uintptr_t() const { return m_address; }
+		operator uintptr_t() const { return m_Address; }
 	};
 }

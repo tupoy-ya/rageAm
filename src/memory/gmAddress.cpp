@@ -3,15 +3,15 @@
 
 bool gm::gmAddress::MayBeValid() const
 {
-	return !IsBadReadPtr(reinterpret_cast<void*>(m_address), 0x8);
+	return !IsBadReadPtr(reinterpret_cast<void*>(m_Address), 0x8);
 }
 
 gm::gmAddress gm::gmAddress::GetRef() const
 {
 	if (!MayBeValid())
-		return { 0 };
+		return { nullptr };
 
-	return { FindRef(m_address) };
+	return { FindRef(m_Address) };
 }
 
 gm::gmAddress gm::gmAddress::GetCall() const
@@ -27,7 +27,7 @@ gm::gmAddress gm::gmAddress::GetAt(uint32_t offset) const
 gm::gmAddress gm::gmAddress::GetAt64(uint64_t offset) const
 {
 	if (!MayBeValid())
-		return { 0 };
+		return { nullptr };
 
-	return { m_address + offset };
+	return { m_Address + offset };
 }
