@@ -2,13 +2,189 @@
 #include "boost/bind.hpp"
 #include "../ImGuiExtensions.h"
 #include "../vendor/directxtk/include/DDSTextureLoader.h"
+#include "../vendor/tinyxml2/tinyxml2.h"
 
 namespace sapp
 {
-	enum eMatDrawableType
+	enum eShaderUIWidget
 	{
-		MAT_TYPE_DRAWABLE,
-		MAT_TYPE_FRAGMENT,
+		UI_WIDGET_NONE = 0,
+		UI_WIDGET_COLOR_RGB,
+		UI_WIDGET_SLIDER_FLOAT,
+		UI_WIDGET_SLIDER_FLOAT2,
+		UI_WIDGET_SLIDER_FLOAT3,
+		UI_WIDGET_SLIDER_FLOAT4,
+		UI_WIDGET_TOGGLE_FLOAT,
+	};
+
+	struct ShaderUIVariable
+	{
+		const char* Name;
+		const char* Description;
+		eShaderUIWidget Widget;
+		union
+		{
+			struct
+			{
+				float Min;
+				float Max;
+				ImGuiSliderFlags Flags;
+			} Slider;
+
+			struct
+			{
+				float Disabled;
+				float Enabled;
+			} Toggle;
+		};
+	};
+
+	class ShaderUIConfig
+	{
+		static inline tinyxml2::XMLDocument sm_Doc;
+		static inline std::unordered_map<std::string_view, ShaderUIVariable> sm_Variables;
+
+		static bool ParseSlider(ShaderUIVariable* uiVar, tinyxml2::XMLElement* widget, const char* widgetName)
+		{
+			auto min = widget->FirstChildElement("Min");
+			auto max = widget->FirstChildElement("Max");
+			if (!min || !max)
+			{
+				AM_ERRF("ShaderUIConfig::Parse() -> Widget of type: {} requires 'Min' and 'Max' parameters.", widgetName);
+				return false;
+			}
+
+			uiVar->Slider.Min = min->FloatText();
+			uiVar->Slider.Max = max->FloatText();
+
+			if (widget->FirstChildElement("Logarithmic"))
+				uiVar->Slider.Flags |= ImGuiSliderFlags_Logarithmic;
+
+			return true;
+		}
+		static bool ParseWidget(ShaderUIVariable* uiVar, tinyxml2::XMLElement* widget)
+		{
+			const char* widgetName = nullptr;
+
+			widget->QueryStringAttribute("Name", &widgetName);
+			if (!widgetName)
+			{
+				AM_ERR("ShaderUIConfig::Parse() -> Widget must have name attribute.");
+				return false;
+			}
+
+			// Color
+			if (strcmp(widgetName, "ColorRGB") == 0)
+			{
+				uiVar->Widget = UI_WIDGET_COLOR_RGB;
+			}
+			// Slider Float
+			else if (strcmp(widgetName, "SliderFloat") == 0)
+			{
+				uiVar->Widget = UI_WIDGET_SLIDER_FLOAT;
+				ParseSlider(uiVar, widget, widgetName);
+			}
+			else if (strcmp(widgetName, "SliderFloat2") == 0)
+			{
+				uiVar->Widget = UI_WIDGET_SLIDER_FLOAT2;
+				ParseSlider(uiVar, widget, widgetName);
+			}
+			else if (strcmp(widgetName, "SliderFloat3") == 0)
+			{
+				uiVar->Widget = UI_WIDGET_SLIDER_FLOAT3;
+				ParseSlider(uiVar, widget, widgetName);
+			}
+			else if (strcmp(widgetName, "SliderFloat4") == 0)
+			{
+				uiVar->Widget = UI_WIDGET_SLIDER_FLOAT4;
+				ParseSlider(uiVar, widget, widgetName);
+			}
+			// Toggle Float
+			else if (strcmp(widgetName, "ToggleFloat") == 0)
+			{
+				uiVar->Widget = UI_WIDGET_TOGGLE_FLOAT;
+
+				auto disabled = widget->FirstChildElement("Disabled");
+				auto enabled = widget->FirstChildElement("Enabled");
+				if (!disabled || !enabled)
+				{
+					AM_ERRF("ShaderUIConfig::Parse() -> Widget of type: {} requires 'Disabled' and 'Enabled' parameters.", widgetName);
+					return false;
+				}
+
+				uiVar->Toggle.Disabled = disabled->FloatText();
+				uiVar->Toggle.Enabled = enabled->FloatText();
+			}
+			// Unknown
+			else
+			{
+				AM_ERRF("ShaderUIConfig::Parse() -> Widget of type: {} is not supported.", widgetName);
+				return false;
+			}
+			return true;
+		}
+	public:
+		static void Parse()
+		{
+			sm_Variables.clear();
+			sm_Doc.Clear();
+
+			tinyxml2::XMLError result = sm_Doc.LoadFile("rageAm/ShaderUIConfig.xml");
+
+			if (result != tinyxml2::XML_SUCCESS)
+			{
+				AM_ERR("ShaderUIConfig::Parse() -> Unable to parse config.");
+				return;
+			}
+
+			auto config = sm_Doc.FirstChildElement("Config");
+
+			// Parse variable list
+			auto variable = config->FirstChildElement("Variables")->FirstChildElement("Item");
+			while (variable != nullptr)
+			{
+				const char* shaderVarName;
+				variable->QueryStringAttribute("Name", &shaderVarName);
+
+				auto name = variable->FirstChildElement("Name");
+				auto desc = variable->FirstChildElement("Description");
+				auto widget = variable->FirstChildElement("Widget");
+
+				ShaderUIVariable uiVar{};
+
+				if (!name)
+				{
+					AM_ERRF("ShaderUIConfig::Parse() -> Name is required property of variable! {}", shaderVarName);
+					return;
+				}
+
+				uiVar.Name = name->GetText();
+				if (desc)
+					uiVar.Description = desc->GetText();
+
+				if (widget && !ParseWidget(&uiVar, widget))
+					return;
+
+				sm_Variables[shaderVarName] = uiVar;
+				variable = variable->NextSiblingElement("Item");
+			}
+		}
+
+		static ShaderUIVariable* GetVariableFor(const char* name)
+		{
+			auto item = sm_Variables.find(name);
+			if (item == sm_Variables.end())
+				return nullptr;
+
+			return &item->second;
+		}
+	};
+
+	enum eModelType
+	{
+		MODEL_UNKNOWN,
+		MODEL_DRAWABLE,
+		MODEL_FRAGMENT,
 	};
 
 	class ImGuiApp_MaterialEditor : public imgui_rage::ImGuiApp
@@ -16,28 +192,25 @@ namespace sapp
 		static constexpr int INPUT_BUFFER_SIZE = 64;
 		static constexpr int TEXT_BUFFER_SIZE = 256;
 
-		static inline char sm_ModelNameInput[INPUT_BUFFER_SIZE] = "deluxo";
+		static inline char sm_ModelNameInput[INPUT_BUFFER_SIZE] = "jackal";
 		static inline char sm_TextBuffer[TEXT_BUFFER_SIZE]{};
 
 		int m_EditMode = 0;
-		int m_SelectedMaterialIndex = 0;
 		int m_FragLodMode = 0;
-		bool m_CacheOutdated = true;
+		int m_SelectedMaterialIndex = 0;
 		int m_SelectedTextureIndex = -1;
+		bool m_EnableUIConfig = true;
 
-		eMatDrawableType m_MatDrawableType;
-
+		uint32_t m_LodModelHash = 0; // For fragments
+		uint32_t m_ModelHash = 0;
+		eModelType m_ModelType = MODEL_UNKNOWN;
+		rage::gtaDrawable* m_Drawable = nullptr;
 		rage::grcTexture* m_SelectedTexture = nullptr;
-
-		uint32_t m_ModelHash;
-
-		rage::gtaDrawable* m_Drawable;
 		rage::grmShaderGroup* m_EditShaderGroup = nullptr;
-		std::vector<std::string> m_ShaderPackNames{};
 
 		void OnFragmentRender(uint32_t hash, rage::grmShaderGroup** lpShaderGroup) const
 		{
-			if (m_MatDrawableType != MAT_TYPE_FRAGMENT)
+			if (m_ModelType != MODEL_FRAGMENT)
 				return;
 
 			if (m_EditShaderGroup == nullptr)
@@ -55,10 +228,10 @@ namespace sapp
 			// to one with exactly the same amount of materials won't hurt even if our assert failed.
 			// It won't crash game though materials will be assigned wrong.
 
-			if (hash != m_ModelHash)
+			if (hash != m_LodModelHash)
 				return;
 
-			if ((*lpShaderGroup)->GetMaterialCount() != m_EditShaderGroup->GetMaterialCount())
+			if ((*lpShaderGroup)->GetEffectCount() != m_EditShaderGroup->GetEffectCount())
 				return;
 
 			*lpShaderGroup = m_EditShaderGroup;
@@ -82,26 +255,14 @@ namespace sapp
 			// license plates will appear bugged.
 
 			// So simply prevent game overwriting material values
-			if (hash == m_ModelHash)
+			if (hash == m_LodModelHash)
 				execute = false;
 		}
 
 		void DrawMaterialTexturesForDrawable()
 		{
 			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
-			rage::grcInstanceData* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
-
-			static float textureWidth = 256.0f;
-			ImGui::SliderFloat("Size", &textureWidth, 64.0f, 512.0f);
-
-			// TODO: Make automatic load from folder with model names
-
-			ImGui::BeginDisabled(!m_SelectedTexture);
-			if (ImGui::Button("Replace"))
-			{
-
-			}
-			ImGui::EndDisabled();
+			rage::grcInstanceData* selectedMaterial = shaderGroup->GetInstanceDataAt(m_SelectedMaterialIndex);
 
 			for (int i = 0; i < selectedMaterial->numVariables; i++)
 			{
@@ -137,7 +298,7 @@ namespace sapp
 
 					int length = strlen(sm_TextBuffer);
 					std::wstring text_wchar(length, L'#');
-					mbstowcs(&text_wchar[0], sm_TextBuffer, length);
+					mbstowcs(text_wchar.data(), sm_TextBuffer, length);
 
 					HRESULT result = DirectX::CreateDDSTextureFromFile(
 						pDevice, text_wchar.c_str(), &pNewTexture, &pNewResourceView);
@@ -157,12 +318,25 @@ namespace sapp
 					}
 				}
 
+				//if (ImGui::BeginTable("split", 2, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable))
+				//{
+				//	ImGui::TableSetColumnIndex(0);
+				//	//     ImGui::AlignTextToFramePadding();
+				//	ImGui::Text("Name");
+				//	ImGui::TableSetColumnIndex(1);
+				//	ImGui::Text(texture->GetName());
+
+				//	ImGui::EndTable();
+				//}
+
 				if (ID3D11ShaderResourceView* shaderResourceView = texture->GetShaderResourceView())
 				{
+					constexpr float textureWidth = 64.0f;
+
 					float factor = static_cast<float>(texture->GetWidth()) / textureWidth;
 					float height = static_cast<float>(texture->GetHeight()) / factor;
 
-					sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "%s - %s", shaderVar->Name, texture->GetName());
+					sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "%s - %s", shaderVar->GetDisplayName(), texture->GetName());
 
 					if (ImGui::Selectable(sm_TextBuffer, i == m_SelectedTextureIndex))
 						m_SelectedTextureIndex = i;
@@ -175,67 +349,122 @@ namespace sapp
 			}
 		}
 
+		void DrawDefaultVariableWidget(const rage::grcInstanceVar* instVar, rage::eEffectValueType type) const
+		{
+			float speed = 0.05f;
+
+			// TODO: Add matrix support
+			switch (type)
+			{
+			case rage::EFFECT_VALUE_FLOAT:
+				ImGui::DragFloat(sm_TextBuffer, instVar->GetFloatPtr(), speed); break;
+			case rage::EFFECT_VALUE_VECTOR2:
+				ImGui::DragFloat2(sm_TextBuffer, instVar->GetFloatPtr(), speed); break;
+			case rage::EFFECT_VALUE_VECTOR3:
+				ImGui::DragFloat3(sm_TextBuffer, instVar->GetFloatPtr(), speed); break;
+			case rage::EFFECT_VALUE_VECTOR4:
+				ImGui::DragFloat4(sm_TextBuffer, instVar->GetFloatPtr(), speed); break;
+			case rage::EFFECT_VALUE_BOOL:
+				ImGui::Checkbox(sm_TextBuffer, instVar->GetBoolPtr()); break;;
+			case rage::EFFECT_VALUE_TEXTURE:
+			{
+				rage::grcTexture* texture = instVar->GetTexture();
+				ImGui::Text(texture != nullptr ? texture->GetName() : "-");
+				break;
+			}
+			default:
+				ImGui::Text("NOT SUPPORTED"); break;
+			}
+		}
+
 		void DrawMaterialInfoForDrawable() const
 		{
 			// Material Info Table
-			ImGui::BeginTable("MAT_INFO_TABLE", 3, APP_COMMON_TABLE_FLAGS);
+			ImGui::BeginTable("MAT_INFO_TABLE", 3, APP_COMMON_TABLE_FLAGS | ImGuiTableFlags_Hideable);
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
 			ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed);
 			ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 			ImGui::TableHeadersRow();
 
 			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
-			rage::grcInstanceData* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
+			rage::grcInstanceData* selectedMaterial = shaderGroup->GetInstanceDataAt(m_SelectedMaterialIndex);
 
 			// Table Rows
 			for (int i = 0; i < selectedMaterial->numVariables; i++)
 			{
 				ImGui::TableNextRow();
 
-				rage::grcInstanceVar* materialVar = selectedMaterial->GetVariableAtIndex(i);
-				rage::grcEffectVar* shaderVar = selectedMaterial->GetEffect()->variables[i];
-
+				const rage::grcEffect* effect = selectedMaterial->GetEffect();
+				const rage::grcInstanceVar* instVar = selectedMaterial->GetVariableAtIndex(i);
+				const rage::grcEffectVar* shaderVar = effect->variables[i];
+				const ShaderUIVariable* uiVar = ShaderUIConfig::GetVariableFor(shaderVar->InShaderName);
 				rage::eEffectValueType type = shaderVar->GetValueType();
 
 				// Name
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text(shaderVar->Name);
+				const char* displayName = shaderVar->GetDisplayName();
+				if (m_EnableUIConfig && uiVar)
+				{
+					displayName = uiVar->Name;
+					if (uiVar->Description)
+					{
+						ImGui::HelpMarker(uiVar->Description);
+						ImGui::SameLine();
+					}
+				}
+				ImGui::Text(displayName);
 
 				// Type
 				ImGui::TableSetColumnIndex(1);
-				ImGui::Text("%i", static_cast<int>(type));
+				ImGui::Text("%s", EffectValueTypeToString(type));
 
 				// Value
 				ImGui::TableSetColumnIndex(2);
+				ImGui::SetNextItemWidth(-FLT_MIN); // Stretch editors to whole area
 
 				// Controls must have unique ID so use variable name
 				// since it doesn't appear twice on screen
-				sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "##%s", shaderVar->Name);
+				sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "##%s", shaderVar->InShaderName);
 
-				// TODO: Add matrix support
-				switch (type)
+				if (!m_EnableUIConfig || !uiVar || uiVar->Widget == UI_WIDGET_NONE)
 				{
-				case rage::EFFECT_VALUE_FLOAT:
-					ImGui::InputFloat(sm_TextBuffer, materialVar->GetFloatPtr()); break;
-				case rage::EFFECT_VALUE_VECTOR2:
-					ImGui::InputFloat2(sm_TextBuffer, materialVar->GetFloatPtr()); break;
-				case rage::EFFECT_VALUE_VECTOR3:
-					ImGui::InputFloat3(sm_TextBuffer, materialVar->GetFloatPtr()); break;
-				case rage::EFFECT_VALUE_VECTOR4:
-					ImGui::InputFloat4(sm_TextBuffer, materialVar->GetFloatPtr()); break;
-				case rage::EFFECT_VALUE_BOOL:
-					ImGui::Checkbox(sm_TextBuffer, materialVar->GetBoolPtr()); break;;
-				case rage::EFFECT_VALUE_TEXTURE:
-				{
-					rage::grcTexture* texture = materialVar->GetTexture();
-					ImGui::Text(texture != nullptr ? texture->GetName() : "-");
-					break;
+					DrawDefaultVariableWidget(instVar, type);
+					continue;
 				}
-				default:
-					ImGui::Text("NOT SUPPORTED"); break;
+
+				const char* slFmt = "%.3f";
+				ImGuiSliderFlags slFlags = uiVar->Slider.Flags;
+				// ReSharper disable once CppIncompleteSwitchStatement
+				switch (uiVar->Widget)
+				{
+				case UI_WIDGET_COLOR_RGB:
+					ImGui::ColorEdit3(sm_TextBuffer, instVar->GetFloatPtr());
+					break;
+				case UI_WIDGET_SLIDER_FLOAT:
+					ImGui::SliderFloat(sm_TextBuffer, instVar->GetFloatPtr(), uiVar->Slider.Min, uiVar->Slider.Max, slFmt, slFlags);
+					break;
+				case UI_WIDGET_SLIDER_FLOAT2:
+					ImGui::SliderFloat2(sm_TextBuffer, instVar->GetFloatPtr(), uiVar->Slider.Min, uiVar->Slider.Max, slFmt, slFlags);
+					break;
+				case UI_WIDGET_SLIDER_FLOAT3:
+					ImGui::SliderFloat3(sm_TextBuffer, instVar->GetFloatPtr(), uiVar->Slider.Min, uiVar->Slider.Max, slFmt, slFlags);
+					break;
+				case UI_WIDGET_SLIDER_FLOAT4:
+					ImGui::SliderFloat4(sm_TextBuffer, instVar->GetFloatPtr(), uiVar->Slider.Min, uiVar->Slider.Max, slFmt, slFlags);
+					break;
+				case UI_WIDGET_TOGGLE_FLOAT:
+					bool on = instVar->GetFloat() == uiVar->Toggle.Enabled;
+					if (ImGui::Checkbox(sm_TextBuffer, &on))
+						*instVar->GetFloatPtr() = on ? uiVar->Toggle.Enabled : uiVar->Toggle.Disabled;
+					break;
 				}
 			}
 			ImGui::EndTable(); // MAT_INFO_TABLE
+		}
+
+		static const char* GetMaterialNameAt(rage::grmShaderGroup* group, int index)
+		{
+			return group->GetInstanceDataAt(index)->GetEffect()->GetFileName();
 		}
 
 		void DrawMaterialListForDrawable()
@@ -244,27 +473,13 @@ namespace sapp
 
 			ImGui::BeginChild("MaterialList", ImVec2(230, 0), true);
 
-			ImGui::Text("Drawable: %p", reinterpret_cast<uintptr_t>(m_Drawable));
-			ImGui::Text("grmShaderGroup: %p", reinterpret_cast<uintptr_t>(shaderGroup));
-
-			if (m_CacheOutdated)
-			{
-				g_Log.LogD("ImGuiApp_MaterialEditor::DrawMaterialListForDrawable() -> Rebuilding materials name list");
-
-				m_ShaderPackNames.clear();
-
-				for (int i = 0; i < shaderGroup->GetMaterialCount(); i++)
-				{
-					rage::grcInstanceData* material = shaderGroup->GetMaterialAt(i);
-					rage::grcEffect* effect = material->GetEffect();
-
-					std::string shaderPackName = effect->GetFileName();
-					m_ShaderPackNames.push_back(shaderPackName);
-				}
-			}
+			//ImGui::Text("Drawable: %p", reinterpret_cast<uintptr_t>(m_Drawable));
+			//ImGui::Text("grmShaderGroup: %p", reinterpret_cast<uintptr_t>(shaderGroup));
+			ImGui::Text("Materials (%i)", shaderGroup->GetEffectCount());
 
 			ImGui::SetNextItemWidth(230);
-			if (ImGui::ListBox("##MAT_LISTBOX", &m_SelectedMaterialIndex, m_ShaderPackNames))
+			if (ImGui::ListBox<rage::grmShaderGroup*>("##MAT_LISTBOX", &m_SelectedMaterialIndex,
+				shaderGroup, shaderGroup->GetEffectCount(), GetMaterialNameAt))
 			{
 				// Reset texture index when material changes
 				m_SelectedTextureIndex = -1;
@@ -279,12 +494,12 @@ namespace sapp
 			DrawMaterialListForDrawable();
 			ImGui::SameLine();
 
+			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
+			rage::grcInstanceData* selectedMaterial = shaderGroup->GetInstanceDataAt(m_SelectedMaterialIndex);
+
 			// Material Info Window
 			ImGui::BeginChild("MAT_INFO", ImVec2(0, 0), true);
-			ImGui::Text("Material Information");
-
-			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
-			rage::grcInstanceData* selectedMaterial = shaderGroup->GetMaterialAt(m_SelectedMaterialIndex);
+			ImGui::Text("Material: %s", selectedMaterial->GetEffect()->GetFileName());
 			ImGui::Text("grcEffect: %p", (uint64_t)selectedMaterial->GetEffect());
 
 			ImGui::BeginTabBar("MAT_INFO_TAB_BAR");
@@ -299,7 +514,6 @@ namespace sapp
 				ImGui::EndTabItem(); // Textures
 			}
 			ImGui::EndTabBar(); // MAT_INFO_TAB_BAR
-
 			ImGui::EndChild(); // MAT_INFO
 		}
 
@@ -315,20 +529,16 @@ namespace sapp
 			if ((drawable = TryGetFragment()))
 			{
 				ImGui::Text("Fragment");
-				m_MatDrawableType = MAT_TYPE_FRAGMENT;
-
-				static const char* modelMode[] = { "High Detail (_hi)", "Standard" };
-				if (ImGui::Combo("LOD##FRAG_LOD", &m_FragLodMode, modelMode, IM_ARRAYSIZE(modelMode)))
-					m_CacheOutdated = true;
-
-				// If High Detail mode chosen, append '_hi' to model name, other wise remove it
-				if (m_CacheOutdated)
-					ConvertModelNameTo(m_FragLodMode == 0);
+				m_ModelType = MODEL_FRAGMENT;
 			}
 			else if ((drawable = TryGetDrawable()))
 			{
 				ImGui::Text("Drawable");
-				m_MatDrawableType = MAT_TYPE_DRAWABLE;
+				m_ModelType = MODEL_DRAWABLE;
+			}
+			else
+			{
+				m_ModelType = MODEL_UNKNOWN;
 			}
 
 			if (drawable == nullptr)
@@ -338,14 +548,7 @@ namespace sapp
 				return;
 			}
 
-			// If model name was already specified, but model wasn't streamed.
-			// Now it got streamed and we have to rebuild the cache
-			if (m_EditShaderGroup == nullptr)
-			{
-				g_Log.LogD("ImGuiApp_MaterialEditor::FindDrawableAndDrawShaderGroup() -> Streaming started for drawable, invalidating cache");
-
-				m_CacheOutdated = true;
-			}
+			ImGui::Text("grmShaderGroup: %p", (uintptr_t)drawable->grmShaderGroup);
 
 			m_Drawable = drawable;
 			DrawShaderGroupForDrawable();
@@ -356,8 +559,14 @@ namespace sapp
 		 * \brief Adds or removes '_hi' postfix in model name.
 		 * \param highDetail Whether to add or remove the postfix.
 		 */
-		void ConvertModelNameTo(bool highDetail) const
+		void ConvertModelNameTo(bool highDetail)
 		{
+			static char buffer[256];
+			strcpy_s(buffer, sm_ModelNameInput);
+			if (char* hi = strstr(buffer, "_hi"))
+				*hi = '\0';
+			m_LodModelHash = fwHelpers::joaat(buffer);
+
 			int len = (int)strlen(sm_ModelNameInput);
 
 			char* hiPtr = strstr(sm_ModelNameInput, "_hi");
@@ -368,7 +577,7 @@ namespace sapp
 				sm_ModelNameInput[len + 2] = 'i';
 				sm_ModelNameInput[len + 3] = '\0';
 			}
-			else if (m_FragLodMode == 1 && hiPtr != nullptr)
+			else if (!highDetail && hiPtr != nullptr)
 			{
 				*strstr(sm_ModelNameInput, "_hi") = '\0';
 			}
@@ -402,6 +611,20 @@ namespace sapp
 			return nullptr;
 		}
 
+		bool DrawFragmentLodSelector()
+		{
+			if (m_ModelType != MODEL_FRAGMENT)
+				return false;
+
+			static const char* modelMode[] = { "High Detail (_hi)", "Standard" };
+			if (ImGui::Combo("LOD##FRAG_LOD", &m_FragLodMode, modelMode, IM_ARRAYSIZE(modelMode)))
+			{
+				ConvertModelNameTo(m_FragLodMode == 0);
+				return true;
+			}
+			return false;
+		}
+
 	public:
 		ImGuiApp_MaterialEditor()
 		{
@@ -412,25 +635,36 @@ namespace sapp
 		}
 
 	protected:
+		void OnStart() override
+		{
+			ShaderUIConfig::Parse();
+		}
+
 		void OnRender() override
 		{
 			if (!ImGui::Begin("Material Editor", &IsVisible))
 				return;
 
+			if (ImGui::Button("Reload UI Config"))
+				ShaderUIConfig::Parse();
+
+			ImGui::Checkbox("Enable UI Config", &m_EnableUIConfig);
+			ImGui::SameLine();
+			ImGui::HelpMarker("Use shader variable names, widgets and other properties defined in rageAm/ShaderUIConfig.xml; "
+				"Disabling this option will allow you to set any value you want.");
+
 			// TODO: Support these
 			static const char* editorModes[] = { "Model", "Instance" };
 			ImGui::Combo("Mode##MAT_MODE", &m_EditMode, editorModes, IM_ARRAYSIZE(editorModes));
 
-			// TODO: It still may have issues with _hi
-			if (ImGui::InputText("Name", sm_ModelNameInput, IM_ARRAYSIZE(sm_ModelNameInput)))
-				m_CacheOutdated = true;
-
-			if (m_CacheOutdated)
+			if (ImGui::InputText("Name", sm_ModelNameInput, IM_ARRAYSIZE(sm_ModelNameInput)) ||
+				DrawFragmentLodSelector())
+			{
 				m_ModelHash = fwHelpers::joaat(sm_ModelNameInput);
+			}
 
+			ImGui::Text("Name hash: %#010x", m_ModelHash);
 			FindDrawableAndDrawShaderGroup();
-
-			m_CacheOutdated = false;
 
 			ImGui::End(); // Material Editor
 		}
