@@ -4,8 +4,7 @@
 #include "../Logger.h"
 #include "gmAddress.h"
 
-#define GM_SCANNER_USE_STORAGE
-
+// TODO: Storage isnt working correctly
 namespace gm
 {
 	/**

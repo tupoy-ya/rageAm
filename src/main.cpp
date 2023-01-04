@@ -14,6 +14,12 @@
  * Material editor breaks tuning rendering (related to CCustomShaderEffect)
  */
 
+ // TODO: They don't work...
+#define RAGE_HOOK_SWAP_DATRESOURCE
+#define RAGE_HOOK_SWAP_FISTREAM
+#define USE_UNHANDLED_CRASH_HANDLER
+#define GM_SCANNER_USE_STORAGE
+
 #include <chrono>
 #include <Windows.h>
 #include <d3d11.h>
@@ -25,14 +31,12 @@ auto startTime = std::chrono::high_resolution_clock::now();
 
 #include "GameVersion.h"
 
-#define USE_UNHANDLED_CRASH_HANDLER
 #ifdef _RELEASE
 #define USE_VEH_CRASH_HANDLER // Conflicts with Cheat Engine VEH debugger
 #endif
 #include "CrashHandler.h"
 
 /* HOOK INCLUDES */
-
 // We use dynamic initialization for pattern scanning,
 // so these may be marked as unused but it's not true.
 // NOTICE: Order matters here.
@@ -53,13 +57,10 @@ auto startTime = std::chrono::high_resolution_clock::now();
 //#include "rage_hook/rageHandling.h"
 
 #include "rage/framework/fwRenderThreadInterface.h"
-
 /* HOOK INCLUDES */
 
 /* FILE OBSERVERS */
-
-#include "rage_hook/file_observer/ShaderSwapThreadInterface.h"
-
+#include "rage_hook/file_observer/ShaderStoreThreadInterface.h"
 /* FILE OBSERVERS */
 
 #include "imgui_rage/ImGuiRage.h"
@@ -72,6 +73,8 @@ void Init()
 {
 	g_Log.LogT("main::Init()");
 
+	CreateDefaultFolders();
+
 	g_ImGui.Init();
 
 	g_ImGuiAppMgr.Init();
@@ -79,9 +82,6 @@ void Init()
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	g_Log.LogT("Core systems initialization took {}ms", std::chrono::duration<double, std::milli>(currentTime - startTime).count());
-
-	// Set game level
-	// gm::gmFuncFastcall<void, int>(0x7FF7D44F8C20)(2);
 }
 
 void Shutdown()

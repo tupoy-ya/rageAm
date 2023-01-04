@@ -7,8 +7,6 @@
 #include "../memory/gmFunc.h"
 #include "../memory/unionCast.h"
 
-#define RAGE_HOOK_SWAP_FISTREAM
-
 namespace rage
 {
 	/**

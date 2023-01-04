@@ -1,8 +1,6 @@
 #pragma once
 #include "memory/unionCast.h"
 
-#define RAGE_HOOK_SWAP_DATRESOURCE
-
 namespace rage
 {
 	/*
