@@ -9,6 +9,7 @@
 #include "atHashString.h"
 
 #include "paging/datResource.h"
+#include "file/fiCollection.h"
 
 namespace rage
 {
