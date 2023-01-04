@@ -36,15 +36,15 @@ namespace rage
 		// Called by fiStream::Open()
 		// Packfile doesn't support editing and returns invalid handle if isReadOnly set to false
 		FI_HANDLE(*Open)(fiDevice*, const char* fileName, bool isReadOnly); // 0x8
-		FI_HANDLE(*OpenReadCaseSensetive)(fiDevice*, const char* fileName, int64_t& outUnk); // 0x10
-		FI_HANDLE(*OpenReadCaseSensetive_Wrapper)(fiDevice*, const char* fileName, int64_t& outUnk); // 0x18
+		FI_HANDLE(*OpenReadCaseSensetive)(fiDevice*, const char* fileName, int64_t& outOffset); // 0x10
+		FI_HANDLE(*OpenReadCaseSensetive_Wrapper)(fiDevice*, const char* fileName, int64_t& outOffset); // 0x18
 		FI_HANDLE(*OpenWrite)(fiDevice*, const char* fileName); // 0x20
 		// Creates a new file. If filed exists, its overwritten.
 		// Called by fiStream::Create()
 		// Packfile has default implementation that returns -1
 		FI_HANDLE(*Create)(fiDevice*, const char* fileName); // 0x28
 		uint32_t(*Read)(fiDevice*, FI_HANDLE, void* buffer, u32 size); // 0x30
-		uint64_t* (ReadOverlapped)(fiDevice*, FI_HANDLE, int64 a3, void* buffer, u32 size); // 0x38
+		uint64_t* (ReadOverlapped)(fiDevice*, FI_HANDLE, int64 offset, void* buffer, u32 size); // 0x38
 		int64_t nullsub_7;			// 0x40
 		int64_t(*Write)(fiDevice*, FI_HANDLE, void* buffer, u32 size); // 0x48
 		int64_t(*Seek)(fiDevice*, FI_HANDLE, int32_t offset, eFiSeekWhence whence); // 0x50
@@ -77,10 +77,11 @@ namespace rage
 		int64_t sub_7FF71FB800D8;	// 0x128
 		int64_t nullsub_30;			// 0x130
 		int64_t nullsub_31;			// 0x138
-		int64_t(*GetPhysicalSortKey)(fiDevice*, const char* unkName); // 0x140
+		int64_t(*GetPhysicalSortKey)(fiDevice*, const char* path); // 0x140
 		int64_t nullsub_32;			// 0x148
 		int64_t nullsub_33;			// 0x150
-		int64_t nullsub_34;			// 0x158
+		// Returns itself in Packfile
+		fiDevice* (*Function34)();	// 0x158
 		int64_t nullsub_35;			// 0x160
 		int64_t nullsub_36;			// 0x168
 		// Gets device type as string. For i.e. fiDeviceLocal returns 'Local'.
