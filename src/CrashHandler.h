@@ -10,7 +10,7 @@ extern inline HMODULE g_RageAmHnd = nullptr;
 class CrashHandler
 {
 	static inline PVOID sm_VectorExceptionHandlerHnd;
-	static inline bool sm_hasExceptionOccurred = false;
+	static inline bool sm_HasExceptionOccurred = false;
 	static inline LPTOP_LEVEL_EXCEPTION_FILTER sm_PreviousTopLevelUnhandledExceptionHandler;
 
 	static HMODULE GetCurrentModule()
@@ -32,14 +32,14 @@ class CrashHandler
 		HMODULE hModule = GetCurrentModule();
 		if (hModule == g_RageAmHnd)
 		{
-			if (!sm_hasExceptionOccurred)
+			if (!sm_HasExceptionOccurred)
 			{
 				g_Log.LogE("An unhandled exception occurred in rageAm: \n{}", ss.str());
 
 				g_ImGui.Shutdown();
 				g_Hook.Shutdown();
 
-				sm_hasExceptionOccurred = true;
+				sm_HasExceptionOccurred = true;
 			}
 
 			// This probably will make every c++ developer in the world angry
@@ -76,7 +76,7 @@ public:
 #ifdef USE_UNHANDLED_CRASH_HANDLER
 		sm_PreviousTopLevelUnhandledExceptionHandler = SetUnhandledExceptionFilter(RageUnhandledExceptionFilter);
 #endif
-	}
+}
 
 	~CrashHandler()
 	{
@@ -92,7 +92,7 @@ public:
 
 	bool GetExceptionOccured() const
 	{
-		return sm_hasExceptionOccurred;
+		return sm_HasExceptionOccurred;
 	}
 };
 
