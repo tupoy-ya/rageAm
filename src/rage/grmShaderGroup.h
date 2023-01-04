@@ -77,17 +77,49 @@ namespace rage
 
 	enum eEffectValueType
 	{
+		EFFECT_VALUE_NONE = 0,
+		EFFECT_VALUE_INT = 1, // Unknown
 		EFFECT_VALUE_FLOAT = 2, // 4 bytes
 		EFFECT_VALUE_VECTOR2 = 3, // 8 bytes
 		EFFECT_VALUE_VECTOR3 = 4, // 16 bytes (used only 3)
 		EFFECT_VALUE_VECTOR4 = 5, // 16 bytes
 		EFFECT_VALUE_TEXTURE = 6, // A pointer to grcTexture
 		EFFECT_VALUE_BOOL = 7, // 1 byte
-		EFFECT_VALUE_MATRIX = 9, // 64 bytes, 4x4 matrix apparently (see vehicle_tire.fxc)
+		EFFECT_VALUE_MATRIX34 = 8, // Unknown
+		EFFECT_VALUE_MATRIX44 = 9, // 64 bytes, 4x4 matrix apparently (see vehicle_tire.fxc)
+		EFFECT_VALUE_STRING = 10, // Null terminated?
+		EFFECT_VALUE_INT_ = 11, // How different from the first one?
+		EFFECT_VALUE_INT2 = 12, // 
+		EFFECT_VALUE_INT3 = 13, // 
+		EFFECT_VALUE_INT4 = 14, // 
 	};
+
+	inline const char* EffectValueTypeToString(eEffectValueType e)
+	{
+		switch (e)
+		{
+		case EFFECT_VALUE_NONE: return "NONE";
+		case EFFECT_VALUE_INT: return "int";
+		case EFFECT_VALUE_FLOAT: return "float";
+		case EFFECT_VALUE_VECTOR2: return "vector2";
+		case EFFECT_VALUE_VECTOR3: return "vector3";
+		case EFFECT_VALUE_VECTOR4: return "vector4";
+		case EFFECT_VALUE_TEXTURE: return "grcTexture";
+		case EFFECT_VALUE_BOOL: return "bool";
+		case EFFECT_VALUE_MATRIX34: return "matrix34";
+		case EFFECT_VALUE_MATRIX44: return "matrix44";
+		case EFFECT_VALUE_STRING: return "string";
+		case EFFECT_VALUE_INT_: return "int";
+		case EFFECT_VALUE_INT2: return "int2";
+		case EFFECT_VALUE_INT3: return "int3";
+		case EFFECT_VALUE_INT4: return "int4";
+		}
+		return "Unknown";
+	}
 
 	inline uint8_t GetEffectValueSize(eEffectValueType type)
 	{
+		// TODO: There's also: Matrix3x4, Matrix4x4
 		switch (type)
 		{
 		case EFFECT_VALUE_FLOAT: return 4;
@@ -96,10 +128,29 @@ namespace rage
 		case EFFECT_VALUE_VECTOR4: return 16;
 		case EFFECT_VALUE_TEXTURE: return 8;
 		case EFFECT_VALUE_BOOL: return 1;
-		case EFFECT_VALUE_MATRIX: return 64;
+		case EFFECT_VALUE_MATRIX34: return 48; // Not sure
+		case EFFECT_VALUE_MATRIX44: return 64;
+
 		default: return 0;
 		}
 	}
+
+	class grcEffectUIVar
+	{
+	public:
+		char* Name; //0x0000 Name
+		char* N00000180; //0x0008 InShaderName
+		char pad_0010[8]; //0x0010
+		char* UIType; //0x0018
+		char* UIName; //0x0020
+		char pad_0028[40]; //0x0028
+		float Min; //0x0050
+		float Max; //0x0054
+		float Step; //0x0058
+		float N0000052F; //0x005C
+		char pad_0060[64]; //0x0060
+	}; //Size: 0x00A0
+	static_assert(sizeof(grcEffectUIVar) == 0xA0);
 
 	struct grcEffectVar
 	{
@@ -107,8 +158,8 @@ namespace rage
 		int8_t unk1;
 		int16_t unk2;
 		int32_t unk4;
-		char* Usage;
-		char* Name;
+		const char* InShaderName;
+		const char* Name;
 		int64_t unk18;
 		int64_t unk20;
 		int64_t unk28;
@@ -117,7 +168,15 @@ namespace rage
 		int64_t unk38;
 		grcConstantBuffer* pLocalBuffer;
 
-		eEffectValueType GetValueType()
+		const char* GetDisplayName() const
+		{
+			//static char buffer[128];
+			//sprintf_s(buffer, 128, "%s; %s", Name, InShaderName);
+			//return buffer;
+			return Name;
+		}
+
+		eEffectValueType GetValueType() const
 		{
 			return static_cast<eEffectValueType>(dataType);
 		}
@@ -185,11 +244,9 @@ namespace rage
 			return shaderFilePath;
 		}
 
-		std::string GetFileName() const
+		const char* GetFileName() const
 		{
-			std::string filePath = GetFilePath();
-			std::string fileName = filePath.substr(filePath.rfind('/') + 1);
-			return fileName;
+			return strrchr(GetFilePath(), '/') + 1;
 		}
 
 		atArray<grcEffectVar> GetVariables()
@@ -232,14 +289,15 @@ namespace rage
 		int32_t qword2e0;
 		int16_t unusedint16_t2e4;
 		int16_t word2e6;
-		int64_t qword2E8;
-		int32_t dword2F0;
-		int8_t gap2F4[4];
+		// int64_t qword2E8;
+		atArray<grcEffectUIVar> UIVariables;
 		atArray<grcComputeProgram> pComputePrograms;
 		atArray<grcDomainProgram> pDomainPrograms;
 		atArray<grcGeometryProgram> pGeometryPrograms;
 		atArray<grcHullProgram> pHullPrograms;
 	};
+	static_assert(sizeof(grcEffect) == 0x338);
+	static_assert(offsetof(grcEffect, shaderFilePath) == 0x2C0);
 
 	struct grcInstanceData
 	{
@@ -281,7 +339,7 @@ namespace rage
 	{
 		int64_t qword0;
 		pgDictionary<grcTexture>* pEmbedTextures;
-		grcInstanceData** materials;
+		grcInstanceData** InstanceData;
 		int16_t numMaterials;
 		int16_t unk1A;
 		int64_t qword20;
@@ -289,14 +347,14 @@ namespace rage
 		__declspec(align(8)) int32_t dword30;
 		int64_t qword38;
 
-		int GetMaterialCount() const
+		int GetEffectCount() const
 		{
 			return numMaterials;
 		}
 
-		grcInstanceData* GetMaterialAt(int index) const
+		grcInstanceData* GetInstanceDataAt(int index) const
 		{
-			return materials[index];
+			return InstanceData[index];
 		}
 
 		int FindVariableIndexByHashKey(uint32_t nameHash)
