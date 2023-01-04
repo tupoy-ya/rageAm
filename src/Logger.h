@@ -9,9 +9,9 @@
 #include "FileHelper.h"
 
 #define AM_TRACE(msg) g_Log.LogT(msg)
-#define AM_TRACEF(fmt, args) g_Log.LogT(fmt, args)
+#define AM_TRACEF(fmt, ...) g_Log.LogT(fmt, __VA_ARGS__)
 #define AM_ERR(msg) g_Log.LogE(msg);
-#define AM_ERRF(fmt, args) g_Log.LogE(fmt, args);
+#define AM_ERRF(fmt, ...) g_Log.LogE(fmt, __VA_ARGS__);
 
 enum eLoggerLevel
 {
@@ -67,7 +67,7 @@ public:
 	{
 		LogT("Logger()");
 
-		EnsureDataFoldersExist();
+		CreateDefaultFolders();
 
 		// Rename existing log
 		MoveFileExA(m_logFile.c_str(), m_logFileBack.c_str(), MOVEFILE_REPLACE_EXISTING);
