@@ -111,7 +111,7 @@ namespace gm
 		 * \return gmAddress instance with added offset to address if address is valid,
 		 * otherwise address will null.
 		 */
-		gmAddress GetAt(uint32_t offset) const;
+		gmAddress GetAt(int32_t offset) const;
 
 		/**
 		 * \brief Gets address on given offset to current address.
@@ -119,7 +119,7 @@ namespace gm
 		 * \return gmAddress instance with added offset to address if address is valid,
 		 * otherwise address will null.
 		 */
-		gmAddress GetAt64(uint64_t offset) const;
+		gmAddress GetAt64(int64_t offset) const;
 
 		operator uintptr_t() const { return m_Address; }
 	};

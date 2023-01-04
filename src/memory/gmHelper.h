@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <Psapi.h>
 
 #include "gmHook.h"
@@ -30,6 +31,11 @@ namespace gm
 	inline gmAddress Scan(const char* name, const char* pattern)
 	{
 		return g_Scanner.ScanPattern(name, pattern);
+	}
+
+	inline gmAddress Scan(std::function<uintptr_t()> onScan)
+	{
+		return onScan();
 	}
 
 	inline void SetToNullsub(const char* name, const char* pattern)
