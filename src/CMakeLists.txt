@@ -66,7 +66,7 @@ add_library(rageAm SHARED
     "rage_hook/rageHandlingHacks.h" 
     "rage_hook/rageHandling.h"
 
-    "CrashHandler.h" "rage/fwModelId.h" "rage/CModelInfo.h" "../vendor/imgui-1.89.1/imgui_impl_win32.cpp" "../vendor/imgui-1.89.1/imgui_impl_win32.h" "rage_hook/rageScaleform.h" "imgui_rage/sys_apps/ImGuiApp_Effects.h" "imgui_rage/sys_apps/ImGuiApp_Log.h" "rage_hook/grcore/D3DHelper.h" "rage_hook/file_observer/ShaderSwapThreadInterface.h" "rage_hook/grcore/ProgramTypes.h" "memory/gmFunc.h" "rage/grcore/grcEffectMgr.h" "memory/unionCast.h" "rage_hook/file_observer/TextureSwapThreadInterface.h" "memory/gmVft.h" "GameVersion.h")
+    "CrashHandler.h" "rage/fwModelId.h" "rage/CModelInfo.h" "../vendor/imgui-1.89.1/imgui_impl_win32.cpp" "../vendor/imgui-1.89.1/imgui_impl_win32.h" "rage_hook/rageScaleform.h" "imgui_rage/sys_apps/ImGuiApp_Effects.h" "imgui_rage/sys_apps/ImGuiApp_Log.h" "rage_hook/grcore/D3DHelper.h" "rage_hook/file_observer/ShaderStoreThreadInterface.h" "rage_hook/grcore/ProgramTypes.h" "memory/gmFunc.h" "rage/grcore/grcEffectMgr.h" "memory/unionCast.h" "rage_hook/file_observer/TextureStoreThreadInterface.h" "memory/gmVft.h" "GameVersion.h" "rage/file/fiCollection.h" "imgui_rage/sys_apps/ImGuiApp_Explorer.h" )
 
 # Boost Libary
 set(BOOST_ROOT $ENV{Boost_ROOT})
@@ -82,13 +82,22 @@ else()
     set(DirectXTK "${CMAKE_SOURCE_DIR}/vendor/directxtk/lib/DirectXTK_Debug.lib")
 endif()
 
+unset(DirectXTex)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(DirectXTex "${CMAKE_SOURCE_DIR}/vendor/directxtex/lib/DirectXTex_Release.lib")
+else()
+    set(DirectXTex "${CMAKE_SOURCE_DIR}/vendor/directxtex/lib/DirectXTex_Debug.lib")
+endif()
+
 target_link_libraries(rageAm PUBLIC
     "${CMAKE_SOURCE_DIR}/vendor/minhook-1.3.3/lib/libMinHook-x64-v141-md.lib" 
     # "${CMAKE_SOURCE_DIR}/vendor/scripthook/lib/ScriptHookV.lib" 
     "${DirectXTK}"
+    "${DirectXTex}"
     "${CMAKE_SOURCE_DIR}/vendor/backtrace/libbacktrace.a" 
     d3d11.lib
     imgui
+    tinyxml2
     ${Boost_LIBRARIES}
 )
 

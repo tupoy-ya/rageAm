@@ -129,7 +129,7 @@ namespace sapp
 			sm_Variables.clear();
 			sm_Doc.Clear();
 
-			tinyxml2::XMLError result = sm_Doc.LoadFile("rageAm/ShaderUIConfig.xml");
+			tinyxml2::XMLError result = sm_Doc.LoadFile("rageAm/Data/ShaderUI.xml");
 
 			if (result != tinyxml2::XML_SUCCESS)
 			{
@@ -192,24 +192,40 @@ namespace sapp
 		static constexpr int INPUT_BUFFER_SIZE = 64;
 		static constexpr int TEXT_BUFFER_SIZE = 256;
 
-		static inline char sm_ModelNameInput[INPUT_BUFFER_SIZE] = "jackal";
+		static inline char sm_ModelNameInput[INPUT_BUFFER_SIZE] = "cheetah";
 		static inline char sm_TextBuffer[TEXT_BUFFER_SIZE]{};
+
+		static inline DXGI_FORMAT sm_TextureFormats[] = {
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+			DXGI_FORMAT_BC1_UNORM_SRGB,
+			DXGI_FORMAT_BC3_UNORM_SRGB,
+			DXGI_FORMAT_BC4_UNORM,
+			DXGI_FORMAT_BC5_UNORM,
+			DXGI_FORMAT_BC7_UNORM,
+			DXGI_FORMAT_BC7_UNORM_SRGB
+		};
+		static inline const char* sm_TextureFormatNames[] = {
+			"None (RGBA8)", "BC1 (DXT1)", "BC3 (DXT5)","BC4 (ATI1)", "BC5 (ATI2)" }; // , "BC7", "BC7 sRGB"
 
 		int m_EditMode = 0;
 		int m_FragLodMode = 0;
 		int m_SelectedMaterialIndex = 0;
 		int m_SelectedTextureIndex = -1;
 		bool m_EnableUIConfig = true;
+		bool m_ShowInShaderNames = true;
 
-		uint32_t m_LodModelHash = 0; // For fragments
-		uint32_t m_ModelHash = 0;
+		u32 m_LodModelHash = -1; // For fragments, game uses non-hi name in many places.
+		u32 m_ModelHash = -1;
 		eModelType m_ModelType = MODEL_UNKNOWN;
 		rage::gtaDrawable* m_Drawable = nullptr;
 		rage::grcTexture* m_SelectedTexture = nullptr;
 		rage::grmShaderGroup* m_EditShaderGroup = nullptr;
 
+		// Not used now but if we'll have grm shader group copy in future it will be useful
 		void OnFragmentRender(uint32_t hash, rage::grmShaderGroup** lpShaderGroup) const
 		{
+			return;
+
 			if (m_ModelType != MODEL_FRAGMENT)
 				return;
 
@@ -237,6 +253,7 @@ namespace sapp
 			*lpShaderGroup = m_EditShaderGroup;
 		}
 
+		// Prevents fragment's CCustomShaderEffect to override material values.
 		void OnCustomShaderEffectVehicleUse(uint32_t hash, bool& execute) const
 		{
 			// ISSUE: Fragments rendering is a little bit complicated,
@@ -259,21 +276,46 @@ namespace sapp
 				execute = false;
 		}
 
-		void DrawMaterialTexturesForDrawable()
+		// Converts texture format to combobox index.
+		int FormatToIndex(DXGI_FORMAT fmt) const
 		{
+			// Keep in sync with sm_TextureFormats
+			if (fmt == DXGI_FORMAT_BC1_UNORM_SRGB) return 1;
+			if (fmt == DXGI_FORMAT_BC3_UNORM_SRGB) return 2;
+			if (fmt == DXGI_FORMAT_BC4_UNORM) return 3;
+			if (fmt == DXGI_FORMAT_BC5_UNORM) return 4;
+			if (fmt == DXGI_FORMAT_BC7_UNORM) return 5;
+			if (fmt == DXGI_FORMAT_BC7_UNORM_SRGB) return 6;
+			return 0;
+		}
+
+		// Draws list of textures for current material.
+		void DrawMaterialTextureListForDrawable() const
+		{
+			ImGui::BeginChild("##Textures", ImVec2(0, 0), true);
+
+			int openAction = -1;
+			if (ImGui::Button("Open all"))
+				openAction = 1;
+			ImGui::SameLine();
+			if (ImGui::Button("Close all"))
+				openAction = 0;
+
 			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
 			rage::grcInstanceData* selectedMaterial = shaderGroup->GetInstanceDataAt(m_SelectedMaterialIndex);
 
 			for (int i = 0; i < selectedMaterial->numVariables; i++)
 			{
-				rage::grcInstanceVar* materialVar = selectedMaterial->GetVariableAtIndex(i);
+				rage::grcInstanceVar* instVar = selectedMaterial->GetVariableAtIndex(i);
 				rage::grcEffectVar* shaderVar = selectedMaterial->GetEffect()->variables[i];
 				rage::eEffectValueType type = shaderVar->GetValueType();
+
+				const char* samplerName = m_ShowInShaderNames ? shaderVar->InShaderName : shaderVar->GetDisplayName();
 
 				if (type != rage::EFFECT_VALUE_TEXTURE)
 					continue;
 
-				rage::grcTexture* texture = materialVar->GetTexture();
+				rage::grcTexture* texture = instVar->GetTexture();
 
 				if (texture == nullptr)
 					continue;
@@ -281,74 +323,96 @@ namespace sapp
 				if (texture->GetName() == nullptr)
 					continue;
 
-				sprintf_s(sm_TextBuffer, TEXT_BUFFER_SIZE, "rageAm/Textures/%s/%s.dds",
-					sm_ModelNameInput, texture->GetName());
+				// There's really no point to view it (it appears as black texture, probably not 2D)
+				// + sometimes bugs out and causes weird issues in im gui
+				if (strcmp(shaderVar->InShaderName, "DamageSampler") == 0)
+					continue;
 
-				HANDLE hnd = CreateFile(sm_TextBuffer, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-				if (hnd != INVALID_HANDLE_VALUE)
+				if (openAction != -1)
+					ImGui::SetNextItemOpen(openAction != 0);
+				if (ImGui::CollapsingHeader(samplerName)) // ImGuiTreeNodeFlags_DefaultOpen
 				{
-					CloseHandle(hnd);
+					ID3D11ShaderResourceView* textureView = texture->GetShaderResourceView();
 
-					ID3D11Device* pDevice = rh::D3D::GetDevice();
+					// i.e. bullet_hi\\spec
+					static char fullTextureName[256];
+					sprintf_s(fullTextureName, 256, "%s\\%s", sm_ModelNameInput, texture->GetName());
 
-					ID3D11Texture2D* pOldTexture = texture->GetTexture();
-					ID3D11Resource* pNewTexture;
-					ID3D11ShaderResourceView* pOldResourceView = texture->GetShaderResourceView();
-					ID3D11ShaderResourceView* pNewResourceView;
+					// Get global or local texture swap
+					fiobs::TextureStoreEntry* textureSlot =
+						rh::Rendering::bEnableGlobalTextureSwap ? g_GlobalTextureSwapThreadInterface.Find(texture->GetName()) : nullptr;
+					bool streamedGlobal = textureSlot != nullptr;
+					if (!textureSlot)
+						textureSlot = g_LocalTextureSwapThreadInterface.Find(fullTextureName);
 
-					int length = strlen(sm_TextBuffer);
-					std::wstring text_wchar(length, L'#');
-					mbstowcs(text_wchar.data(), sm_TextBuffer, length);
-
-					HRESULT result = DirectX::CreateDDSTextureFromFile(
-						pDevice, text_wchar.c_str(), &pNewTexture, &pNewResourceView);
-
-					// TODO: Error message
-					if (result == S_OK)
+					// Draw streaming information & status & texture format
+					if (textureSlot)
 					{
-						g_Log.LogD("Replacing texture: {}", texture->GetName());
+						ImGui::TextColored(ImVec4(0.68f, 0.67f, 0.32f, 1.00f), streamedGlobal ? "Streamed (Global)" : "Streamed (Local)");
+						ImGui::SameLine();
+						ImGui::HelpMarker("Texture was successfully loaded from local or global folder and replaced default one.");
 
-						texture->SetTexture(pNewTexture);
-						texture->SetShaderResourceView(pNewResourceView);
+						// Can't change DDS compression
+						if(!textureSlot->IsDDS)
+						{
+							int compressionMode = FormatToIndex(textureSlot->Format);
+							sprintf_s(sm_TextBuffer, TEXT_BUFFER_SIZE, "Compression##%i", i);
+							if (ImGui::Combo(sm_TextBuffer, &compressionMode, sm_TextureFormatNames, IM_ARRAYSIZE(sm_TextureFormatNames)))
+							{
+								textureSlot->Format = sm_TextureFormats[compressionMode];
+								textureSlot->RequestReload();
+							}
+						}
 
-						// Release them because they are no longer tracked by game.
-						// Instead game will release what we've inserted in texture.
-						pOldTexture->Release();
-						pOldResourceView->Release();
+						// Replace texture with streamed one
+						textureView = textureSlot->pResourceView;
 					}
-				}
+					else
+					{
+						ImGui::TextColored({ 1.0f, 0.15f, 0.15f, 1.0f }, "Not Streamed");
+						ImGui::SameLine();
+						ImGui::HelpMarker("Texture was not found in local / global folders.");
+					}
 
-				//if (ImGui::BeginTable("split", 2, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable))
-				//{
-				//	ImGui::TableSetColumnIndex(0);
-				//	//     ImGui::AlignTextToFramePadding();
-				//	ImGui::Text("Name");
-				//	ImGui::TableSetColumnIndex(1);
-				//	ImGui::Text(texture->GetName());
+					// Display properties
+					ImGui::Text("Name: %s", samplerName);
+					ImGui::Text("Path");
+					ImGui::SameLine();
+					ImGui::SetNextItemWidth(-FLT_MIN); // Stretch editors to whole area
+					ImGui::BeginDisabled();
+					ImGui::InputText(fullTextureName, fullTextureName, 256);
+					ImGui::EndDisabled();
 
-				//	ImGui::EndTable();
-				//}
+					// Draw texture preview & popup with bigger scale on click
+					if (textureView)
+					{
+						sprintf_s(sm_TextBuffer, TEXT_BUFFER_SIZE, "##POPUP_%s%i", texture->GetName(), i);
 
-				if (ID3D11ShaderResourceView* shaderResourceView = texture->GetShaderResourceView())
-				{
-					constexpr float textureWidth = 64.0f;
+						constexpr float width = 128.0f;
 
-					float factor = static_cast<float>(texture->GetWidth()) / textureWidth;
-					float height = static_cast<float>(texture->GetHeight()) / factor;
+						// Rescale texture
+						float factor = static_cast<float>(texture->GetWidth()) / width;
+						float height = static_cast<float>(texture->GetHeight()) / factor;
 
-					sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "%s - %s", shaderVar->GetDisplayName(), texture->GetName());
+						ImGui::Image(textureView, ImVec2(width, height));
+						if (ImGui::IsItemClicked())
+							ImGui::OpenPopup(sm_TextBuffer);
+						ImGui::SameLine();
+						ImGui::HelpMarker("Click on texture to open preview.");
 
-					if (ImGui::Selectable(sm_TextBuffer, i == m_SelectedTextureIndex))
-						m_SelectedTextureIndex = i;
-
-					if (i == m_SelectedTextureIndex)
-						m_SelectedTexture = texture;
-
-					ImGui::Image(shaderResourceView, ImVec2(textureWidth, height));
-				}
+						if (ImGui::BeginPopup(sm_TextBuffer))
+						{
+							constexpr float scale = 6.0f;
+							ImGui::Image(textureView, ImVec2(width * scale, height * scale));
+							ImGui::EndPopup();
+						}
+					}
+				} // Texture Header
 			}
+			ImGui::EndChild(); // Textures
 		}
 
+		// Draws widget (slider, color picker) for material variable.
 		void DrawDefaultVariableWidget(const rage::grcInstanceVar* instVar, rage::eEffectValueType type) const
 		{
 			float speed = 0.05f;
@@ -377,12 +441,13 @@ namespace sapp
 			}
 		}
 
-		void DrawMaterialInfoForDrawable() const
+		// Draws widgets for all variables of current material.
+		void DrawMaterialParamListForDrawable() const
 		{
 			// Material Info Table
 			ImGui::BeginTable("MAT_INFO_TABLE", 3, APP_COMMON_TABLE_FLAGS | ImGuiTableFlags_Hideable);
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
-			ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed);
+			ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide);
 			ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 			ImGui::TableHeadersRow();
 
@@ -392,17 +457,21 @@ namespace sapp
 			// Table Rows
 			for (int i = 0; i < selectedMaterial->numVariables; i++)
 			{
-				ImGui::TableNextRow();
-
 				const rage::grcEffect* effect = selectedMaterial->GetEffect();
 				const rage::grcInstanceVar* instVar = selectedMaterial->GetVariableAtIndex(i);
 				const rage::grcEffectVar* shaderVar = effect->variables[i];
 				const ShaderUIVariable* uiVar = ShaderUIConfig::GetVariableFor(shaderVar->InShaderName);
 				rage::eEffectValueType type = shaderVar->GetValueType();
 
+				// We've got separate tab for them
+				if (type == rage::EFFECT_VALUE_TEXTURE)
+					continue;
+
+				ImGui::TableNextRow();
+
 				// Name
 				ImGui::TableSetColumnIndex(0);
-				const char* displayName = shaderVar->GetDisplayName();
+				const char* displayName = m_ShowInShaderNames ? shaderVar->InShaderName : shaderVar->GetDisplayName();
 				if (m_EnableUIConfig && uiVar)
 				{
 					displayName = uiVar->Name;
@@ -462,11 +531,13 @@ namespace sapp
 			ImGui::EndTable(); // MAT_INFO_TABLE
 		}
 
+		// Helper function to get name for item in material list.
 		static const char* GetMaterialNameAt(rage::grmShaderGroup* group, int index)
 		{
 			return group->GetInstanceDataAt(index)->GetEffect()->GetFileName();
 		}
 
+		// Draws list box with materials of current shader group.
 		void DrawMaterialListForDrawable()
 		{
 			rage::grmShaderGroup* shaderGroup = m_Drawable->grmShaderGroup;
@@ -489,6 +560,7 @@ namespace sapp
 			ImGui::EndChild();
 		}
 
+		// Draws material list, it's variables and textures.
 		void DrawShaderGroupForDrawable()
 		{
 			DrawMaterialListForDrawable();
@@ -498,38 +570,47 @@ namespace sapp
 			rage::grcInstanceData* selectedMaterial = shaderGroup->GetInstanceDataAt(m_SelectedMaterialIndex);
 
 			// Material Info Window
-			ImGui::BeginChild("MAT_INFO", ImVec2(0, 0), true);
-			ImGui::Text("Material: %s", selectedMaterial->GetEffect()->GetFileName());
-			ImGui::Text("grcEffect: %p", (uint64_t)selectedMaterial->GetEffect());
+			ImGui::BeginChild("MAT_INFO", ImVec2(0, 0), true, ImGuiWindowFlags_NoBackground);
+			ImGui::Checkbox("Use shader variable names", &m_ShowInShaderNames);
+			ImGui::SameLine();
+			ImGui::HelpMarker("Display variable names as they are defined in HLSL shader.");
+
+			if (sm_DisplayDebugInfo)
+			{
+				ImGui::Text("Material: %s", selectedMaterial->GetEffect()->GetFileName());
+				ImGui::Text("grcEffect: %p", (uint64_t)selectedMaterial->GetEffect());
+			}
 
 			ImGui::BeginTabBar("MAT_INFO_TAB_BAR");
-			if (ImGui::BeginTabItem("Table"))
+			if (ImGui::BeginTabItem("Params"))
 			{
-				DrawMaterialInfoForDrawable();
+				DrawMaterialParamListForDrawable();
 				ImGui::EndTabItem(); // Table
 			}
 			if (ImGui::BeginTabItem("Textures"))
 			{
-				DrawMaterialTexturesForDrawable();
+				DrawMaterialTextureListForDrawable();
 				ImGui::EndTabItem(); // Textures
 			}
 			ImGui::EndTabBar(); // MAT_INFO_TAB_BAR
 			ImGui::EndChild(); // MAT_INFO
 		}
 
+		// Tries to find drawable and draw material window for it.
 		void FindDrawableAndDrawShaderGroup()
 		{
 			ImGui::Text("Model Type:");
 			ImGui::SameLine();
 
-			// TODO: Cache it
+			// TODO: Cache drawable
 			rage::gtaDrawable* drawable;
-
-			// TODO: Other drawable types
 			if ((drawable = TryGetFragment()))
 			{
 				ImGui::Text("Fragment");
 				m_ModelType = MODEL_FRAGMENT;
+
+				// Maybe not the best idea to call it on tick
+				AdjustFragmentName();
 			}
 			else if ((drawable = TryGetDrawable()))
 			{
@@ -548,39 +629,12 @@ namespace sapp
 				return;
 			}
 
-			ImGui::Text("grmShaderGroup: %p", (uintptr_t)drawable->grmShaderGroup);
+			if (sm_DisplayDebugInfo)
+				ImGui::Text("grmShaderGroup: %p", (uintptr_t)drawable->grmShaderGroup);
 
 			m_Drawable = drawable;
 			DrawShaderGroupForDrawable();
 			m_EditShaderGroup = drawable->grmShaderGroup;
-		}
-
-		/**
-		 * \brief Adds or removes '_hi' postfix in model name.
-		 * \param highDetail Whether to add or remove the postfix.
-		 */
-		void ConvertModelNameTo(bool highDetail)
-		{
-			static char buffer[256];
-			strcpy_s(buffer, sm_ModelNameInput);
-			if (char* hi = strstr(buffer, "_hi"))
-				*hi = '\0';
-			m_LodModelHash = fwHelpers::joaat(buffer);
-
-			int len = (int)strlen(sm_ModelNameInput);
-
-			char* hiPtr = strstr(sm_ModelNameInput, "_hi");
-			if (highDetail && hiPtr == nullptr) // _hi
-			{
-				sm_ModelNameInput[len + 0] = '_';
-				sm_ModelNameInput[len + 1] = 'h';
-				sm_ModelNameInput[len + 2] = 'i';
-				sm_ModelNameInput[len + 3] = '\0';
-			}
-			else if (!highDetail && hiPtr != nullptr)
-			{
-				*strstr(sm_ModelNameInput, "_hi") = '\0';
-			}
 		}
 
 		rage::gtaDrawable* TryGetFragment() const
@@ -611,6 +665,7 @@ namespace sapp
 			return nullptr;
 		}
 
+		// Draws selector between high detailed and standard fragment model.
 		bool DrawFragmentLodSelector()
 		{
 			if (m_ModelType != MODEL_FRAGMENT)
@@ -619,21 +674,43 @@ namespace sapp
 			static const char* modelMode[] = { "High Detail (_hi)", "Standard" };
 			if (ImGui::Combo("LOD##FRAG_LOD", &m_FragLodMode, modelMode, IM_ARRAYSIZE(modelMode)))
 			{
-				ConvertModelNameTo(m_FragLodMode == 0);
+				AdjustFragmentName();
 				return true;
 			}
 			return false;
 		}
 
-	public:
-		ImGuiApp_MaterialEditor()
+		// Adds or removes '_hi' postfix in model name.
+		void AdjustFragmentName()
 		{
-			rh::Rendering::OnFragRender.connect(
-				boost::bind(&ImGuiApp_MaterialEditor::OnFragmentRender, this, _1, _2));
-			rh::Rendering::OnCustomShaderEffectVehicleUse.connect(
-				boost::bind(&ImGuiApp_MaterialEditor::OnCustomShaderEffectVehicleUse, this, _1, _2));
+			bool highDetail = m_FragLodMode == 0;
+			int len = (int)strlen(sm_ModelNameInput);
+
+			char* hiPtr = strstr(sm_ModelNameInput, "_hi");
+			if (highDetail && hiPtr == nullptr) // _hi
+			{
+				sm_ModelNameInput[len + 0] = '_';
+				sm_ModelNameInput[len + 1] = 'h';
+				sm_ModelNameInput[len + 2] = 'i';
+				sm_ModelNameInput[len + 3] = '\0';
+			}
+			else if (!highDetail && hiPtr != nullptr)
+			{
+				*strstr(sm_ModelNameInput, "_hi") = '\0';
+			}
+			ComputeModelHashes();
 		}
 
+		// Generates name hash of regular drawable / fragment model name without '_hi' postfix.
+		void ComputeModelHashes()
+		{
+			static char buffer[256];
+			strcpy_s(buffer, sm_ModelNameInput);
+			if (char* hi = strstr(buffer, "_hi"))
+				*hi = '\0';
+			m_LodModelHash = fwHelpers::joaat(buffer);
+			m_ModelHash = fwHelpers::joaat(sm_ModelNameInput);
+		}
 	protected:
 		void OnStart() override
 		{
@@ -645,28 +722,42 @@ namespace sapp
 			if (!ImGui::Begin("Material Editor", &IsVisible))
 				return;
 
+			// TODO: Support these
+			static const char* editorModes[] = { "Model", "Instance" };
+			ImGui::Combo("Mode##MAT_MODE", &m_EditMode, editorModes, IM_ARRAYSIZE(editorModes));
+
 			if (ImGui::Button("Reload UI Config"))
 				ShaderUIConfig::Parse();
 
 			ImGui::Checkbox("Enable UI Config", &m_EnableUIConfig);
 			ImGui::SameLine();
-			ImGui::HelpMarker("Use shader variable names, widgets and other properties defined in rageAm/ShaderUIConfig.xml; "
+			ImGui::HelpMarker("Use shader variable names, widgets and other properties defined in rageAm/Data/ShaderUI.xml; "
 				"Disabling this option will allow you to set any value you want.");
 
-			// TODO: Support these
-			static const char* editorModes[] = { "Model", "Instance" };
-			ImGui::Combo("Mode##MAT_MODE", &m_EditMode, editorModes, IM_ARRAYSIZE(editorModes));
+			ImGui::Text("Texture Streaming (Readme)");
+			ImGui::SameLine();
+			ImGui::HelpMarker("To replace (or stream) new texture (.DDS and raw formats), put texture in 'rageAm/Textures' "
+				"global or local folders. Global folder doesn't require model name, but every texture in game with same name will be replaced. "
+				"Local folder requires additional folder with model name (you can see exact path for particular texture in 'Textures' tab).");
 
-			if (ImGui::InputText("Name", sm_ModelNameInput, IM_ARRAYSIZE(sm_ModelNameInput)) ||
-				DrawFragmentLodSelector())
-			{
-				m_ModelHash = fwHelpers::joaat(sm_ModelNameInput);
-			}
+			ImGui::Separator();
 
-			ImGui::Text("Name hash: %#010x", m_ModelHash);
+			if (ImGui::InputText("Name", sm_ModelNameInput, IM_ARRAYSIZE(sm_ModelNameInput)) || DrawFragmentLodSelector())
+				ComputeModelHashes();
+
+			if (sm_DisplayDebugInfo)
+				ImGui::Text("Name hash: %#010x", m_ModelHash);
 			FindDrawableAndDrawShaderGroup();
 
 			ImGui::End(); // Material Editor
+		}
+	public:
+		ImGuiApp_MaterialEditor()
+		{
+			rh::Rendering::OnFragRender.connect(
+				boost::bind(&ImGuiApp_MaterialEditor::OnFragmentRender, this, _1, _2));
+			rh::Rendering::OnCustomShaderEffectVehicleUse.connect(
+				boost::bind(&ImGuiApp_MaterialEditor::OnCustomShaderEffectVehicleUse, this, _1, _2));
 		}
 	};
 }
