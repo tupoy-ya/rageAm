@@ -6,49 +6,77 @@
 
 char g_textBuffer[256]{};
 
-bool rage::fiPackfileEntryHeader::IsDirectory() const
+bool rage::fiPackEntry::IsDirectory() const
 {
-	return (flags & 0x7FFFFF00) == 0x7FFFFF00;
+	return (Data >> 40 & 0x7FFFFF) == 0x7FFFFF;
+}
+
+bool rage::fiPackEntry::IsResource() const
+{
+	return Data >> 63 == 1;
+}
+
+u16 rage::fiPackEntry::GetOnDiskSize() const
+{
+	return (u16)(Data >> 16 & 0xFFFFFF);
+}
+
+u32 rage::fiPackEntry::GetOffset() const
+{
+	return (u32)(Data >> 40 << 9);
+}
+
+u16 rage::fiPackEntry::GetNameOffset() const
+{
+	return Data & 0xFFFF;
 }
 
 const char* rage::fiPackfile::GetName() const
 {
-	return members.filePath;
+	if (m_Path == nullptr)
+		return "UNDEFINED";
+	return m_Path;
 }
 
-rage::fiPackfileEntryHeader* rage::fiPackfile::GetRootEntry() const
+rage::fiPackEntry* rage::fiPackfile::GetRootEntry() const
 {
-	return members.headerEntries;
+	return m_Entries;
 }
 
-rage::fiPackfileEntryHeader* rage::fiPackfile::GetEntryHeaderByIndex(u32 index) const
+rage::fiPackEntry* rage::fiPackfile::GetEntry(u32 index) const
 {
-	return &members.headerEntries[index];
+	return &m_Entries[index];
+}
+
+const char* rage::fiPackfile::GetEntryName(const rage::fiPackEntry* entry) const
+{
+	return GetEntryNameByOffset(entry->GetNameOffset());
 }
 
 const char* rage::fiPackfile::GetEntryNameByIndex(u32 index) const
 {
-	if (index == 0)
-		return "root";
-
-	return GetEntryNameByOffset(GetEntryHeaderByIndex(index)->nameOffset);
+	return GetEntryName(GetEntry(index));
 }
 
 const char* rage::fiPackfile::GetEntryNameByOffset(u32 offset) const
 {
+	// Root
 	if (offset == 0)
-		return "root";
+		return GetName();
 
-	return &members.entryNames[offset];
+	// Child .rpf entries (rpf inside rpf) name entries are not loaded for some reason.
+	if (!m_NameTable)
+		return "Not loaded.";
+
+	return &m_NameTable[offset];
 }
 
-rage::fiPackfileEntryHeader* rage::fiPackfile::FindChildEntryIndexByName(const fiPackfileEntryHeader* parent,
-	const char* child) const
+rage::fiPackEntry* rage::fiPackfile::FindChildEntryIndexByName(const fiPackEntry* parent, const char* child) const
 {
-	u32 from = parent->entriesStartIndex;
-	u32 to = parent->numEntries + from;
+	u32 from = parent->Directory.ChildStartIndex;
+	u32 to = parent->Directory.ChildCount + from;
 
-	//g_Log.Log("Scanning directory [{}]: {} from: {} to: {}", parent->nameOffset, GetEntryNameByOffset(parent->nameOffset), from, to);
+	//g_Log.Log("Scanning directory [{}]: {} from: {} to: {}", parent->NameOffset, GetEntryNameByOffset(parent->NameOffset), from, to);
 	//for (u32 i = from; i < to; i++)
 	//{
 	//	g_Log.Log("[{}] - {}", i, GetEntryNameByIndex(i));
@@ -67,7 +95,7 @@ rage::fiPackfileEntryHeader* rage::fiPackfile::FindChildEntryIndexByName(const f
 
 		// No difference, entry found
 		if (cmp == 0)
-			return GetEntryHeaderByIndex(rangeCenterIndex);
+			return GetEntry(rangeCenterIndex);
 
 		// If negative, entry is located earlier in array (because entries are sorted by name), otherwise - later
 		if (cmp == -1)
@@ -79,17 +107,17 @@ rage::fiPackfileEntryHeader* rage::fiPackfile::FindChildEntryIndexByName(const f
 	return nullptr;
 }
 
-rage::fiPackfileEntryHeader* rage::fiPackfile::FindEntryHeaderByPath(const char* path) const
+rage::fiPackEntry* rage::fiPackfile::FindEntryHeaderByPath(const char* path) const
 {
 	char c = path[0];
 
 	if (fwHelpers::IsPathSeparator(c))
 		path++;
 
-	if (!members.headerEntries || !members.entryNames)
+	if (!m_Entries || !m_NameTable)
 		return nullptr;
 
-	fiPackfileEntryHeader* entry = GetRootEntry();
+	fiPackEntry* entry = GetRootEntry();
 
 	// Sometimes game requests root directory by literally '\0' path
 	if (fwHelpers::IsEndOfString(c))
@@ -143,7 +171,7 @@ rage::fiPackfileEntryHeader* rage::fiPackfile::FindEntryHeaderByPath(const char*
 
 /* Virtual Table Wrappers */
 
-rage::fiPackfileEntryHeader* rage::fiPackfile::vftable_FindEntryHeaderByPath(const fiPackfile* inst, const char* path)
+rage::fiPackEntry* rage::fiPackfile::vftable_FindEntryHeaderByPath(const fiPackfile* inst, const char* path)
 {
 	// g_Log.Log("fiPackFile::FindEntryHeaderByPath({:X} ({}), {})", reinterpret_cast<intptr_t>(inst), inst->GetName(), path);
 
