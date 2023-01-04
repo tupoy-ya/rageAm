@@ -24,7 +24,7 @@
 #include "boost/signals2.hpp"
 #include "../../rage/Vec3V.h"
 
-#include "../file_observer/TextureSwapThreadInterface.h"
+#include "../file_observer/TextureStoreThreadInterface.h"
 
 namespace rh
 {
@@ -189,16 +189,16 @@ namespace rh
 						if (matOverride_)
 							material = matOverride_;
 						else
-							material = shaderGroup->materials[*(unsigned __int16*)(model->materialIndeces + materialIndexOffset)];
+							material = shaderGroup->InstanceData[*(unsigned __int16*)(model->materialIndeces + materialIndexOffset)];
 						if (v12 == -1)
-							grmShader_flags = shaderGroup->materials[*(unsigned __int16*)(model->materialIndeces + materialIndexOffset)]->qword20;
+							grmShader_flags = shaderGroup->InstanceData[*(unsigned __int16*)(model->materialIndeces + materialIndexOffset)]->qword20;
 						else
 							grmShader_flags = v12;
 						if (((grmShader_flags >> 8) & (a7 >> 8)) != 0 && ((unsigned __int8)grmShader_flags & (unsigned __int8)a7) != 0)// Check if geometry is visible maybe?
 						{
 							v18 = matOverride_
 								|| geometryIndex + 1 < (unsigned __int16)model->word2E
-								&& *(_DWORD*)material->GetEffect()->shaderNameHash == *(_DWORD*)shaderGroup->materials[*(unsigned __int16*)(model->materialIndeces + materialIndexOffset + 2)]->GetEffect()->shaderNameHash;
+								&& *(_DWORD*)material->GetEffect()->shaderNameHash == *(_DWORD*)shaderGroup->InstanceData[*(unsigned __int16*)(model->materialIndeces + materialIndexOffset + 2)]->GetEffect()->shaderNameHash;
 							v19 = geometryIndex + 1 == (unsigned __int16)model->word2E || !v18;
 
 							//grmHelpers::DrawModel(material, v9, model, geometryIndex, a6, v19);// calls use shader
@@ -544,8 +544,15 @@ namespace rh
 					resourceView = texture->GetShaderResourceView();
 
 					// Global texture swap
-					// TODO: This is slow in debug mode!
-					g_TextureSwapThreadInterface.GetTextureSwap(texture->GetName(), &resourceView);
+					bool hasGlobalSwap = false;
+					if (bEnableGlobalTextureSwap)
+						hasGlobalSwap = g_GlobalTextureSwapThreadInterface.GetTextureView(texture->GetName(), &resourceView);
+					if (!hasGlobalSwap)
+					{
+						// Local texture swap
+						// TODO: Drawables
+						g_LocalTextureSwapThreadInterface.GetTextureView(m_CurrentRenderingFragmentHash, texture->GetName(), &resourceView);
+					}
 				}
 				else
 				{
@@ -605,6 +612,8 @@ namespace rh
 		 * \n - _hi and regular model name hashes are different.
 		 */
 		static inline boost::signals2::signal<void(uint32_t hash, bool& execute)> OnCustomShaderEffectVehicleUse;
+
+		static inline bool bEnableGlobalTextureSwap;
 
 		Rendering()
 		{

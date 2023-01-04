@@ -1,5 +1,6 @@
 #pragma once
 #include "ProgramTypes.h"
+#include "../vendor/directxtex/include/DirectXTex.h"
 
 namespace D3DHelper
 {
@@ -43,7 +44,7 @@ namespace D3DHelper
 		HRESULT result;
 
 		void* bytecode = pBytecode->GetBufferPointer();
-		int bytecodeLength = pBytecode->GetBufferSize();
+		SIZE_T bytecodeLength = pBytecode->GetBufferSize();
 		switch (type)
 		{
 		case grc::PROGRAM_FRAGMENT:
@@ -101,5 +102,85 @@ namespace D3DHelper
 			return result;
 
 		return CreateShaderFromTypeAndBytecode(programType, pDevice, pBytecode, pShader);
+	}
+
+	// Required by DirectXTex library.
+	inline bool InitCom()
+	{
+		static thread_local bool isInitialized = false;
+		if (isInitialized)
+			return true;
+
+		HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+		if (FAILED(result))
+		{
+			AM_ERR("D3DHelper::InitCom() -> Failed to initialize.");
+			return false;
+		}
+
+		isInitialized = true;
+		return true;
+	}
+
+	inline HRESULT ConvertBitmapToDDS(const wchar_t* fileName, DXGI_FORMAT fmt, ID3D11Device* pDevice, ID3D11ShaderResourceView** ppResourceView)
+	{
+		InitCom();
+
+		HRESULT result;
+		*ppResourceView = nullptr;
+
+		DirectX::ScratchImage image;
+		result = LoadFromWICFile(fileName, DirectX::WIC_FLAGS_NONE, nullptr, image);
+
+		if (result != S_OK)
+			return result;
+
+		const DirectX::TexMetadata& imageMeta = image.GetMetadata();
+		size_t w = imageMeta.width;
+		size_t h = imageMeta.height;
+		if ((w & -w) != w || (h & -h) != h)
+		{
+			AM_ERR("Texture with dimension that is not power of 2 is not supported.");
+			return E_INVALIDARG;
+		}
+
+		DirectX::ScratchImage mipChain;
+		result = GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(),
+			DirectX::TEX_FILTER_DEFAULT, 0, mipChain);
+
+		if (result != S_OK)
+			return result;
+
+		DirectX::ScratchImage compressed;
+
+		if (fmt == DXGI_FORMAT_BC7_UNORM_SRGB || fmt == DXGI_FORMAT_BC7_UNORM || fmt == DXGI_FORMAT_BC7_TYPELESS)
+		{
+			// TODO: Crashes game
+			// GPU Compression for BC7
+			result = Compress(pDevice, mipChain.GetImages(), mipChain.GetImageCount(), mipChain.GetMetadata(),
+				fmt, DirectX::TEX_COMPRESS_DITHER | DirectX::TEX_COMPRESS_PARALLEL, // | DirectX::TEX_COMPRESS_BC7_USE_3SUBSETS,
+				1.0f, compressed);
+		}
+		else
+		{
+			result = Compress(mipChain.GetImages(), mipChain.GetImageCount(), mipChain.GetMetadata(),
+				fmt,
+				DirectX::TEX_COMPRESS_DITHER | DirectX::TEX_COMPRESS_PARALLEL,
+				DirectX::TEX_THRESHOLD_DEFAULT, compressed);
+		}
+
+		DirectX::ScratchImage* pImage = &compressed;
+		if (result != S_OK)
+		{
+			pImage = &mipChain;
+			AM_TRACE("Unable to compress texture. Asumming non-compressive format was passed.");
+		}
+
+		result = CreateShaderResourceViewEx(
+			pDevice, pImage->GetImages(), pImage->GetImageCount(), pImage->GetMetadata(),
+			D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, DirectX::CREATETEX_DEFAULT,
+			ppResourceView);
+
+		return result;
 	}
 }

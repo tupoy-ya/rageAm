@@ -25,17 +25,30 @@ namespace fiobs
 		 */
 		bool Error;
 
-		explicit FileStoreEntry(std::string name, std::filesystem::file_time_type writeTime)
+		/**
+		 * \brief Joaat hash of parent directory name.
+		 */
+		u32 ParentHash;
+
+		FileStoreEntry(std::string name, std::filesystem::file_time_type writeTime, u32 parentHash)
 		{
 			Name = name;
 			WriteTime = writeTime;
+			ParentHash = parentHash;
 			Exists = true;
 			Error = false;
 		}
 
 		virtual ~FileStoreEntry() = default;
 		virtual HRESULT Load(const std::wstring& path) = 0;
-		virtual void Release() = 0;
+		virtual void Release()
+		{
+			RequestReload(); // Simply reset time
+		}
+		void RequestReload()
+		{
+			WriteTime = std::filesystem::file_time_type{};
+		}
 	};
 
 	/**
@@ -47,7 +60,6 @@ namespace fiobs
 	class FileObserverThreadInterface
 	{
 		HANDLE m_ObserveThread;
-		std::unordered_map<std::string, std::unique_ptr<FileStoreEntry>> m_FileStore;
 		const wchar_t* m_Path;
 		bool m_IncludeDirInKey;
 		bool m_IsShutdown = false;
@@ -102,11 +114,13 @@ namespace fiobs
 						fileNameKey = fileName;
 					}
 
-					bool existsAndValid = inst->m_FileStore.contains(fileNameKey);
-					if (existsAndValid)
+					auto slotIt = inst->m_FileStore.find(fileNameKey);
+					bool exists = slotIt != inst->m_FileStore.end();
+					bool valid = true;
+					FileStoreEntry* slot;
+					if (exists) // Reset state
 					{
-						auto& slot = inst->m_FileStore.at(fileNameKey);
-
+						slot = slotIt->second.get();
 						slot->Exists = true;
 						if (slot->WriteTime != lastWriteTime)
 						{
@@ -114,26 +128,30 @@ namespace fiobs
 
 							inst->m_Mutex.lock();
 							if (!slot->Error)
-							{
 								slot->Release();
-							}
-							inst->m_FileStore.erase(fileNameKey);
 							inst->m_Mutex.unlock();
 
-							existsAndValid = false;
+							valid = false;
 						}
 					}
 
-					if (!existsAndValid)
+					if (!exists || !valid)
 					{
 						g_Log.LogT("Observer Thread -> Reading: {}", fileNameKey);
 
 						inst->m_Mutex.lock();
-						inst->m_FileStore.emplace(fileNameKey, std::make_unique<TEntry>(fileName, lastWriteTime));
+						if (exists) // Update existing entry
+						{
+							slot->WriteTime = lastWriteTime;
+						}
+						else
+						{
+							u32 patentHash = fwHelpers::joaat(dir.c_str());
+							slot = inst->m_FileStore.emplace(fileNameKey, std::make_unique<TEntry>(fileName, lastWriteTime, patentHash))
+								.first->second.get();
+						}
 						inst->m_Mutex.unlock();
 
-						// Is there better way to do it with unique ptr?
-						auto& slot = inst->m_FileStore.at(fileNameKey);
 						HRESULT result = slot->Load(filePath);
 
 						if (result != S_OK)
@@ -143,7 +161,7 @@ namespace fiobs
 						}
 						else
 						{
-							inst->OnEntryUpdated(dir, fileName, &slot);
+							inst->OnEntryUpdated(dir, fileName, slot);
 						}
 					}
 				}
@@ -176,13 +194,14 @@ namespace fiobs
 			}
 		}
 	protected:
+		std::unordered_map<std::string, std::unique_ptr<FileStoreEntry>> m_FileStore;
 		std::shared_mutex m_Mutex;
 
-		virtual void OnEntryUpdated(std::string dir, std::string name, std::unique_ptr<FileStoreEntry>* entry) const {};
+		virtual void OnEntryUpdated(std::string dir, std::string name, FileStoreEntry* entry) const {};
 	public:
 		FileObserverThreadInterface(const wchar_t* path, bool includeDirInKey)
 		{
-			EnsureDataFoldersExist();
+			CreateDefaultFolders();
 
 			// Create directory if it doesn't exists
 			CreateDirectoryW(path, nullptr);

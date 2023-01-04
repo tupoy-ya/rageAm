@@ -4,7 +4,7 @@
 
 namespace fiobs
 {
-	struct ShaderSwapStoreEntry : FileStoreEntry
+	struct ShaderStoreEntry : FileStoreEntry
 	{
 		IUnknown* pShader;
 
@@ -53,10 +53,10 @@ namespace fiobs
 		}
 	};
 
-	class ShaderSwapThreadInterface : public FileObserverThreadInterface<ShaderSwapStoreEntry>
+	class ShaderStoreThreadInterface : public FileObserverThreadInterface<ShaderStoreEntry>
 	{
 	protected:
-		void OnEntryUpdated(std::string dir, std::string name, std::unique_ptr<FileStoreEntry>* entry) const override
+		void OnEntryUpdated(std::string dir, std::string name, FileStoreEntry* entry) const override
 		{
 			g_Log.LogT("ShaderSwapThread::OnEntryUpdated() -> {}, {}", dir.c_str(), name.c_str());
 
@@ -69,7 +69,7 @@ namespace fiobs
 
 			g_Log.LogT("ShaderSwapThread::OnEntryUpdated() -> Found grcEffect for {} at {:X}", dir.c_str(), (uintptr_t)effect);
 
-			ShaderSwapStoreEntry* swapSlot = (ShaderSwapStoreEntry*)entry->get();
+			ShaderStoreEntry* swapSlot = (ShaderStoreEntry*)entry;
 
 			rage::grcProgram* program;
 			// We don't know exact array size, increment until atArray returns nullptr
@@ -118,8 +118,8 @@ namespace fiobs
 			*lpShader = swapSlot->pShader;
 		}
 	public:
-		using FileObserverThreadInterface<ShaderSwapStoreEntry>::FileObserverThreadInterface;
+		using FileObserverThreadInterface<ShaderStoreEntry>::FileObserverThreadInterface;
 	};
 
 }
-inline fiobs::ShaderSwapThreadInterface g_ShaderSwapThreadInterface{ L"rageAm/Shaders", true };
+inline fiobs::ShaderStoreThreadInterface g_ShaderSwapThreadInterface{ L"rageAm/Shaders", true };
