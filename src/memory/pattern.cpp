@@ -51,12 +51,3 @@ uintptr_t gm::FindPattern(const char* pattern, const uint8_t* address, uint32_t 
 		return FindPattern(pattern, address, size, 1);
 	return 0;
 }
-
-uintptr_t gm::FindRef(uintptr_t origin)
-{
-	if (origin == 0)
-		return 0;
-
-	// Offset m_address + size of offset (int) + offset value
-	return origin + 4 + *reinterpret_cast<int*>(origin);
-}

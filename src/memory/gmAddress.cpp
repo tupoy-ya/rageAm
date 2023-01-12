@@ -11,7 +11,8 @@ gm::gmAddress gm::gmAddress::GetRef() const
 	if (!MayBeValid())
 		return { nullptr };
 
-	return { FindRef(m_Address) };
+	// Offset m_address + size of offset (int) + offset value
+	return m_Address + 4 + *reinterpret_cast<int*>(m_Address);
 }
 
 gm::gmAddress gm::gmAddress::GetCall() const
