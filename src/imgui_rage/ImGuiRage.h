@@ -1,5 +1,11 @@
 #pragma once
-#include "../rage_hook/grcore/D3D.h"
+#include "imgui.h"
+
+enum eImFont // Keep in sync with ImGuiRage::SetupFonts
+{
+	IM_FONT_REGULAR = 0,
+	IM_FONT_LARGE = 1,
+};
 
 namespace imgui_rage
 {
@@ -7,6 +13,8 @@ namespace imgui_rage
 	{
 		bool m_isInitialized = false;
 		bool m_renderPending = false;
+
+		void SetupFonts();
 	public:
 		ImGuiRage() = default;
 		~ImGuiRage();

@@ -1,15 +1,22 @@
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
-
-#include "ImGuiRage.h"
 #include "imgui_impl_win32.h"
 
-#include "../rage_hook/grcore/D3D.h"
-#include "../rage_hook/rageWin32.h"
+#include "ImGuiRage.h"
 
-#include "../Logger.h"
+#include "rage_hook/grcore/rageD3D.h"
+#include "rage_hook/rageWin32.h"
+#include "Logger.h"
 
-struct ImGui_ImplDX11_Data;
+void imgui_rage::ImGuiRage::SetupFonts()
+{
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+	io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\Tahoma.ttf)", 14.0f);
+	io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\Tahoma.ttf)", 36.0f);
+
+	io.FontDefault = io.Fonts->Fonts[IM_FONT_REGULAR];
+}
 
 imgui_rage::ImGuiRage::~ImGuiRage()
 {
@@ -28,7 +35,8 @@ void imgui_rage::ImGuiRage::Init()
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Game-pad Controls
-	io.FontDefault = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\Tahoma.ttf)", 14.0f);
+
+	SetupFonts();
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -93,10 +101,9 @@ void imgui_rage::ImGuiRage::Shutdown()
 
 	g_Log.LogT("ImGuiRage::Shutdown()");
 
-	// TODO: Figure out why this crashes game
-	//ImGui_ImplDX11_Shutdown();
-	//ImGui_ImplRage_Shutdown();
-	//ImGui::DestroyContext();
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 
 	m_isInitialized = false;
 }
