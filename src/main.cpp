@@ -14,98 +14,100 @@
  * Material editor breaks tuning rendering (related to CCustomShaderEffect)
  */
 
- // TODO: They don't work...
-#define RAGE_HOOK_SWAP_DATRESOURCE
-#define RAGE_HOOK_SWAP_FISTREAM
-#define USE_UNHANDLED_CRASH_HANDLER
-#define GM_SCANNER_USE_STORAGE
+#define AM_EXPORT extern "C" __declspec(dllexport)
+
+ // For TaskDialog
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #include <chrono>
-#include <Windows.h>
-#include <d3d11.h>
-#include "Logger.h"
-#include "memory/gmFunc.h"
 
  // Keep it above everything
 auto startTime = std::chrono::high_resolution_clock::now();
 
-#include "GameVersion.h"
+// We use dynamic initialization with global variable instance to initialize these singletons
 
-#ifdef _RELEASE
-#define USE_VEH_CRASH_HANDLER // Conflicts with Cheat Engine VEH debugger
-#endif
+/* COMMON */
+#include "Logger.h"
 #include "CrashHandler.h"
+#include "GameVersion.h"
+#include "gmScanner.h"
+/* COMMON */
 
 /* HOOK INCLUDES */
-// We use dynamic initialization for pattern scanning,
-// so these may be marked as unused but it's not true.
-// NOTICE: Order matters here.
-
-#include "rage_hook/grcore/D3D.h"
 #include "rage_hook/rageStreaming.h"
-#include "rage_hook/grcore/rageGrc.h"
-#include "rage_hook/grcore/rageRender.h"
 #include "rage_hook/rageGrm.h"
-// #include "rage_hook/rageFileInterface.h" // Disabled because not used currently
+#include "rage_hook/rageFileInterface.h"
 #include "rage_hook/rageWin32.h"
 #include "rage_hook/rageFwTimer.h"
 #include "rage_hook/rageControls.h"
 #include "rage_hook/rageScaleform.h"
-
-// Global Deluxo Flying Tests
-//#include "rage_hook/rageHandlingHacks.h"
-//#include "rage_hook/rageHandling.h"
-
+#include "rage/paging/datResource.h"
+#include "rage/paging/datResourceInfo.h"
+#include "rage/fiStream.h"
 #include "rage/framework/fwRenderThreadInterface.h"
+#include "rage_hook/grcore/rageD3D.h"
+#include "rage_hook/grcore/rageGrc.h"
+#include "rage_hook/grcore/rageRender.h"
 /* HOOK INCLUDES */
 
 /* FILE OBSERVERS */
 #include "rage_hook/file_observer/ShaderStoreThreadInterface.h"
+#include "rage_hook/file_observer/TextureStoreThreadInterface.h"
 /* FILE OBSERVERS */
 
 #include "imgui_rage/ImGuiRage.h"
 #include "imgui_rage/ImGuiAppMgr.h"
-
-#include "imgui_rage/sys_apps/ImGuiApp_MainWindow.h"
 #include "imgui_rage/sys_apps/ImGuiApp_Toolbar.h"
+#include "imgui_rage/sys_apps/ImGuiApp_Overlay.h"
 
-void Init()
+AM_EXPORT void Shutdown()
+{
+	g_Log.LogT("main::Shutdown()");
+
+	g_GlobalTextureSwapThreadInterface.Shutdown();
+	g_LocalTextureSwapThreadInterface.Shutdown();
+	g_ShaderSwapThreadInterface.Shutdown();
+}
+
+AM_EXPORT void Init()
 {
 	g_Log.LogT("main::Init()");
 
-	CreateDefaultFolders();
-
 	g_ImGui.Init();
-
 	g_ImGuiAppMgr.Init();
 	g_ImGuiAppMgr.RegisterApp<sapp::ImGuiApp_Toolbar>();
+	g_ImGuiAppMgr.RegisterApp<sapp::ImGuiApp_Overlay>();
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	g_Log.LogT("Core systems initialization took {}ms", std::chrono::duration<double, std::milli>(currentTime - startTime).count());
 }
 
-void Shutdown()
+void OnAttach()
 {
-	g_Log.LogT("main::Shutdown()");
+	g_Log.LogT("DllMain -> DLL_PROCESS_ATTACH");
+}
+
+void OnDetach()
+{
+	g_Log.LogT("DllMain -> DLL_PROCESS_DETACH");
 
 	// Disable all hooks instantly to prevent any further calls into already unloaded library.
 	// We can't rely on dynamic object destructor because it's called too late.
 	g_Hook.Shutdown();
+	g_ImGui.Shutdown();
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
-	g_RageAmHnd = hModule;
-
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
-		g_Log.LogT("DllMain -> DLL_PROCESS_ATTACH");
-		Init();
+		OnAttach();
 		break;
 	case DLL_PROCESS_DETACH:
-		g_Log.LogT("DllMain -> DLL_PROCESS_DETACH");
-		Shutdown();
+		OnDetach();
 		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:
