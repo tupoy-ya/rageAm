@@ -1,6 +1,6 @@
 #pragma once
 #include "../rage/grmShaderGroup.h"
-#include "../memory/gmHelper.h"
+#include "gmHelper.h"
 
 namespace rh
 {

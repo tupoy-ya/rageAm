@@ -1,22 +1,15 @@
 #pragma once
 #include <d3d11.h>
-#include "../../memory/gmScanner.h"
-#include "../../memory/gmHook.h"
-#include "../../memory/gmFunc.h"
-#include "../../GameVersion.h"
+#include <vector>
+
+#include "GameVersion.h"
+#include "gmFunc.h"
+#include "gmHook.h"
+#include "gmScanner.h"
 
 namespace rh
 {
 	typedef void(*RenderTask)();
-
-	class ID3D11DeviceWrapper : ID3D11Device
-	{
-		HRESULT CreateTexture2D(const D3D11_TEXTURE2D_DESC* pDesc, const D3D11_SUBRESOURCE_DATA* pInitialData, ID3D11Texture2D** ppTexture2D) override
-		{
-			AM_TRACE("ID3D11DeviceWrapper::CreateTexture2D");
-			return ID3D11Device::CreateTexture2D(pDesc, pInitialData, ppTexture2D);
-		}
-	};
 
 	class D3D
 	{
@@ -78,10 +71,10 @@ namespace rh
 				gPtr_SwapChain = *addr.GetAt(0x5C3 + 0x3).CastRef<IDXGISwapChain**>();
 			}
 
-			g_Log.LogT("D3D::Init() -> D3D11Device: {:X}", reinterpret_cast<uintptr_t>(gPtr_Device));
-			g_Log.LogT("D3D::Init() -> D3D11DeviceContext: {:X}", reinterpret_cast<uintptr_t>(gPtr_Context));
-			g_Log.LogT("D3D::Init() -> IDXGISwapChain: {:X}", reinterpret_cast<uintptr_t>(gPtr_SwapChain));
-			g_Log.LogT("D3D::Init() -> DxFeatureLevel: {:X}", static_cast<int>(GetDevice()->GetFeatureLevel()));
+			AM_TRACEF("D3D::Init() -> D3D11Device: {:X}", reinterpret_cast<uintptr_t>(gPtr_Device));
+			AM_TRACEF("D3D::Init() -> D3D11DeviceContext: {:X}", reinterpret_cast<uintptr_t>(gPtr_Context));
+			AM_TRACEF("D3D::Init() -> IDXGISwapChain: {:X}", reinterpret_cast<uintptr_t>(gPtr_SwapChain));
+			AM_TRACEF("D3D::Init() -> DxFeatureLevel: {:X}", static_cast<int>(GetDevice()->GetFeatureLevel()));
 
 			// IDXGISwapChain::Present is on offset 0x40 (8th function)
 			// TODO: Replace this mess with something reasonable

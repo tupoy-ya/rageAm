@@ -132,6 +132,8 @@ namespace D3DHelper
 		DirectX::ScratchImage image;
 		result = LoadFromWICFile(fileName, DirectX::WIC_FLAGS_NONE, nullptr, image);
 
+		// TODO: Pixel transparency detect
+
 		if (result != S_OK)
 			return result;
 

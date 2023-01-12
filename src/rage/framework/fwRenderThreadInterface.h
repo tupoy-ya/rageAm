@@ -1,6 +1,6 @@
 #pragma once
-#include "memory/gmFunc.h"
-#include "memory/unionCast.h"
+#include "gmFunc.h"
+#include "unionCast.h"
 
 namespace rage
 {
@@ -30,6 +30,6 @@ namespace rage
 	//	static inline gm::gmFuncSwap<void, fwRenderThreadInterface*> gSwap_DoRenderFunction(
 	//		"fwRenderThreadInterface::DoRenderFunction",
 	//		"48 89 5C 24 08 57 48 83 EC 20 48 8D 99 B0 00 00 00 48 8B F9 48 83",
-	//		gm::CastLPVOID(&fwRenderThreadInterface::DoRenderFunction));
+	//		gm::CastAny(&fwRenderThreadInterface::DoRenderFunction));
 	//}
 }

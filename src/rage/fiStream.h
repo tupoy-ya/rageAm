@@ -1,11 +1,10 @@
 #pragma once
 #include <mutex>
 
-#include "../logger.h"
 #include "fwTypes.h"
 #include "fiDevice.h"
-#include "../memory/gmFunc.h"
-#include "../memory/unionCast.h"
+#include "gmFunc.h"
+#include "unionCast.h"
 
 namespace rage
 {
@@ -184,7 +183,7 @@ namespace rage
 		static inline gm::gmFuncSwap gSwap_FiStream_Close(
 			"fiStream::Close",
 			"40 53 48 83 EC 20 83 79 24 00 48 8B D9 75",
-			gm::CastLPVOID(&fiStream::Close));
+			gm::CastAny(&fiStream::Close));
 #endif
 	}
 }

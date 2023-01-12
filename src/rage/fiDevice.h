@@ -1,6 +1,6 @@
 #pragma once
 #include "fwTypes.h"
-#include "../memory/gmFunc.h"
+#include "gmFunc.h"
 
 namespace rage
 {

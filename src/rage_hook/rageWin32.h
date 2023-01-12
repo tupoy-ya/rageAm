@@ -3,8 +3,8 @@
 // for ImGui_ImplWin32_WndProcHandler
 #include <imgui_impl_win32.h>
 
-#include "../memory/gmScanner.h"
-#include "../memory/gmHelper.h"
+#include "gmScanner.h"
+#include "gmHelper.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 
-#include "../Logger.h"
+#include "Logger.h"
 #include "gmAddress.h"
 
 // TODO: Storage isnt working correctly

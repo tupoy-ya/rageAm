@@ -1,5 +1,5 @@
 #pragma once
-#include "../Memory/Hooking.h"
+#include "Hooking.h"
 
 #include "../Component.h"
 #include <format>

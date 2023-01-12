@@ -1,5 +1,5 @@
 #pragma once
-#include "../Logger.h"
+#include "Logger.h"
 #include "atArray.h"
 #include "fwTypes.h"
 #include "grcTexture.h"

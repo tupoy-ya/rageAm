@@ -17,7 +17,7 @@
 #include "rage/fwModelId.h"
 #include "rage/CModelInfo.h"
 #include "../../rage/Streaming.h"
-#include "../../memory/gmHelper.h"
+#include "gmHelper.h"
 #include "D3D.h"
 #include "rage/TlsManager.h"
 

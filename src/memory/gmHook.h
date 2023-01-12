@@ -1,8 +1,8 @@
 #pragma once
 #include <set>
 
-#include "../logger.h"
-#include "../../vendor/minhook-1.3.3/include/MinHook.h"
+#include "logger.h"
+#include "MinHook.h"
 
 namespace gm
 {

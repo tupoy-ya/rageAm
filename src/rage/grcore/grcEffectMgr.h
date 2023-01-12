@@ -1,5 +1,5 @@
 #pragma once
-#include "../../memory/gmFunc.h"
+#include "gmFunc.h"
 
 namespace rage::hooks
 {

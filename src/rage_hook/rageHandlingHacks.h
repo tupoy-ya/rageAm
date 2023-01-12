@@ -1,5 +1,5 @@
 #pragma once
-#include "../memory/gmHelper.h"
+#include "gmHelper.h"
 
 namespace rh
 {

@@ -1,7 +1,7 @@
 #include "fiPackfile.h"
 #include <cstring>
 
-#include "../Logger.h"
+#include "Logger.h"
 #include "fwHelpers.h"
 
 char g_textBuffer[256]{};

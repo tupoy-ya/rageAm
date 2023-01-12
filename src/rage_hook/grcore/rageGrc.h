@@ -1,5 +1,6 @@
 #pragma once
-#include "../../memory/gmHelper.h"
+#include "gmHelper.h"
+#include "D3D.h"
 
 namespace rh
 {

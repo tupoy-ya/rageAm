@@ -1,6 +1,6 @@
 #pragma once
 #include <d3d11.h>
-#include "../GameVersion.h"
+#include "GameVersion.h"
 
 namespace rage
 {

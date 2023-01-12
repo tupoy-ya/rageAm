@@ -1,5 +1,5 @@
-#include "../Logger.h"
-#include "../Memory/Hooking.h"
+#include "Logger.h"
+#include "Hooking.h"
 
 namespace rage
 {

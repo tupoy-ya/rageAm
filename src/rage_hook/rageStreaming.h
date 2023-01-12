@@ -1,5 +1,5 @@
 #pragma once
-#include "../memory/gmScanner.h"
+#include "gmScanner.h"
 #include "../rage/Streaming.h"
 #include "../rage/CModelInfo.h"
 
