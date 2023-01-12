@@ -48,27 +48,34 @@ namespace imgui_rage
 
 				if (GetForegroundWindow() != rh::PlatformWin32Impl::GetHwnd())
 					isFocused = false;
-
-				if (!isFocused)
-					ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-
-				for (auto& app : sm_apps)
-				{
-					app->Update();
-				}
-
-				if (!isFocused)
-					ImGui::PopItemFlag();
 			}
+
+			if (!isFocused)
+				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			for (auto& app : sm_apps)
+			{
+				if (m_isVisible || app->bRenderAlways)
+					app->Update();
+			}
+			if (!isFocused)
+				ImGui::PopItemFlag();
 
 			ctx->IO.MouseDrawCursor = m_isVisible && isFocused;
 
 			g_ImGui.Render();
 		}
 
+		static void UpdateAll_Wrapper(ImGuiAppMgr* inst)
+		{
+			inst->UpdateAll();
+		}
+
 		static void OnRender()
 		{
-			g_ImGuiAppMgr.UpdateAll();
+			if (!CrashHandler::ExecuteSafe(UpdateAll_Wrapper, &g_ImGuiAppMgr))
+			{
+				g_ImGui.Shutdown();
+			}
 		}
 	public:
 		void Init() const
