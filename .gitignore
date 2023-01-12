@@ -3,6 +3,47 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+.idea
+# PREMAKE
+build
+bin
+obj
+release
+ipch
+src/scripts.c
+**.lnt
+**.vlstatus
+
+Makefile
+*.make
+*.xcodeproj
+*.xcworkspace
+*.swp
+*.sdf
+*.sln
+*.suo
+*.ncb
+*.vcproj*
+*.vcxproj*
+*.VC.opendb
+*.VC.db
+*.opensdf
+*.workspace
+*.project
+*.tags
+*.sublime-*
+.cproject
+.settings
+.buildpath
+
+*.bbprojectsettings
+Scratchpad.txt
+Unix Worksheet.worksheet
+project.bbprojectdata
+Premake4.tmproj
+# PREMAKE
+
+
 # User-specific files
 *.rsuser
 *.suo
