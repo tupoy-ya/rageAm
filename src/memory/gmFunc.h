@@ -29,6 +29,8 @@ namespace gm
 	public:
 		using gmAddress::gmAddress;
 
+		gmFunc() : gmAddress(nullptr) {}
+
 		virtual TReturn operator()(Args... args)
 		{
 			return reinterpret_cast<TReturn(__fastcall*)(Args...)>(m_Address)(args...);
