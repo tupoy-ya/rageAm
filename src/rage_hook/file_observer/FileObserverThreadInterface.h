@@ -1,50 +1,48 @@
 #pragma once
 #include <unordered_map>
+#include <utility>
 
 namespace fiobs
 {
 	struct FileStoreEntry
 	{
-		/**
-		 * \brief File name without extension.
-		 */
+		// File name without extension.
 		std::string Name;
 
-		/**
-		 * \brief Last time file was modified. Used to detect if file has to be reloaded.
-		 */
-		std::filesystem::file_time_type WriteTime;
+		// Last time file was modified. Used to detect if file has to be reloaded.
+		std::filesystem::file_time_type WriteTime{};
 
-		/**
-		 * \brief Flag to check if file is still exists after iterating directory
-		 */
+		// Flag to check if file is still exists after iterating directory
 		bool Exists;
 
-		/**
-		 * \brief Flag to check if there was error loading file to stop loading it over and over again.
-		 */
+		// Flag to check if there was error loading file to stop loading it over and over again.
 		bool Error;
 
-		/**
-		 * \brief Joaat hash of parent directory name.
-		 */
+		// Joaat hash of parent directory name.
 		u32 ParentHash;
 
-		FileStoreEntry(std::string name, std::filesystem::file_time_type writeTime, u32 parentHash)
+		FileStoreEntry(const std::string& name, std::filesystem::file_time_type writeTime, u32 parentHash)
 		{
-			Name = name;
+			Name = std::move(name);
 			WriteTime = writeTime;
 			ParentHash = parentHash;
 			Exists = true;
 			Error = false;
 		}
+		FileStoreEntry(FileStoreEntry&) = delete;
 
 		virtual ~FileStoreEntry() = default;
+
+		// Perform data loading from file.
 		virtual HRESULT Load(const std::wstring& path) = 0;
+
+		// Reset entry to initial state.
 		virtual void Release()
 		{
-			RequestReload(); // Simply reset time
+			RequestReload();
 		}
+
+		// Resets write time, making observer to reload it.
 		void RequestReload()
 		{
 			WriteTime = std::filesystem::file_time_type{};
@@ -81,14 +79,7 @@ namespace fiobs
 				{
 					if (entry.is_directory())
 						continue;
-
-					// Is this a place for it?
-					if (g_CrashHandler.GetExceptionOccured())
-					{
-						inst->Shutdown();
-						return 0;
-					}
-
+					
 					std::filesystem::file_time_type lastWriteTime;
 					_Last_write_time(entry, lastWriteTime);
 
