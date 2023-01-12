@@ -3,6 +3,7 @@
 #include "imgui_rage/sys_apps/ImGuiApp_Effects.h"
 #include "imgui_rage/sys_apps/ImGuiApp_Log.h"
 #include "imgui_rage/sys_apps/ImGuiApp_Explorer.h"
+#include "imgui_rage/sys_apps/ImGuiApp_Overlay.h"
 
 namespace sapp
 {
@@ -16,7 +17,7 @@ namespace sapp
 		ImGuiApp_Toolbar()
 		{
 			IsVisible = true;
-			m_MatEditor.IsVisible = true;
+			// m_MatEditor.IsVisible = true;
 			// m_Effects.IsVisible = true;
 			// m_Log.IsVisible = true;
 			// m_Explorer.IsVisible = true;
