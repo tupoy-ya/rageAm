@@ -1,4 +1,7 @@
 #pragma once
+#include "rage/fwTypes.h"
+#include "ImGuiRage.h"
+#include <cstdarg>
 
 namespace imgui_rage
 {
@@ -9,20 +12,12 @@ namespace imgui_rage
 		bool m_Started = false;
 		char m_TextBuffer[TEXT_BUFFER_SIZE];
 
-		void InternalUpdate()
+		static void InternalUpdate(ImGuiApp* inst)
 		{
-			OnUpdate();
-			if (!IsVisible)
+			inst->OnUpdate();
+			if (!inst->IsVisible)
 				return;
-			OnRender();
-		}
-
-		void ReportException()
-		{
-			// TODO: Not really good to duplicate stack trace code here
-			std::stringstream ss{};
-			ss << boost::stacktrace::stacktrace();
-			AM_ERRF("An error occured while executing app: {}\n{}", typeid(this).name(), ss.str());
+			inst->OnRender();
 		}
 	protected:
 		const ImGuiTableFlags APP_COMMON_TABLE_FLAGS = ImGuiTableFlags_RowBg;
@@ -30,16 +25,23 @@ namespace imgui_rage
 
 	public:
 		bool IsVisible = false;
+		bool bRenderAlways = false;
 
 	protected:
 		const char* Format(const char* fmt, ...)
 		{
-			va_list argptr;
-			va_start(argptr, fmt);
-			sprintf_s(m_TextBuffer, TEXT_BUFFER_SIZE, fmt, argptr);
-			va_end(argptr);
+			va_list args;
+			va_start(args, fmt);
+			vsprintf_s(m_TextBuffer, TEXT_BUFFER_SIZE, fmt, args);
+			va_end(args);
 			return m_TextBuffer;
 		}
+
+		ImFont* GetFont(eImFont font)
+		{
+			return ImGui::GetIO().Fonts->Fonts[font];
+		}
+
 		virtual void OnStart() {}
 		virtual void OnRender() = 0;
 		virtual void OnUpdate() {}
@@ -55,15 +57,7 @@ namespace imgui_rage
 				m_Started = true;
 			}
 
-			// Stupid exceptions happen quite often so don't let it crash GTA
-			__try
-			{
-				InternalUpdate();
-			}
-			__except (EXCEPTION_EXECUTE_HANDLER)
-			{
-				ReportException();
-			}
+			CrashHandler::ExecuteSafe(InternalUpdate, this);
 		}
 	};
 }
