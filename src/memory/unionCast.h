@@ -28,8 +28,8 @@ namespace gm
 	 * \return Value casted to LPVOID.
 	 */
 	template<typename TIn>
-	LPVOID CastLPVOID(TIn in)
+	void* CastAny(TIn in)
 	{
-		return UnionCast<TIn, LPVOID>(in);
+		return UnionCast < TIn, void*>(in);
 	}
 }
