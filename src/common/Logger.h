@@ -3,8 +3,7 @@
 #include <fstream>
 #include <shared_mutex>
 #include <vector>
-
-#include "format"
+#include <format>
 
 #include "FileHelper.h"
 
@@ -150,7 +149,7 @@ public:
 
 	int GetLogCount() const
 	{
-		return m_Entries.size();
+		return (int)m_Entries.size();
 	}
 
 	LogEntry* GetLogEntryAt(int index)

@@ -1,9 +1,10 @@
 #pragma once
 
 #include <cstdio>
+#include <vector>
 #include "windows.h"
 #include "winver.h"
-#include <vector>
+#include "Logger.h"
 
 #pragma comment(lib, "Version.lib")
 
@@ -60,7 +61,7 @@ class GameVersion
 		}
 		else
 		{
-			g_Log.LogE("Unable to determine game version. Further behaviour is undefined.");
+			AM_ERR("Unable to determine game version. Further behaviour is undefined.");
 		}
 		delete[] versionInfoBuffer;
 		return ok;
@@ -82,4 +83,4 @@ public:
 		return sm_Version >= version;
 	}
 };
-inline GameVersion g_GameVersionMgr;
+inline GameVersion g_GameVersion;
