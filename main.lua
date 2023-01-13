@@ -21,12 +21,20 @@ function default_config()
 	filter {}
 end
 
+function qoute_path(path)
+	return '\"' .. path .. '\"'
+end
+
 -- Adds launcher cmd command to eject DLL on pre build and inject it after build
 function add_launcher_events(build_dir)
+	-- Make sure all paths are quoted!
 	build_dir = os.realpath(build_dir)
-	local scylla = os.realpath("tools/scyllahide.dll")
+	
+	local scylla = qoute_path(os.realpath("tools/scyllahide.dll"))
+	local launcher = qoute_path(build_dir .. "Launcher.exe")
+	local rageAm = qoute_path(build_dir .. "rageAm.dll")
 
-	local base_command = build_dir .. "Launcher.exe -exe GTA5.exe -dll " .. build_dir .. "rageAm.dll" .. " -scylla " .. scylla
+	local base_command = launcher .. " -exe GTA5.exe -dll " .. rageAm .. " -scylla " .. scylla
 	prebuildcommands { base_command .. " -unload" }
 	postbuildcommands { base_command .. " -load" }
 end
