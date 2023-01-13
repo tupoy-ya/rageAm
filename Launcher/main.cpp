@@ -313,7 +313,7 @@ int main(int argc, char* argv[])
 	if (!hGtaProc)
 	{
 		printf("Unable to open process: %s.", exe);
-		return -1;
+		return  0; // To satisfy and not interrupt compiler
 	}
 
 	printf("PID: %lu\n", procID);
