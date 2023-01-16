@@ -217,9 +217,6 @@ void InitRageAm()
 		return;
 	}
 
-	if (scyllaDllPath)
-		LoadDLL(hGtaProc, scyllaDllPath);
-
 	if (!LoadDLL(hGtaProc, amDllPath))
 		return;
 
@@ -317,6 +314,9 @@ int main(int argc, char* argv[])
 	}
 
 	printf("PID: %lu\n", procID);
+
+	if (scyllaDllPath)
+		LoadDLL(hGtaProc, scyllaDllPath);
 
 	for (eLauncherTasks task : tasks)
 	{
