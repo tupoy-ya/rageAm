@@ -77,6 +77,7 @@ project "rageAm"
 		"backward-cpp",
 		"directxtex",
 		"directxtk",
-		"freetype"
+		"freetype",
+		"zlib"
 	}
 	links { "Comctl32.lib" } -- TaskDialog
