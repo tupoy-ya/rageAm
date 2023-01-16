@@ -10,7 +10,7 @@
 #define AM_TRACE(msg) g_Log.LogT(msg)
 #define AM_TRACEF(fmt, ...) g_Log.LogT(fmt, __VA_ARGS__)
 #define AM_ERR(msg) g_Log.LogE(msg);
-#define AM_ERRF(fmt, ...) g_Log.LogE(fmt, __VA_ARGS__);
+#define AM_ERRF(fmt, ...) g_Log.LogE(fmt, __VA_ARGS__)
 
 enum eLoggerLevel
 {
