@@ -1,6 +1,10 @@
 #pragma once
 #include <d3d11.h>
+#include "paging/datResource.h"
+
+#ifndef RAGE_STANDALONE
 #include "GameVersion.h"
+#endif
 
 namespace rage
 {
@@ -17,7 +21,7 @@ namespace rage
 	 *		0x28	GetWidth();
 	 *		0x30	GetHeight();
 	 *		0x38	GetDepth();
-	 *		0x40	uint8_t Get0x5D();
+	 *		0x40	GetMipLevels();
 	 *		0x48
 	 *		0x50	// calls grcTextureFactory
 	 *		0x58	// ret 1
@@ -44,7 +48,7 @@ namespace rage
 		void(__stdcall* GetWidth)();
 		void(__stdcall* GetHeight)();
 		void(__stdcall* GetDepth)();
-		void(__stdcall* Get_5D)();
+		void(__stdcall* GetMipLevels)();
 		void(__stdcall* Function9)();
 		void(__stdcall* Get_SmthFromGrcTxtFactory)();
 		void(__stdcall* nullsub_ret_true)();
@@ -76,51 +80,66 @@ namespace rage
 	public:
 
 		grcTextureDX11_vftable* vftable;
-		char pad_0008[32]; //0x0008
-		const char* name; //0x0028
-		char pad_0030[8]; //0x0030
+		int64_t unk8;
+		int64_t unk10;
+		intptr_t unk18;
+		intptr_t unk20;
+		const char* m_Name;
+		int16_t word30;
+		int8_t byte32;
+		int8_t m_ArraySize;
+		int32_t dword34;
 		ID3D11Texture2D* pTexture; //0x0038
-		char pad_0040[4]; //0x0040
-		int32_t N00002CD4; //0x0044
-		char pad_0048[8]; //0x0048
-		int16_t width; //0x0050
-		int16_t height; //0x0052
-		int16_t depth; //0x0054
-		char pad_0056[2]; //0x0056
-		int16_t N00002C92; //0x0058
-		char pad_005A[3]; //0x005A
-		int8_t N00002C8E; //0x005D
-		char pad_005E[1]; //0x005E
-		int8_t N00002C8C; //0x005F
-		char pad_0060[4]; //0x0060
-		int32_t N00002C34; //0x0064
-		char pad_0068[4]; //0x0068
-		int32_t N00002C35; //0x006C
-		char pad_0070[8]; //0x0070
+		int32_t dword40;
+		int32_t dword44;
+		int32_t dword48;
+		int16_t word4C;
+		int16_t word4E;
+		int16_t m_Width;
+		int16_t m_Height;
+		int16_t m_Depth;
+		int16_t m_Stride;
+		uint32_t m_Format;
+		uint8_t byte5C;
+		uint8_t m_MipLevels;
+		uint8_t byte5E;
+		uint8_t byte5F;
+		grcTexture* m_PreviousTexture;
+		grcTexture* m_NextTexture;
+		void* pTextureData;
 		ID3D11ShaderResourceView* pShaderResourceView; //0x0078
-		char pad_0080[16]; //0x0080
+		int64_t unk80;
+		int64_t unk88;
+
+		grcTexture() {}
+
+		grcTexture(const datResource& rsc)
+		{
+			rsc.Fixup(m_Name); // Actually atString
+			rsc.Fixup(pTextureData);
+		}
 
 		int GetWidth() const
 		{
-			return width;
+			return m_Width;
 		}
 
 		int GetHeight() const
 		{
-			return height;
+			return m_Height;
 		}
 
 		int GetDepth() const
 		{
-			return depth;
+			return m_Depth;
 		}
 
 		const char* GetName() const
 		{
-			if (name == nullptr)
+			if (m_Name == nullptr)
 				return "UNDEFINED";
 
-			return name;
+			return m_Name;
 		}
 
 		ID3D11Texture2D* GetTexture() const
@@ -130,6 +149,9 @@ namespace rage
 
 		ID3D11ShaderResourceView* GetShaderResourceView()
 		{
+#ifdef RAGE_STANDALONE
+			throw;
+#else
 			// TODO: grcRenderTargetTextureDX11 structure is different
 			//return pShaderResourceView;
 
@@ -142,6 +164,7 @@ namespace rage
 			}
 
 			return this->vftable->GetShaderResourceView(this);
+#endif
 		}
 
 		void SetTexture(ID3D11Texture2D* texture)
