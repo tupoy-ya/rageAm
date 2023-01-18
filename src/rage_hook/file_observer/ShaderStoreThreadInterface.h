@@ -78,12 +78,12 @@ namespace fiobs
 				// AtArray doesn't support dynamic types, have to do this.
 				switch (swapSlot->ProgramType)
 				{
-				case grc::PROGRAM_FRAGMENT: program = effect->pFragmentPrograms.GetAt(i);	break;
-				case grc::PROGRAM_VERTEX:	program = effect->pVertexPrograms.GetAt(i);		break;
-				case grc::PROGRAM_COMPUTE:	program = effect->pComputePrograms.GetAt(i);	break;
-				case grc::PROGRAM_DOMAIN:	program = effect->pDomainPrograms.GetAt(i);		break;
-				case grc::PROGRAM_GEOMETRY: program = effect->pGeometryPrograms.GetAt(i);	break;
-				case grc::PROGRAM_HULL:		program = effect->pHullPrograms.GetAt(i);		break;
+				case grc::PROGRAM_FRAGMENT: program = effect->pFragmentPrograms.GetPtr(i);	break;
+				case grc::PROGRAM_VERTEX:	program = effect->pVertexPrograms.GetPtr(i);	break;
+				case grc::PROGRAM_COMPUTE:	program = effect->pComputePrograms.GetPtr(i);	break;
+				case grc::PROGRAM_DOMAIN:	program = effect->pDomainPrograms.GetPtr(i);	break;
+				case grc::PROGRAM_GEOMETRY: program = effect->pGeometryPrograms.GetPtr(i);	break;
+				case grc::PROGRAM_HULL:		program = effect->pHullPrograms.GetPtr(i);		break;
 				default: program = nullptr;
 				}
 
