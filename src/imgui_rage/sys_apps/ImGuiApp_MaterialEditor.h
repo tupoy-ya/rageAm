@@ -307,10 +307,10 @@ namespace sapp
 			for (int i = 0; i < selectedMaterial->numVariables; i++)
 			{
 				rage::grcInstanceVar* instVar = selectedMaterial->GetVariableAtIndex(i);
-				rage::grcEffectVar* shaderVar = selectedMaterial->GetEffect()->variables[i];
-				rage::eEffectValueType type = shaderVar->GetValueType();
+				rage::grcEffectVar& shaderVar = selectedMaterial->GetEffect()->variables[i];
+				rage::eEffectValueType type = shaderVar.GetValueType();
 
-				const char* samplerName = m_ShowInShaderNames ? shaderVar->InShaderName : shaderVar->GetDisplayName();
+				const char* samplerName = m_ShowInShaderNames ? shaderVar.InShaderName : shaderVar.GetDisplayName();
 
 				if (type != rage::EFFECT_VALUE_TEXTURE)
 					continue;
@@ -325,7 +325,7 @@ namespace sapp
 
 				// There's really no point to view it (it appears as black texture, probably not 2D)
 				// + sometimes bugs out and causes weird issues in im gui
-				if (strcmp(shaderVar->InShaderName, "DamageSampler") == 0)
+				if (strcmp(shaderVar.InShaderName, "DamageSampler") == 0)
 					continue;
 
 				if (openAction != -1)
@@ -353,7 +353,7 @@ namespace sapp
 						ImGui::HelpMarker("Texture was successfully loaded from local or global folder and replaced default one.");
 
 						// Can't change DDS compression
-						if(!textureSlot->IsDDS)
+						if (!textureSlot->IsDDS)
 						{
 							int compressionMode = FormatToIndex(textureSlot->Format);
 							sprintf_s(sm_TextBuffer, TEXT_BUFFER_SIZE, "Compression##%i", i);
@@ -455,13 +455,13 @@ namespace sapp
 			rage::grcInstanceData* selectedMaterial = shaderGroup->GetInstanceDataAt(m_SelectedMaterialIndex);
 
 			// Table Rows
-			for (int i = 0; i < selectedMaterial->numVariables; i++)
+			for (u8 i = 0; i < selectedMaterial->numVariables; i++)
 			{
 				const rage::grcEffect* effect = selectedMaterial->GetEffect();
 				const rage::grcInstanceVar* instVar = selectedMaterial->GetVariableAtIndex(i);
-				const rage::grcEffectVar* shaderVar = effect->variables[i];
-				const ShaderUIVariable* uiVar = ShaderUIConfig::GetVariableFor(shaderVar->InShaderName);
-				rage::eEffectValueType type = shaderVar->GetValueType();
+				const rage::grcEffectVar& shaderVar = effect->variables.Get(i);
+				const ShaderUIVariable* uiVar = ShaderUIConfig::GetVariableFor(shaderVar.InShaderName);
+				rage::eEffectValueType type = shaderVar.GetValueType();
 
 				// We've got separate tab for them
 				if (type == rage::EFFECT_VALUE_TEXTURE)
@@ -471,7 +471,7 @@ namespace sapp
 
 				// Name
 				ImGui::TableSetColumnIndex(0);
-				const char* displayName = m_ShowInShaderNames ? shaderVar->InShaderName : shaderVar->GetDisplayName();
+				const char* displayName = m_ShowInShaderNames ? shaderVar.InShaderName : shaderVar.GetDisplayName();
 				if (m_EnableUIConfig && uiVar)
 				{
 					displayName = uiVar->Name;
@@ -493,7 +493,7 @@ namespace sapp
 
 				// Controls must have unique ID so use variable name
 				// since it doesn't appear twice on screen
-				sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "##%s", shaderVar->InShaderName);
+				sprintf_s(sm_TextBuffer, INPUT_BUFFER_SIZE, "##%s", shaderVar.InShaderName);
 
 				if (!m_EnableUIConfig || !uiVar || uiVar->Widget == UI_WIDGET_NONE)
 				{
