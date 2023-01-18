@@ -1,8 +1,11 @@
 #include "fiPackfile.h"
+
 #include <cstring>
 
-#include "Logger.h"
 #include "fwHelpers.h"
+#ifndef RAGE_STANDALONE
+#include "Logger.h"
+#endif
 
 char g_textBuffer[256]{};
 
@@ -29,6 +32,11 @@ u32 rage::fiPackEntry::GetOffset() const
 u16 rage::fiPackEntry::GetNameOffset() const
 {
 	return Data & 0xFFFF;
+}
+
+rage::datResourceInfo rage::fiPackEntry::GetResourceInfo() const
+{
+	return { Resource.VirtualData, Resource.PhysicalData };
 }
 
 const char* rage::fiPackfile::GetName() const
@@ -71,7 +79,7 @@ const char* rage::fiPackfile::GetEntryNameByOffset(u32 offset) const
 	return &m_NameTable[offset];
 }
 
-rage::fiPackEntry* rage::fiPackfile::FindChildEntryIndexByName(const fiPackEntry* parent, const char* child) const
+rage::fiPackEntry* rage::fiPackfile::FindChildEntry(const fiPackEntry* parent, const char* child) const
 {
 	u32 from = parent->Directory.ChildStartIndex;
 	u32 to = parent->Directory.ChildCount + from;
@@ -107,7 +115,7 @@ rage::fiPackEntry* rage::fiPackfile::FindChildEntryIndexByName(const fiPackEntry
 	return nullptr;
 }
 
-rage::fiPackEntry* rage::fiPackfile::FindEntryHeaderByPath(const char* path) const
+rage::fiPackEntry* rage::fiPackfile::GetEntry(const char* path) const
 {
 	char c = path[0];
 
@@ -146,7 +154,7 @@ rage::fiPackEntry* rage::fiPackfile::FindEntryHeaderByPath(const char* path) con
 			// Reset buffer iterator for next token
 			k = 0;
 
-			entry = FindChildEntryIndexByName(entry, g_textBuffer);
+			entry = FindChildEntry(entry, g_textBuffer);
 
 			if (!entry)
 				return nullptr;
@@ -173,7 +181,7 @@ rage::fiPackEntry* rage::fiPackfile::FindEntryHeaderByPath(const char* path) con
 
 rage::fiPackEntry* rage::fiPackfile::vftable_FindEntryHeaderByPath(const fiPackfile* inst, const char* path)
 {
-	// g_Log.Log("fiPackFile::FindEntryHeaderByPath({:X} ({}), {})", reinterpret_cast<intptr_t>(inst), inst->GetName(), path);
+	// g_Log.Log("fiPackFile::GetEntry({:X} ({}), {})", reinterpret_cast<intptr_t>(inst), inst->GetName(), path);
 
-	return inst->FindEntryHeaderByPath(path);
+	return inst->GetEntry(path);
 }

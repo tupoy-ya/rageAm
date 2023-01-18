@@ -1,8 +1,10 @@
 #pragma once
 #include <cstdint>
+#include <Windows.h>
 
 #include "fiDevice.h"
 #include "fwTypes.h"
+#include "paging/datResourceInfo.h"
 
 namespace rage
 {
@@ -22,8 +24,8 @@ namespace rage
 			} Binary;
 
 			struct {
-				uint32_t VirtualFlags;
-				uint32_t PhysicalFlags;
+				uint32_t VirtualData;
+				uint32_t PhysicalData;
 			} Resource;
 
 			struct {
@@ -37,6 +39,7 @@ namespace rage
 		u16 GetOnDiskSize() const;
 		u32 GetOffset() const;
 		u16 GetNameOffset() const;
+		datResourceInfo GetResourceInfo() const;
 	};
 	static_assert(sizeof(fiPackEntry) == 0x10);
 
@@ -55,10 +58,10 @@ namespace rage
 		fiPackEntry* m_Entries;
 		int32_t m_NumEntries;
 		int8_t gap2C[4]; // Once was 'ydr'? what
-		FI_HANDLE m_Handle;
+		fiHandle_t m_Handle;
 		FILETIME m_FileTime;
 		int8_t gap40[16];
-		fiPackfile* m_Parent; // Actually fiDevice but since we've got no inheritance yet
+		fiDevice* m_Parent;
 		// Used to truncate full path with mounting point like 'dlcMPBeach:/common/data/handling.meta'
 		// to 'common/data/handling.meta' when mounting scope is no longer needed
 		int32_t m_MountPointLength;
@@ -87,17 +90,21 @@ namespace rage
 		uint8_t byteb5;
 		uint16_t wordB9;
 
+		const char* GetEntryNameByIndex(u32 index) const;
+		const char* GetEntryNameByOffset(u32 offset) const;
 	public:
 		const char* GetName() const;
 		fiPackEntry* GetRootEntry() const;
-		fiPackEntry* GetEntry(u32 index) const;
-		const char* GetEntryName(const rage::fiPackEntry* entry) const;
-		const char* GetEntryNameByIndex(u32 index) const;
-		const char* GetEntryNameByOffset(u32 offset) const;
-		fiPackEntry* FindChildEntryIndexByName(const fiPackEntry* parent, const char* child) const;
 
-		// Virtual Function 0x1D8
-		fiPackEntry* FindEntryHeaderByPath(const char* path) const;
+		fiPackEntry* GetEntry(u32 index) const;
+		fiPackEntry* GetEntry(const char* path) const; // Virtual Function 0x1D8
+		fiPackEntry* FindChildEntry(const fiPackEntry* parent, const char* child) const;
+
+		const char* GetEntryName(const fiPackEntry* entry) const;
+
+		u32 GetEntryCount() const { return m_NumEntries; }
+		fiHandle_t GetHandle() const { return m_Handle; }
+		fiDevice* GetParent() const { return m_Parent; }
 
 		/* Virtual Table Wrappers */
 
