@@ -171,7 +171,7 @@ gm::gmAddress gm::gmScanner::ScanPatternModule(const char* name, const char* mod
 	if (address == 0)
 	{
 		g_Log.LogE("gmScanner::ScanPattern({}): 0x0", name);
-		return { nullptr };
+		return {};
 	}
 
 #ifdef _DEBUG

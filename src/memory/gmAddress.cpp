@@ -1,18 +1,19 @@
 #include "gmAddress.h"
-#include "pattern.h"
+#include "gmHelper.h"
+#include "gmScanner.h"
 
 bool gm::gmAddress::MayBeValid() const
 {
-	return !IsBadReadPtr(reinterpret_cast<void*>(m_Address), 0x8);
+	return !IsBadReadPtr((void*)Addr, 0x8);
 }
 
 gm::gmAddress gm::gmAddress::GetRef() const
 {
 	if (!MayBeValid())
-		return { nullptr };
+		return {};
 
 	// Offset m_address + size of offset (int) + offset value
-	return m_Address + 4 + *reinterpret_cast<int*>(m_Address);
+	return Addr + 4 + *(int*)Addr;
 }
 
 gm::gmAddress gm::gmAddress::GetCall() const
@@ -28,7 +29,7 @@ gm::gmAddress gm::gmAddress::GetAt(int32_t offset) const
 gm::gmAddress gm::gmAddress::GetAt64(int64_t offset) const
 {
 	if (!MayBeValid())
-		return { nullptr };
+		return {};
 
-	return { m_Address + offset };
+	return { Addr + offset };
 }

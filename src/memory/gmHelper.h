@@ -4,6 +4,7 @@
 
 #include "gmHook.h"
 #include "gmScanner.h"
+#include "unionCast.h"
 
 namespace gm
 {
@@ -33,7 +34,7 @@ namespace gm
 		return g_Scanner.ScanPattern(name, pattern);
 	}
 
-	inline gmAddress Scan(std::function<uintptr_t()> onScan)
+	inline gmAddress Scan(uintptr_t onScan())
 	{
 		return onScan();
 	}
@@ -43,6 +44,22 @@ namespace gm
 		g_Hook.SetToNullsub(Scan(name, pattern));
 	}
 
+	template<typename TOriginal>
+	LPVOID Hook(const gmAddress& addr, TOriginal detour)
+	{
+		LPVOID original = nullptr;
+		g_Hook.SetHook(addr, gm::CastAny(detour), &original);
+		return original;
+	}
+
+	template<typename TOriginal>
+	LPVOID Hook(const char* name, const char* pattern, TOriginal detour)
+	{
+		return Hook(Scan(name, pattern), detour);
+	}
+
+	// OBSOLETE
+	// TODO: Move these to gmScannable
 	template<typename T>
 	T GetGlobal(const char* name)
 	{

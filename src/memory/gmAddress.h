@@ -12,32 +12,25 @@ namespace gm
 	 */
 	struct gmAddress
 	{
-	protected:
-		uintptr_t m_Address;
+		uintptr_t Addr = 0;
 
-	public:
 		static constexpr uintptr_t GM_ADDRESS_INVALID = 0;
 
-		gmAddress(uintptr_t address)
-		{
-			m_Address = address;
-		}
+		gmAddress() = default;
 
-		gmAddress(LPVOID address)
-		{
-			m_Address = (uintptr_t)address;
-		}
+		gmAddress(uintptr_t addr) : Addr(addr) {}
+		gmAddress(LPVOID addr) : gmAddress((uintptr_t)addr) {}
 
 		virtual ~gmAddress() = default;
 
 		uintptr_t GetAddress() const
 		{
-			return m_Address;
+			return Addr;
 		}
 
 		uintptr_t* GetAddressPtr()
 		{
-			return &m_Address;
+			return &Addr;
 		}
 
 		/**
@@ -51,7 +44,7 @@ namespace gm
 		 * e.g. (mov rdx, [gta5.exe+offset]) on current address and casts it to required type.
 		 * \return T instance with offset address if success, otherwise nullptr.
 		 */
-		template<typename T>
+		template <typename T>
 		T CastRef() const
 		{
 			if (!MayBeValid())
@@ -66,7 +59,7 @@ namespace gm
 		 * \param offset Offset relative to current address, can be negative.
 		 * \return T instance on address with offset added if address is valid, otherwise nullptr.
 		 */
-		template<typename T>
+		template <typename T>
 		T CastAt(int offset)
 		{
 			if (!MayBeValid())
@@ -80,13 +73,13 @@ namespace gm
 		 * \tparam T Type to cast in.
 		 * \return Current address casted to T if address is valid, otherwise nullptr.
 		 */
-		template<typename T>
+		template <typename T>
 		T Cast()
 		{
 			if (!MayBeValid())
 				return nullptr;
 
-			return reinterpret_cast<T>(m_Address);
+			return reinterpret_cast<T>(Addr);
 		}
 
 		/**
@@ -121,6 +114,6 @@ namespace gm
 		 */
 		gmAddress GetAt64(int64_t offset) const;
 
-		operator uintptr_t() const { return m_Address; }
+		operator uintptr_t() const { return Addr; }
 	};
 }
