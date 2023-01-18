@@ -19,10 +19,10 @@ u8 rage::datResourceInfo::GetNumChunks(u32 data)
 		(data >> 27 & 0x1));
 }
 
-u32 rage::datResourceInfo::GenerateChunks(u32 data, u64 baseSize, datResourceMap* map, u32 startChunk, u64 baseAddr)
+u8 rage::datResourceInfo::GenerateChunks(u32 data, u64 baseSize, datResourceMap& map, u8 startChunk, u64 baseAddr)
 {
 	u64 size = baseSize << GetSizeShift(data);
-	u32 chunkIndex = startChunk;
+	u8 chunkIndex = startChunk;
 
 	u32 pageChunks[9]
 	{
@@ -41,9 +41,9 @@ u32 rage::datResourceInfo::GenerateChunks(u32 data, u64 baseSize, datResourceMap
 	{
 		for (u32 j = 0; j < numChunks; j++)
 		{
-			map->Chunks[chunkIndex].DestAddr = 0;
-			map->Chunks[chunkIndex].SrcAddr = baseAddr;
-			map->Chunks[chunkIndex].Size = size;
+			map.Chunks[chunkIndex].DestAddr = 0;
+			map.Chunks[chunkIndex].SrcAddr = baseAddr;
+			map.Chunks[chunkIndex].Size = size;
 			baseAddr += size;
 			chunkIndex++;
 		}
@@ -63,16 +63,15 @@ u8 rage::datResourceInfo::GetNumPhysicalChunks() const
 	return GetNumChunks(PhysicalData);
 }
 
-void rage::datResourceInfo::GenerateMap(datResourceMap* map) const
+void rage::datResourceInfo::GenerateMap(datResourceMap& map) const
 {
-	map->VirtualChunkCount = GetNumVirtualChunks();
-	map->PhysicalChunkCount = GetNumPhysicalChunks();
-	map->MainChunkIndex = 0;
-	map->MainPage = nullptr;
-	map->qwordC10 = 0;
+	map.VirtualChunkCount = GetNumVirtualChunks();
+	map.PhysicalChunkCount = GetNumPhysicalChunks();
 
-	GenerateChunks(VirtualData, DAT_BASE_SIZE, map, 0, DAT_VIRTUAL_BASE);
-	GenerateChunks(VirtualData, DAT_BASE_SIZE, map, map->VirtualChunkCount, DAT_PHYSICAL_BASE);
+	map.MainChunkIndex = 0;
+	map.MainPage = nullptr;
+	map.qwordC10 = 0;
 
-	gImpl_datResourceInfo_GenerateMap(map);
+	u8 vChunks = GenerateChunks(VirtualData, DAT_BASE_SIZE, map, 0, DAT_VIRTUAL_BASE);
+	GenerateChunks(PhysicalData, DAT_BASE_SIZE, map, vChunks, DAT_PHYSICAL_BASE);
 }

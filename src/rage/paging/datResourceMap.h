@@ -1,10 +1,12 @@
 #pragma once
 #include "datResourceChunk.h"
-#include <cstddef>
+#include "pgBase.h"
+#include <stddef.h>
 
 namespace rage
 {
-	typedef u64 pgBase;
+	class pgBase;
+
 	struct datResourceMap
 	{
 		u8 VirtualChunkCount;
@@ -15,6 +17,11 @@ namespace rage
 		pgBase* MainPage;
 		datResourceChunk Chunks[DAT_NUM_CHUNKS];
 		u64 qwordC10;
+
+		u8 GetChunkCount() const
+		{
+			return VirtualChunkCount + PhysicalChunkCount;
+		}
 	};
 	static_assert(sizeof(datResourceMap) == 0xC18);
 	static_assert(offsetof(datResourceMap, Chunks) == 0x10);

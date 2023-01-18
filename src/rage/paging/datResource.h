@@ -1,26 +1,30 @@
 #pragma once
-#include "../fwTypes.h"
-#include "../TlsManager.h"
-#include "Logger.h"
-#include "unionCast.h"
 
-#include <algorithm>
+#include <new>
 
-#include "gmFunc.h"
 #include "dat.h"
-#include "datResourceInfo.h"
-#include "datResourceMap.h"
 #include "datResourceChunk.h"
+#include "datResourceMap.h"
+#include "fwTypes.h"
+#include "TlsManager.h"
+
+#ifndef RAGE_STANDALONE
+#include "gmFunc.h"
+#include "Logger.h"
+#endif
 
 namespace rage
 {
-	static bool SortByRegionAddress(const datResourceSortedChunk& lhs, const datResourceSortedChunk& rhs)
-	{
-		return lhs.Address < rhs.Address;
-	}
+	class pgBase;
 
+	/**
+	 * \brief Provides functionality for building resource from allocated chunks.
+	 */
 	struct datResource
 	{
+		/**
+		 * \brief Offsets map of this resource.
+		 */
 		datResourceMap* Map;
 
 		/**
@@ -44,45 +48,22 @@ namespace rage
 		 */
 		datResourceSortedChunk DestChunks[DAT_NUM_CHUNKS];
 
-		uint8_t NumChunks;
-		uint8_t byte1019;
+		/**
+		 * \brief Physical and Virtual chunks combined.
+		 */
+		uint8_t ChunkCount;
 
-		datResource(datResourceMap* map, const char* name = "<unknown>")
-		{
-			Map = map;
-			Name = name;
-			byte1019 = 0;
-			NumChunks = map->VirtualChunkCount + map->PhysicalChunkCount;
+		datResource(datResourceMap& map, const char* name = "<unknown>");
+		~datResource();
 
-			for (u8 i = 0; i < NumChunks; i++)
-			{
-				const datResourceChunk& chunk = map->Chunks[i];
-
-				SrcChunks[i] = datResourceSortedChunk(chunk.SrcAddr, chunk.Size, i);
-				DestChunks[i] = datResourceSortedChunk(chunk.DestAddr, chunk.Size, i);
-			}
-			std::sort(SrcChunks, &SrcChunks[NumChunks], SortByRegionAddress);
-			std::sort(DestChunks, &DestChunks[NumChunks], SortByRegionAddress);
-
-			PreviousResource = TlsManager::GetResource();
-			TlsManager::SetResource(this);
-			*TlsManager::Get<u32*>(TLS_INDEX_NUM_DATRESOURCES) += 1;
-		}
-
-		~datResource()
-		{
-			TlsManager::SetResource(PreviousResource);
-			*TlsManager::Get<u32*>(TLS_INDEX_NUM_DATRESOURCES) -= 1;
-		}
+		// Comparer for sorting chunks.
+		static bool SortByRegionAddress(const datResourceSortedChunk& lhs, const datResourceSortedChunk& rhs);
 
 		/**
 		 * \brief Gets corresponding resource chunk from it's sorted version.
 		 * \param sortedChunk Sorted chunk to get datResourceChunk for.
 		 */
-		datResourceChunk* GetChunk(const datResourceSortedChunk* sortedChunk) const
-		{
-			return &Map->Chunks[sortedChunk->GetChunkIndex()];
-		}
+		datResourceChunk* GetChunk(const datResourceSortedChunk* sortedChunk) const;
 
 		/**
 		 * \brief Searches for an address in given chunk array.
@@ -91,98 +72,83 @@ namespace rage
 		 * \return A pointer to datResourceSortedChunk whose address range
 		 * contains the given address, if any; otherwise, nullptr.
 		 */
-		datResourceSortedChunk* Find(datResourceSortedChunk* chunks, uintptr_t address) const
-		{
-			datResourceSortedChunk* pageIt = chunks;
-			u8 index = NumChunks;
-
-			// Binary search to find page which range contains address
-			while (index > 0)
-			{
-				u8 mid = index / 2;
-				const datResourceSortedChunk& page = pageIt[mid];
-
-				if (page.GetEndAddress() > address)
-				{
-					index = mid;
-				}
-				else
-				{
-					pageIt += mid + 1;
-					index -= mid + 1;
-				}
-			}
-
-			datResourceSortedChunk* lastPage = &chunks[NumChunks];
-			if (pageIt != lastPage & pageIt->ContainsThisAddress(address))
-				return pageIt;
-			return nullptr;
-		}
+		const datResourceSortedChunk* Find(const datResourceSortedChunk* chunks, uintptr_t address) const;
 
 		/**
 		 * \brief Checks whether resource contains given game heap address.
 		 * \param address Game address to check.
 		 * \return True if any game memory chunk address range contains address; otherwise False.
 		 */
-		bool ContainsThisAddress(uintptr_t address)
-		{
-			return Find(DestChunks, address) != nullptr;
-		}
+		bool ContainsThisAddress(uintptr_t address) const;
 
 		/**
 		 * \brief Gets offset for resource offset that maps it into allocated chunk in game heap.
 		 * \param resourceOffset Offset address of the resource.
 		 * \return Offset that maps resource address into game address.
 		 */
-		uint64_t GetFixup(uintptr_t resourceOffset)
-		{
-			if (datResourceSortedChunk* chunk = Find(SrcChunks, resourceOffset))
-				return GetChunk(chunk)->GetFixup();
+		uint64_t GetFixup(uintptr_t resourceOffset) const;
 
-			AM_ERRF("rage::datResource::GetFixup() -> ERR_SYS_INVALIDRESOURCE_5"
-				": Invalid fixup, address {:X} is neither virtual nor physical.", resourceOffset);
-			return 0;
+		/**
+		 * \brief Maps resource offset into allocated chunk in game heap.
+		 * \n USAGE: Fixup(&m_Name);
+		 * \tparam T Type of resource struct field.
+		 * \param pField Pointer to resource struct field.
+		 */
+		template<typename T>
+		void Fixup(T& pField) const
+		{
+			pField = (T)((u64)pField + GetFixup((u64)pField));
 		}
 
-		template<typename TPaged>
-		static void Place(TPaged* ppPaged)
+		/**
+		 * \brief Fixes address and performs new placement for resource struct.
+		 * \n Used for collection elements for e.g. in pgPtrArray.
+		 * \tparam T Type of structure to place.
+		 * \param paged Pointer to structure.
+		 */
+		template<typename T>
+		void Place(T& paged) const
 		{
-			datResource* rsc = TlsManager::GetResource();
-
-			if (!rsc || rsc->ContainsThisAddress((uintptr_t)ppPaged))
-			{
-				*ppPaged = nullptr;
-				return;
-			}
-
-			ppPaged += rsc->GetFixup((uintptr_t)ppPaged);
-			*ppPaged = new (sizeof(TPaged), *ppPaged)TPaged(rsc);
+			Fixup(paged);
+			Construct(paged);
 		}
-	}; // Size is 0x101A, + 6 byte align at the end
-	static_assert(sizeof(datResource) == 0x101A + 0x6);
 
-	/*
-	class pgBase
-	{
-		uint64_t vftable;
-		uint64_t qword8;
-	protected:
-		static datResource* GetResource() { return TlsManager::GetResource(); }
-	public:
-		pgBase()
+		/**
+		 * \brief Performs new placement (datResource constructor) for resource struct.
+		 * \tparam T Type of structure to construct.
+		 * \param pPaged Pointer to structure.
+		 */
+		template<typename T>
+		void Construct(T* pPaged) const
 		{
-			if (qword8 == 0)
-				return;
+			// Important thing to note here is that with manual new-placing no destructor
+			// will be invoked, and that's exactly what we need because it has to be managed
+			// by streaming allocator.
+			// Otherwise for e.g. destructor of atArray will blow up whole operation.
 
-			datResource* rsc = GetResource();
-			if (!rsc)
-				return;
+			const datResource& rsc = *this;
+			void* addr = (void*)pPaged;
+			new (addr) T(rsc);
+		}
 
-			qword8 += rsc->GetFixup(qword8);
+		/**
+		 * \brief Performs new placement of main resource page.
+		 * \n Alternative way is to use overloaded operator new: new (rsc) pgDictionary<grcTexture>(rsc);
+		 * \tparam T Resource type.
+		 * \return Pointer to resource instance.
+		 */
+		template<typename T>
+		T* Construct() const
+		{
+			static_assert(std::is_base_of_v<pgBase, T>, "Resource type must be inherited from pgBase.");
+
+			T* t = (T*)Map->MainPage;
+			Construct(t);
+			return t;
 		}
 	};
-	static_assert(sizeof(pgBase) == 0x10);
-	*/
+	// Size is 0x101A, + 6 byte pad at the end
+	static_assert(sizeof(datResource) == 0x101A + 6);
 
 	namespace hooks
 	{
@@ -196,12 +162,14 @@ namespace rage
 		//	"rage::datResource::GetFixup",
 		//	"48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 0F B6 81",
 		//	gm::CastAny(&datResource::GetFixup));
-
-		//static inline gm::gmFuncHook gSwap_datResourceInfo_GenerateMap(
-		//	"rage::datResourceInfo::GenerateMap",
-		//	"48 89 5C 24 08 57 48 83 EC 30 44 8B 09",
-		//	gm::CastAny(&datResourceInfo::GenerateMap),
-		//	gImpl_datResourceInfo_GenerateMap.GetAddressPtr());
 #endif
 	}
 }
+
+// Constructs resource from main page.
+// NOTE: datResource still has to be passed into constructor.
+inline void* operator new(size_t, const rage::datResource& rsc)
+{
+	return rsc.Map->MainPage;
+}
+inline void operator delete(void*, const rage::datResource&) {}

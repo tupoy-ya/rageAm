@@ -59,7 +59,7 @@ namespace rage
 		datResourceSortedChunk(u64 address, u64 size, u8 index)
 		{
 			Address = address;
-			IndexAndSize = (u64)index << DAT_CHUNK_INDEX_SHIFT & size;
+			IndexAndSize = (u64)index << DAT_CHUNK_INDEX_SHIFT | size;
 		}
 
 		/**
