@@ -1,9 +1,9 @@
 #pragma once
 #include "Pool.h"
-#include "pgDictionary.h"
+#include "paging/pgDictionary.h"
 #include "grcTexture.h"
 #include "grmShaderGroup.h"
-#include "atArray.h"
+#include "template/array.h"
 #include "fragType.h"
 #include "fwFragmentDef.h"
 #include "atHashString.h"

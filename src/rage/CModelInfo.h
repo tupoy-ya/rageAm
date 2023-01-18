@@ -19,7 +19,7 @@ namespace rage
 
 	namespace hooks
 	{
-		static inline gm::gmFuncScan<CBaseModelInfo*, fwModelId*> gImpl_GetModelInfoFromId([]() -> auto
+		static inline gm::gmFunc<CBaseModelInfo*, fwModelId*> gImpl_GetModelInfoFromId([]() -> auto
 			{
 				return gm::Scan("CModelInfo::GetModelInfoFromId", "E8 ?? ?? ?? ?? 44 8B 78 18")
 					.GetCall();
