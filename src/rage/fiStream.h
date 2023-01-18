@@ -1,10 +1,14 @@
 #pragma once
+#include <format>
 #include <mutex>
 
 #include "fwTypes.h"
 #include "fiDevice.h"
+
+#ifndef RAGE_STANDALONE
 #include "gmFunc.h"
 #include "unionCast.h"
+#endif
 
 namespace rage
 {
@@ -23,14 +27,19 @@ namespace rage
 		// Additionally there's checks if it's not set to zero.
 		static constexpr int sm_MaxStreams = 64;
 
-		inline static std::mutex sm_mutex;
-
-		inline static fiStream* sm_streams = gm::GetGlobal<fiStream*>("sm_Streams"); // [sm_MaxStreams];
-		inline static char* sm_streamBuffers = gm::GetGlobal<char*>("sm_Buffers"); // [sm_MaxStreams][STREAM_BUFFER_SIZE]{ {0} };
+		inline static std::mutex sm_Mutex;
 		inline static int sm_ActiveStreams;
 
+#ifdef RAGE_STANDALONE
+		static fiStream sm_Streams[sm_MaxStreams];
+		inline static char sm_StreamBuffers[sm_MaxStreams][STREAM_BUFFER_SIZE];
+#else
+		inline static fiStream* sm_Streams = gm::GetGlobal<fiStream*>("sm_Streams"); // [sm_MaxStreams];
+		inline static char* sm_StreamBuffers = gm::GetGlobal<char*>("sm_Buffers"); // [sm_MaxStreams][STREAM_BUFFER_SIZE]{ {0} };
+#endif
+
 		fiDevice* m_pDevice;
-		FI_HANDLE m_FileHandle; // Device specific handle. For i.e. in fiDeviceLocal (win api) it's file handle.
+		fiHandle_t m_FileHandle; // Device specific handle. For i.e. in fiDeviceLocal (win api) it's file handle.
 		char* m_Buffer; // Temporary buffer where stream writes and reads data from
 		int64 m_DeviceCursorPos;
 		int m_BufferCursorPos; // Read / write operations are processed relative to position of cursor in buffer.
@@ -38,7 +47,7 @@ namespace rage
 		int m_BufferSize;
 	public:
 		fiStream();
-		fiStream(fiDevice* pDevice, FI_HANDLE handle, char* buffer);
+		fiStream(fiDevice* pDevice, fiHandle_t handle, char* buffer);
 
 		static int GetNumActiveStreams();
 		static bool HasAvailableStreams();
@@ -87,7 +96,7 @@ namespace rage
 		 * \param pDevice Pointer to fiDevice, which data belongs to.
 		 * \return Pointer to fiStream or nullptr if was unable to allocate new stream.
 		 */
-		static fiStream* AllocStream(const char* resourceName, FI_HANDLE handle, fiDevice* pDevice);
+		static fiStream* AllocStream(const char* resourceName, fiHandle_t handle, fiDevice* pDevice);
 
 		/**
 		 * \brief Frees up allocated slot. Has to be called after stream is no longer needed.
@@ -112,7 +121,7 @@ namespace rage
 		 * \param size Number of bytes to read.
 		 * \return Number of bytes was read. -1 if unsuccessful.
 		 */
-		int Read(const char* dest, u32 size);
+		int Read(u8* dest, u32 size);
 
 		/**
 		 * \brief Writes given data to stream.
@@ -122,7 +131,7 @@ namespace rage
 		 * \param size Number of bytes to write from data.
 		 * \return Number of bytes written. -1 if data was unable to write.
 		 */
-		int Write(const char* data, u32 size);
+		int Write(u8* data, u32 size);
 
 		/**
 		 * \brief Writes single character to stream.
@@ -144,7 +153,7 @@ namespace rage
 			// But for consistency purposes we will modern formatting, at least for now.
 			std::string str = std::format(fmt, std::forward<Args>(args)...);
 
-			return Write(str.c_str(), str.length());
+			return Write((u8*)str.c_str(), str.length());
 		}
 	};
 	static_assert(sizeof(fiStream) == 0x30); // + 4 byte alignment

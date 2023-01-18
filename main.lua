@@ -58,10 +58,12 @@ project "Launcher"
 
 project "rageAm"
 	kind "SharedLib"
+	-- kind "ConsoleApp"
+	-- defines { "RAGE_STANDALONE" }
 	default_config()
 	
-	files { "src/**.h", "src/**.cpp", "src/**.hint" }
-	includedirs { "src", "src/common", "src/memory" }
+	files { "src/**.h", "src/**.cpp", "src/**.hint", "src/**.natvis" }
+	includedirs { "src", "src/common", "src/memory", "src/rage" }
 
 	dofile("config.lua")
 
@@ -78,6 +80,10 @@ project "rageAm"
 		"directxtex",
 		"directxtk",
 		"freetype",
-		"zlib"
+		"zlib",
 	}
 	links { "Comctl32.lib" } -- TaskDialog
+
+	filter "files:**.natvis"
+		buildaction "Natvis"
+	filter{}

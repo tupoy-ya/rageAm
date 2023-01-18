@@ -1,13 +1,15 @@
 #pragma once
-#include "Logger.h"
-#include "atArray.h"
-#include "fwTypes.h"
+#include "template/array.h"
+#include "paging/pgDictionary.h"
 #include "grcTexture.h"
-#include "pgDictionary.h"
-#include <d3d11.h>
 #include "grcProgram.h"
-
 #include "TlsManager.h"
+
+#include <d3d11.h>
+
+#ifndef RAGE_STANDALONE
+#include "Logger.h"
+#endif
 
 namespace rage
 {
@@ -307,9 +309,9 @@ namespace rage
 		int64_t qword18;
 		int64_t qword20;
 
-		eEffectValueType GetValueTypeAt(int index) const
+		eEffectValueType GetValueTypeAt(u16 index) const
 		{
-			return GetEffect()->GetVariables().GetAt(index)->GetValueType();
+			return GetEffect()->GetVariables()[index].GetValueType();
 		}
 
 		grcInstanceVar* GetVariableAtIndex(int index) const

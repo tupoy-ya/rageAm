@@ -3,6 +3,7 @@
 // TODO: Inheritance
 #include "../fiPackfile.h"
 
+#ifndef RAGE_STANDALONE
 namespace rage::hooks
 {
 	static gm::gmAddress gPtr_fiCollection_sm_Collections = gm::Scan([]() -> uintptr_t
@@ -38,3 +39,4 @@ namespace rage
 		}
 	};
 }
+#endif

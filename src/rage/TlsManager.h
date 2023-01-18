@@ -10,10 +10,13 @@ namespace rage
 
 	struct datResource;
 
+#ifdef RAGE_STANDALONE
+	inline thread_local datResource* tl_CurrentResource = nullptr;
+#endif
+
 	class TlsManager
 	{
 		static constexpr uint32_t TLS_SLOT = 0; // Never changes, always zero.
-
 	public:
 		static uint64_t GetPrimarySlotPtr()
 		{
@@ -43,12 +46,19 @@ namespace rage
 
 		static datResource* GetResource()
 		{
+#ifdef RAGE_STANDALONE
+			return tl_CurrentResource;
+#endif
 			return Get<datResource*>(TLS_INDEX_DATRESOURCE);
 		}
 
 		static void SetResource(datResource* value)
 		{
+#ifdef RAGE_STANDALONE
+			tl_CurrentResource = value;
+#else
 			Set<datResource*>(TLS_INDEX_DATRESOURCE, value);
+#endif
 		}
 	};
 }

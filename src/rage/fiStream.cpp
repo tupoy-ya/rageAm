@@ -1,4 +1,9 @@
 #include "fiStream.h"
+#include "Windows.h"
+
+#ifdef RAGE_STANDALONE
+rage::fiStream rage::fiStream::sm_Streams[sm_MaxStreams];
+#endif
 
 rage::fiStream::fiStream()
 {
@@ -13,7 +18,7 @@ rage::fiStream::fiStream()
 	m_BufferSize = 0;
 }
 
-rage::fiStream::fiStream(fiDevice* pDevice, FI_HANDLE handle, char* buffer) : fiStream()
+rage::fiStream::fiStream(fiDevice* pDevice, fiHandle_t handle, char* buffer) : fiStream()
 {
 	m_pDevice = pDevice;
 	m_Buffer = buffer;
@@ -27,17 +32,17 @@ rage::fiStream::fiStream(fiDevice* pDevice, FI_HANDLE handle, char* buffer) : fi
 
 int rage::fiStream::GetNumActiveStreams()
 {
-	sm_mutex.lock();
+	sm_Mutex.lock();
 	int result = sm_ActiveStreams;
-	sm_mutex.unlock();
+	sm_Mutex.unlock();
 	return result;
 }
 
 bool rage::fiStream::HasAvailableStreams()
 {
-	sm_mutex.lock();
+	sm_Mutex.lock();
 	bool result = sm_ActiveStreams < sm_MaxStreams;
-	sm_mutex.unlock();
+	sm_Mutex.unlock();
 	return result;
 }
 
@@ -49,7 +54,7 @@ rage::fiStream* rage::fiStream::CreateWithDevice(const char* resourceName, fiDev
 	if (!HasAvailableStreams())
 		return nullptr;
 
-	FI_HANDLE handle = pDevice->vftable->Create(pDevice, resourceName);
+	fiHandle_t handle = pDevice->vftable->Create(pDevice, resourceName);
 
 	if (handle == FI_INVALID_HANDLE)
 		return nullptr;
@@ -73,7 +78,7 @@ rage::fiStream* rage::fiStream::OpenWithDevice(const char* resourceName, fiDevic
 	if (!HasAvailableStreams())
 		return nullptr;
 
-	FI_HANDLE handle = pDevice->vftable->Open(pDevice, resourceName, isReadOnly);
+	fiHandle_t handle = pDevice->vftable->Open(pDevice, resourceName, isReadOnly);
 
 	if (handle == FI_INVALID_HANDLE)
 		return nullptr;
@@ -87,7 +92,7 @@ rage::fiStream* rage::fiStream::Open(const char* resourceName, bool isReadOnly)
 	return OpenWithDevice(resourceName, pDevice, isReadOnly);
 }
 
-rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, FI_HANDLE handle, fiDevice* pDevice)
+rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, fiHandle_t handle, fiDevice* pDevice)
 {
 	// Resource name is actually passed in fiStream::AllocStream but not used,
 	// most likely was simply logged somewhere.
@@ -98,26 +103,30 @@ rage::fiStream* rage::fiStream::AllocStream(const char* resourceName, FI_HANDLE 
 	if (!HasAvailableStreams())
 		return nullptr;
 
-	sm_mutex.lock();
+	sm_Mutex.lock();
 
 	// Find slot with closed stream
 	int i = 0;
 	for (; i < sm_MaxStreams; i++)
 	{
-		fiStream& slot = sm_streams[i];
+		fiStream& slot = sm_Streams[i];
 
 		if (slot.m_pDevice == nullptr)
 			break;
 	}
 
-	// We'd use sm_streamBuffers[i] but compiler doesn't know about array dimensions
-	char* buffer = sm_streamBuffers + STREAM_BUFFER_SIZE * (uintptr_t)i;
-	sm_streams[i] = fiStream(pDevice, handle, buffer);
+#ifdef RAGE_STANDALONE
+	char* buffer = sm_StreamBuffers[i];
+#else
+	// We'd use sm_StreamBuffers[i] but compiler doesn't know about array dimensions
+	char* buffer = sm_StreamBuffers + STREAM_BUFFER_SIZE * (uintptr_t)i;
+#endif
+	sm_Streams[i] = fiStream(pDevice, handle, buffer);
 	sm_ActiveStreams++;
 
-	sm_mutex.unlock();
+	sm_Mutex.unlock();
 
-	return &sm_streams[i];
+	return &sm_Streams[i];
 }
 
 void rage::fiStream::Close()
@@ -125,14 +134,14 @@ void rage::fiStream::Close()
 	if (m_BufferContentEnd == 0 && m_BufferCursorPos != 0)
 		Flush();
 
-	sm_mutex.lock();
+	sm_Mutex.lock();
 
 	m_pDevice->vftable->Close(m_pDevice, m_FileHandle);
 	m_pDevice = nullptr;
 	m_FileHandle = FI_INVALID_HANDLE;
 	sm_ActiveStreams--;
 
-	sm_mutex.unlock();
+	sm_Mutex.unlock();
 }
 
 bool rage::fiStream::Flush()
@@ -161,12 +170,12 @@ u32 rage::fiStream::Size()
 	throw;
 }
 
-int rage::fiStream::Read(const char* dest, u32 size)
+int rage::fiStream::Read(u8* dest, u32 size)
 {
 	throw;
 }
 
-int rage::fiStream::Write(const char* data, u32 size)
+int rage::fiStream::Write(u8* data, u32 size)
 {
 	__int64 result; // rax
 	signed int bufferSize; // eax MAPDST
@@ -213,5 +222,5 @@ int rage::fiStream::Write(const char* data, u32 size)
 
 bool rage::fiStream::WriteChar(const char c)
 {
-	return Write(&c, 1) != -1;
+	return Write((u8*)&c, 1) != -1;
 }
