@@ -151,6 +151,13 @@ void ReadResource()
 	delete[] buffer;
 }
 
+void RegisterHooks()
+{
+	rage::hooks::RegisterResource();
+	rage::hooks::RegisterResourceInfo();
+	rh::Rendering::RegisterRender();
+}
+
 AM_EXPORT void Shutdown()
 {
 	g_Log.LogT("main::Shutdown()");
@@ -164,9 +171,7 @@ AM_EXPORT void Init()
 {
 	g_Log.LogT("main::Init()");
 
-	rage::hooks::RegisterResource();
-	rage::hooks::RegisterResourceInfo();
-	rh::Rendering::RegisterRender();
+	RegisterHooks();
 
 	g_ImGui.Init();
 	g_ImGuiAppMgr.Init();
