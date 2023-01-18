@@ -19,6 +19,7 @@ namespace rage
 
 	/**
 	 * \brief Provides functionality for building resource from allocated chunks.
+	 * \n At this stage all chunks are allocated and decompressed, resource is ready to be placed.
 	 */
 	struct datResource
 	{
@@ -150,24 +151,31 @@ namespace rage
 	// Size is 0x101A, + 6 byte pad at the end
 	static_assert(sizeof(datResource) == 0x101A + 6);
 
+#ifndef RAGE_STANDALONE
 	namespace hooks
 	{
+		static void RegisterResource()
+		{
 #ifdef RAGE_HOOK_SWAP_DATRESOURCE
-		//static inline gm::gmFuncSwap gSwap_datResource_ContainsThisAddress(
-		//	"rage::datResource::ContainsThisAddress",
-		//	"48 89 5C 24 08 48 89 7C 24 10 0F B6 81",
-		//	gm::CastAny(&datResource::ContainsThisAddress));
+			static inline gm::gmFuncSwap gSwap_datResource_ContainsThisAddress(
+				"rage::datResource::ContainsThisAddress",
+				"48 89 5C 24 08 48 89 7C 24 10 0F B6 81",
+				gm::CastAny(&datResource::ContainsThisAddress));
 
-		//static inline gm::gmFuncSwap gSwap_datResource_GetFixup(
-		//	"rage::datResource::GetFixup",
-		//	"48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 0F B6 81",
-		//	gm::CastAny(&datResource::GetFixup));
+			static inline gm::gmFuncSwap gSwap_datResource_GetFixup(
+				"rage::datResource::GetFixup",
+				"48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 0F B6 81",
+				gm::CastAny(&datResource::GetFixup));
 #endif
+		}
 	}
+#endif
 }
 
-// Constructs resource from main page.
-// NOTE: datResource still has to be passed into constructor.
+/**
+ * \brief Constructs resource from main page.
+ * \n NOTE: datResource still has to be passed into resource constructor.
+ */
 inline void* operator new(size_t, const rage::datResource& rsc)
 {
 	return rsc.Map->MainPage;
