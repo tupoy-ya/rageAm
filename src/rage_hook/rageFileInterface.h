@@ -11,7 +11,7 @@ namespace rh
 		fiPackfile()
 		{
 			/*gm::ScanAndHook(
-				"fiPackfile::FindEntryHeaderByPath",
+				"fiPackfile::GetEntry",
 				"48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 81 EC 00 01 00 00 4C",
 				rage::fiPackfile::vftable_FindEntryHeaderByPath);*/
 		}

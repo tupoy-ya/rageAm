@@ -1,5 +1,9 @@
 #pragma once
-#include "../rage/parsable/CBaseSubHandlingData.h"
+#include "parsable/CBaseSubHandlingData.h"
+#include <cstdint>
+#include "gmAddress.h"
+#include "gmHook.h"
+#include "gmScanner.h"
 
 namespace rh
 {

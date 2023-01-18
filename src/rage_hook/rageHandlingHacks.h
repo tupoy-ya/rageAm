@@ -29,9 +29,9 @@ namespace rh
 	public:
 		rageHandlingHacks()
 		{
-			//gm::ScanAndHook("DeluxoSubHandling::Update", "48 8B C4 F3 0F 11 48 10 55 53 57",
-			//	aImpl_DeluxoSubHandling_Update,
-			//	&gImpl_DeluxoSubHandling_Update);
+			gm::ScanAndHook("DeluxoSubHandling::Update", "48 8B C4 F3 0F 11 48 10 55 53 57",
+				aImpl_DeluxoSubHandling_Update,
+				&gImpl_DeluxoSubHandling_Update);
 
 			gm::gmAddress addr = gm::Scan("DeluxoSubHandling::UpdateBoneAnimation", "E8 ? ? ? ? EB 30 49 63 0F");
 			addr = addr.GetCall();
