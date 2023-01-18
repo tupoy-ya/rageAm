@@ -164,7 +164,8 @@ AM_EXPORT void Init()
 {
 	g_Log.LogT("main::Init()");
 
-	// rage::hooks::RegisterResource();
+	rage::hooks::RegisterResource();
+	rage::hooks::RegisterResourceInfo();
 	rh::Rendering::RegisterRender();
 
 	g_ImGui.Init();
