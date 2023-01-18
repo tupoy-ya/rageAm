@@ -21,7 +21,7 @@ function default_config()
 	filter {}
 end
 
-function qoute_path(path)
+function quote_path(path)
 	return '\"' .. path .. '\"'
 end
 
@@ -30,9 +30,9 @@ function add_launcher_events(build_dir)
 	-- Make sure all paths are quoted!
 	build_dir = os.realpath(build_dir)
 	
-	local scylla = qoute_path(os.realpath("tools/scyllahide.dll"))
-	local launcher = qoute_path(build_dir .. "Launcher.exe")
-	local rageAm = qoute_path(build_dir .. "rageAm.dll")
+	local scylla = quote_path(os.realpath("tools/scyllahide.dll"))
+	local launcher = quote_path(build_dir .. "Launcher.exe")
+	local rageAm = quote_path(build_dir .. "rageAm.dll")
 
 	local base_command = launcher .. " -exe GTA5.exe -dll " .. rageAm .. " -scylla " .. scylla
 	prebuildcommands { base_command .. " -unload" }
