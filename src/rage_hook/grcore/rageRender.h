@@ -615,7 +615,7 @@ namespace rh
 
 		static inline bool bEnableGlobalTextureSwap;
 
-		Rendering()
+		static void RegisterRender()
 		{
 			gm::ScanAndHook("DrawTuningWheelsCommandHandler",
 				"48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 68 A1 48 81 EC F8 00 00 00 44 8B 3D",
