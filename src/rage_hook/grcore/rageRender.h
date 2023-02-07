@@ -22,7 +22,7 @@
 #include "rage/TlsManager.h"
 
 #include "boost/signals2.hpp"
-#include "../../rage/Vec3V.h"
+#include "math/Vector3.h"
 
 #include "../file_observer/TextureStoreThreadInterface.h"
 
@@ -309,10 +309,16 @@ namespace rh
 
 		// Possibly draw bucket, water_rivershallow.sps has bucket 6th render bucket
 		// This is actually multi-dimensional array
-		static inline rage::grcTexture** sm_TextureBucketArray = // [GRC_MAX_NUM_SAMPLERS * GRC_NUM_DRAW_BUCKETS]{};
-			gm::GetGlobal<rage::grcTexture**>("sm_TextureBucketArray");
+#ifdef RAGE_STANDALONE
+		static inline rage::grcTextureDX11** sm_TextureBucketArray = nullptr;
+		static inline ID3D11SamplerState** sm_SamplerList = nullptr;
+#else
+		static inline rage::grcTextureDX11** sm_TextureBucketArray = // [GRC_MAX_NUM_SAMPLERS * GRC_NUM_DRAW_BUCKETS]{};
+			gm::GetGlobal<rage::grcTextureDX11**>("sm_TextureBucketArray");
+		static inline ID3D11SamplerState** sm_SamplerList = *gm::GetGlobal<ID3D11SamplerState***>("sm_SamplerList");
+#endif
 
-		static void RenderThread_AddTextureInRenderBucketSlot(uint8_t bucket, uint8_t slot, rage::grcTexture* texture)
+		static void RenderThread_AddTextureInRenderBucketSlot(uint8_t bucket, uint8_t slot, rage::grcTextureDX11* texture)
 		{
 			uint8_t index = GRC_MAX_NUM_SAMPLERS * bucket;
 			index += slot;
@@ -320,9 +326,7 @@ namespace rh
 			sm_TextureBucketArray[index] = texture;
 		}
 
-		static inline ID3D11SamplerState** sm_SamplerList = *gm::GetGlobal<ID3D11SamplerState***>("sm_SamplerList");
-
-		static void __fastcall SetTextureSampler(int slot, rage::grcTexture* texture, unsigned __int16 samplerIndex)
+		static void __fastcall SetTextureSampler(int slot, rage::grcTextureDX11* texture, unsigned __int16 samplerIndex)
 		{
 			ID3D11DeviceContext* deviceContext = rage::TlsManager::GetD3D11Context();
 
@@ -427,9 +431,14 @@ namespace rh
 				*sm_CurrentFragmentProgramFlag &= 0xFFFFFFFD; // ~2u
 		}
 
+#ifdef RAGE_STANDALONE
+		static inline uint16_t* sm_SamplerIndices = nullptr;
+		static inline rage::grcTextureDX11** sm_TextureArray = nullptr;
+#else
 		static inline uint16_t* sm_SamplerIndices = gm::GetGlobal<uint16_t*>("sm_SamplerIndices");
 		// Size of 42 too
-		static inline rage::grcTexture** sm_TextureArray = gm::GetGlobal<rage::grcTexture**>("sm_TextureArray");
+		static inline rage::grcTextureDX11** sm_TextureArray = gm::GetGlobal<rage::grcTextureDX11**>("sm_TextureArray");
+#endif
 
 		static void __fastcall grcEffect_BeginPass_FragmentProgram(
 			rage::grcInstanceData* material,
@@ -440,7 +449,7 @@ namespace rh
 			uint32_t variableIndex; // rdx
 			uint8_t slot;
 			uint16_t samplerArrayIndex; // r8
-			rage::grcTexture* texture; // rdx
+			rage::grcTextureDX11* texture; // rdx
 			int dataType; // er10
 			int slot_unk34; // eax
 			rage::grcInstanceVar* materialValue; // rcx
@@ -489,7 +498,7 @@ namespace rh
 							samplerArrayIndex = sm_SamplerIndices[slot]; // sampler indices
 						else
 							samplerArrayIndex = 0;
-						//texture = ((rage::grcTexture**)0x7FF6E21516A0)[slot]; // texture list
+						//texture = ((rage::grcTextureDX11**)0x7FF6E21516A0)[slot]; // texture list
 						texture = sm_TextureArray[slot];
 					LABEL_14:
 
@@ -537,7 +546,7 @@ namespace rh
 				if (dataType == rage::EFFECT_VALUE_TEXTURE)
 				{
 					shaderResourceIndex = resourceViewIndex;
-					rage::grcTexture* texture = sm_TextureBucketArray[GRC_MAX_NUM_SAMPLERS * bucket + resourceViewIndex];
+					rage::grcTextureDX11* texture = sm_TextureBucketArray[GRC_MAX_NUM_SAMPLERS * bucket + resourceViewIndex];
 					if (!texture)
 						goto LABEL_17;
 
@@ -617,6 +626,7 @@ namespace rh
 
 		static void RegisterRender()
 		{
+#ifndef RAGE_STANDALONE
 			gm::ScanAndHook("DrawTuningWheelsCommandHandler",
 				"48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 68 A1 48 81 EC F8 00 00 00 44 8B 3D",
 				aImpl_DrawTuningWheelsCommandHandler,
@@ -658,6 +668,7 @@ namespace rh
 			gm::ScanAndHook("grcFragmentProgram::SetBucketResources",
 				"48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 41 54 41 55 41 56 41 57 48 83 EC 20 8B 81 A8",
 				grcFragmentProgram_SetBucketResources);
+#endif
 		}
 
 		uint32_t GetCurrentRenderingFragmentHash() const
