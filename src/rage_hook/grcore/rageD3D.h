@@ -48,8 +48,9 @@ namespace rh
 
 		static inline std::vector<RenderTask> sm_renderTasks;
 	public:
-		D3D()
+		static void RegisterD3D()
 		{
+#ifndef RAGE_STANDALONE
 			if (GameVersion::IsGreaterOrEqual(VER_2802, 0))
 			{
 				gm::gmAddress addr = gm::Scan(
@@ -89,6 +90,7 @@ namespace rh
 			//g_Hook.SetHook(device_CreateTexture2D,
 			//	aImpl_ID3D11Device_CreateTexture2D,
 			//	&gImpl_ID3D11Device_CreateTexture2D);
+#endif
 		}
 
 		static ID3D11Device* GetDevice()
@@ -112,6 +114,4 @@ namespace rh
 			sm_renderTasks.push_back(reinterpret_cast<RenderTask>(task));
 		}
 	};
-
-	inline D3D g_D3D;
 }
