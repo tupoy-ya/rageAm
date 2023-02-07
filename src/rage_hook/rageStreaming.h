@@ -11,11 +11,12 @@ inline rage::ScaleformStore* g_ScaleformStore;
 
 namespace rh
 {
-	class strStreamingModuleMgr
+	class Streaming
 	{
 	public:
-		strStreamingModuleMgr()
+		static void RegisterStreaming()
 		{
+#ifndef RAGE_STANDALONE
 			gm::gmAddress addr = g_Scanner.ScanPattern("CModelInfo::RequestAssets",
 				"8B 01 B9 FF FF 00 00 44 8B C2 23 C1 3B C1 75 07");
 			g_StreamingMgr = addr
@@ -35,8 +36,7 @@ namespace rh
 			g_Log.LogT("g_DrawableStore found at: {:X}", reinterpret_cast<uintptr_t>(g_DrawableStore));
 			g_Log.LogT("g_FragmentStore found at: {:X}", reinterpret_cast<uintptr_t>(g_FragmentStore));
 			g_Log.LogT("-- STREAMING MODULES --");
+#endif
 		}
 	};
-
-	inline strStreamingModuleMgr g_strStreamingModuleMgr;
 }
