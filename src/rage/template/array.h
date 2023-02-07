@@ -7,6 +7,10 @@
 #include "algorithm"
 #include <stdexcept>
 
+// Undef conflicting Windows.h macro
+#undef min
+#undef max
+
 namespace rage
 {
 	/**
@@ -33,6 +37,7 @@ namespace rage
 		{
 			m_Capacity = capacity;
 			m_Size = 0;
+			m_Items = nullptr;
 			Resize(capacity);
 		}
 
@@ -43,7 +48,7 @@ namespace rage
 
 		atArray(const datResource& rsc)
 		{
-			rsc.Fixup(m_Items);
+			if (m_Items) rsc.Fixup(m_Items);
 		}
 
 		atArray(const atArray& other)
@@ -83,20 +88,33 @@ namespace rage
 		/**
 		 * \brief Reallocates array to given capacity.
 		 * \n Elements that don't fit new array range will be truncated.
+		 * \n Resizing array to 0 will deallocate it.
 		 */
 		void Resize(u16 capacity)
 		{
-			// Undef conflicting Windows.h macro
-#undef min
-
 			m_Capacity = capacity;
 			m_Size = std::min(m_Capacity, m_Size);
+
+			if (m_Capacity == 0)
+			{
+				delete[] m_Items;
+				m_Items = nullptr;
+				return;
+			}
 
 			T* newItems = new T[m_Capacity];
 			memcpy(newItems, m_Items, m_Size * sizeof(T));
 
 			delete[] m_Items;
 			m_Items = newItems;
+		}
+
+		/**
+		 * \brief Deallocate reserved array memory.
+		 */
+		void Free()
+		{
+			if (m_Items) Resize(0);
 		}
 
 		/**
@@ -182,7 +200,7 @@ namespace rage
 
 		~atArray()
 		{
-			delete[] m_Items;
+			Free();
 		}
 	};
 
