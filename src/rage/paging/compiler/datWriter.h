@@ -37,7 +37,7 @@ namespace rage
 		// Size of compressed resource file on disk.
 		u32 m_FileSize;
 
-		std::ofstream* m_Fs;
+		std::unique_ptr<std::ofstream> m_Fs;
 		const datWriteData* m_WriteData;
 		const char* m_Path;
 
@@ -49,6 +49,7 @@ namespace rage
 		void CompressAndWrite(const datPackedPage& packedPage, const TBuffer& buffer);
 
 		bool OpenResource();
+		void CloseResource();
 
 		void ResetWriteStats();
 		void PrintWriteStats() const;

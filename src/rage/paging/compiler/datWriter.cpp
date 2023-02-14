@@ -69,12 +69,20 @@ void rage::datWriter::CompressAndWrite(const datPackedPage& packedPage, const TB
 
 bool rage::datWriter::OpenResource()
 {
-	std::ofstream fs(m_Path, std::ios::binary | std::ios::trunc);
-	if (AM_ASSERT(fs.is_open(), "Unable to open resource file for writing."))
+	m_Fs = std::make_unique<std::ofstream>(m_Path, std::ios::binary | std::ios::trunc);
+	if (AM_ASSERT(m_Fs->is_open(), "Unable to open resource file for writing."))
 		return false;
 
-	m_Fs = &fs;
 	return true;
+}
+
+void rage::datWriter::CloseResource()
+{
+	if (m_Fs)
+		return;
+
+	m_Fs->close();
+	m_Fs.release();
 }
 
 void rage::datWriter::ResetWriteStats()
@@ -111,8 +119,8 @@ bool rage::datWriter::Write(const char* path, const datWriteData& writeData)
 	WriteData(writeData.Physical, pCompiler->GetPhysicalAllocator());
 
 	PrintWriteStats();
+	CloseResource();
 
-	m_Fs = nullptr;
 	m_WriteData = nullptr;
 
 	return true;
