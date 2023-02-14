@@ -177,7 +177,7 @@ void rage::datPacker::FixupRefs(const Indices& indices, u64 fileOffset) const
 	u64 pageOffset = 0;
 	for (u16 index : indices)
 	{
-		AM_TRACE("datPacker::FixupRefs() -> {}", index);
+		AM_TRACEF("datPacker::FixupRefs() -> {}", index);
 
 		u64 filePointer = fileOffset + pageOffset;
 		filePointer |= m_Allocator->GetBaseAddress();

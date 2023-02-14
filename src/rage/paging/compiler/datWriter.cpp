@@ -39,7 +39,7 @@ rage::datWriter::TBuffer rage::datWriter::AllocatePage(const datPackedPage& pack
 void rage::datWriter::WriteHeader() const
 {
 	AM_TRACEF("datWriter::WriteHeader() -> Writing header (Version: {}, Virtual Data: {:X}, Physical Data: {:X})",
-		m_WriteData->Version, m_WriteData->Virtual, m_WriteData->Physical);
+		m_WriteData->Version, m_WriteData->Virtual.Data, m_WriteData->Physical.Data);
 
 	ResourceHeader header = m_WriteData->GetHeader();
 	m_Fs->write(reinterpret_cast<char*>(&header), sizeof(ResourceHeader));
