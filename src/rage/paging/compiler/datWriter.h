@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+
 #include "datAllocator.h"
 #include "datPacker.h"
 #include "fwTypes.h"
