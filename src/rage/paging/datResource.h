@@ -7,10 +7,10 @@
 #include "datResourceMap.h"
 #include "fwTypes.h"
 #include "TlsManager.h"
+#include "Logger.h"
 
 #ifndef RAGE_STANDALONE
 #include "gmFunc.h"
-#include "Logger.h"
 #endif
 
 namespace rage
@@ -91,13 +91,23 @@ namespace rage
 
 		/**
 		 * \brief Maps resource offset into allocated chunk in game heap.
-		 * \n USAGE: Fixup(&m_Name);
+		 * \n USAGE: Fixup(m_Name);
 		 * \tparam T Type of resource struct field.
 		 * \param pField Pointer to resource struct field.
 		 */
 		template<typename T>
 		void Fixup(T& pField) const
 		{
+			if (!(u64)pField)
+				return;
+#ifdef _DEBUG
+			auto chunk = Find(SrcChunks, (u64)pField);
+			AM_TRACEF("datResource::Fixup({:X}) -> {:X} in chunk ({}, base: {:X})",
+				(u64)pField,
+				(u64)pField + GetFixup((u64)pField),
+				chunk->GetChunkIndex(),
+				chunk->Address);
+#endif
 			pField = (T)((u64)pField + GetFixup((u64)pField));
 		}
 
@@ -139,23 +149,22 @@ namespace rage
 		 * \return Pointer to resource instance.
 		 */
 		template<typename T>
-		T* Construct() const
+		void Construct() const
 		{
 			static_assert(std::is_base_of_v<pgBase, T>, "Resource type must be inherited from pgBase.");
 
 			T* t = (T*)Map->MainPage;
 			Construct(t);
-			return t;
 		}
 	};
 	// Size is 0x101A, + 6 byte pad at the end
 	static_assert(sizeof(datResource) == 0x101A + 6);
 
-#ifndef RAGE_STANDALONE
 	namespace hooks
 	{
 		static void RegisterResource()
 		{
+#ifndef RAGE_STANDALONE
 #ifdef RAGE_HOOK_SWAP_DATRESOURCE
 			static inline gm::gmFuncSwap gSwap_datResource_ContainsThisAddress(
 				"rage::datResource::ContainsThisAddress",
@@ -167,9 +176,9 @@ namespace rage
 				"48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 0F B6 81",
 				gm::CastAny(&datResource::GetFixup));
 #endif
+#endif
 		}
 	}
-#endif
 }
 
 /**

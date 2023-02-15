@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "Logger.h"
+
 rage::datResource::datResource(datResourceMap& map, const char* name)
 {
 	Map = &map;
@@ -78,10 +80,8 @@ uint64_t rage::datResource::GetFixup(uintptr_t resourceOffset) const
 	if (const datResourceSortedChunk* chunk = Find(SrcChunks, resourceOffset))
 		return GetChunk(chunk)->GetFixup();
 
-#ifndef RAGE_STANDALONE
 	// ERR_SYS_INVALIDRESOURCE_5
 	AM_ERRF("rage::datResource::GetFixup() -> "
 	        "Invalid fixup, address {:X} is neither virtual nor physical.", resourceOffset);
-#endif
 	return 0;
 }
