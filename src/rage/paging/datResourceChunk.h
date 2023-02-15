@@ -1,5 +1,6 @@
 #pragma once
 #include "dat.h"
+#include "datHelper.h"
 
 namespace rage
 {
@@ -11,25 +12,30 @@ namespace rage
 		/**
 		 * \brief Resource chunk address (file offset).
 		 */
-		uint64_t SrcAddr;
+		u64 SrcAddr;
 
 		/**
 		 * \brief Address of corresponding chunk allocated in heap.
 		 */
-		uint64_t DestAddr;
+		u64 DestAddr;
 
 		/**
 		 * \brief Size of chunk in bytes.
 		 */
-		uint64_t Size;
+		u64 Size;
 
 		/**
 		 * \brief Gets offset that maps resource address to corresponding address allocated in game heap.
 		 * \return Offset.
 		 */
-		uint64_t GetFixup() const
+		u64 GetFixup() const
 		{
 			return DestAddr - SrcAddr;
+		}
+		
+		u8 GetSizeShift() const
+		{
+			return GetPageShift(Size);
 		}
 	};
 	static_assert(sizeof(datResourceChunk) == 0x18);
@@ -39,6 +45,10 @@ namespace rage
 	 */
 	struct datResourceSortedChunk
 	{
+		static constexpr u64 DAT_CHUNK_SIZE_MASK = 0x00FF'FFFF'FFFF'FFFF;
+		static constexpr u64 DAT_CHUNK_INDEX_SHIFT = 56; // 8 highest bits
+		static constexpr u64 DAT_CHUNK_INDEX_MASK = 0xFF;
+
 		/**
 		 * \brief Start address of this chunk.
 		 */
