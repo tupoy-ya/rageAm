@@ -64,7 +64,7 @@ rage::pgBase::pgBase()
 {
 	datResource* rsc = TlsManager::GetResource();
 
-	if (rsc && AM_ASSERT(m_Map != nullptr, "Builded resource has no internal map."))
+	if (rsc && AM_ASSERT(m_Map == nullptr, "Builded resource has no internal map."))
 	{
 		rsc->Fixup(m_Map);
 		MakeDefragmentable(*rsc->Map);
@@ -80,7 +80,16 @@ rage::pgBase::~pgBase()
 
 rage::pgBase::pgBase(const pgBase& other)
 {
-	m_Map = other.m_Map;
+	// Just like in atArray, we have to allocate memory for
+	// mini map (which presents only in compiled / file resources) manually.
+	datAllocator* pAllocator = TlsManager::GetVirtualAllocator();
+	if (!pAllocator)
+	{
+		// We're not compiling resource so no need to have a map.
+		m_Map = nullptr;
+		return;
+	}
+	pAllocator->AllocateRef(m_Map);
 }
 
 void rage::pgBase::Destroy() const

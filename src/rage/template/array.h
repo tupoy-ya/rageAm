@@ -2,6 +2,7 @@
 
 #include "fwTypes.h"
 #include "iterator.h"
+#include "paging/place.h"
 #include "paging/datResource.h"
 
 #include "algorithm"
@@ -23,6 +24,20 @@ namespace rage
 		static constexpr u16 AT_ARRAY_GROW_SIZE = 10;
 		static constexpr u16 AT_ARRAY_DEFAULT_CAPACITY = 10;
 
+		void DoAlloc()
+		{
+			datAllocator* pAllocator = TlsManager::GetVirtualAllocator();
+			if (!pAllocator)
+			{
+				m_Items = new T[m_Capacity];
+				return;
+			}
+
+			// Allocate on virtual stream if we're compiling resource.
+			// We have to do that manually because new operator overriden only for resources. (place macro)
+			// (because compiler have to allocate memory and it would allocate on virtual stream otherwise)
+			pAllocator->AllocateRefArray(m_Items, m_Capacity);
+		}
 	protected:
 		T* m_Items;
 		u16 m_Size;
@@ -46,16 +61,32 @@ namespace rage
 		 */
 		atArray() : atArray(AT_ARRAY_DEFAULT_CAPACITY) {}
 
+		/**
+		 * \brief Constructs array from std vector.
+		 * \param vec Vector to copy elements from.
+		 */
+		atArray(const std::vector<T>& vec) : atArray(vec.capacity())
+		{
+			for (const T& item : vec)
+				Add(item);
+		}
+
 		atArray(const datResource& rsc)
 		{
 			if (m_Items) rsc.Fixup(m_Items);
 		}
 
 		atArray(const atArray& other)
+			: atArray(other.GetSize())
 		{
 			m_Size = other.m_Size;
 			m_Capacity = other.m_Capacity;
 			memcpy(m_Items, other.m_Items, m_Size * sizeof(T));
+		}
+
+		~atArray()
+		{
+			Free();
 		}
 
 		u16 GetSize() const { return m_Size; }
@@ -97,16 +128,18 @@ namespace rage
 
 			if (m_Capacity == 0)
 			{
-				delete[] m_Items;
-				m_Items = nullptr;
+				Free();
 				return;
 			}
 
-			T* newItems = new T[m_Capacity];
-			memcpy(newItems, m_Items, m_Size * sizeof(T));
 
-			delete[] m_Items;
-			m_Items = newItems;
+			T* oldItems = m_Items;
+			DoAlloc();
+			if (!oldItems)
+				return;
+
+			memcpy(m_Items, oldItems, m_Size * sizeof(T));
+			delete[] oldItems;
 		}
 
 		/**
@@ -114,7 +147,11 @@ namespace rage
 		 */
 		void Free()
 		{
-			if (m_Items) Resize(0);
+			if (!m_Items)
+				return;
+
+			delete[] m_Items;
+			m_Items = nullptr;
 		}
 
 		/**
@@ -197,11 +234,6 @@ namespace rage
 		atIterator<T> end() const { return m_Items + m_Size; }
 
 		T& operator [](u16 index) { return Get(index); }
-
-		~atArray()
-		{
-			Free();
-		}
 	};
 
 	// Size is 12 bytes + 4 byte pad
