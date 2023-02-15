@@ -21,9 +21,25 @@ u8 rage::datResourceInfo::GetNumChunks(u32 data)
 
 u8 rage::datResourceInfo::GenerateChunks(u32 data, u64 baseSize, datResourceMap& map, u8 startChunk, u64 baseAddr)
 {
-	u64 size = baseSize << GetSizeShift(data);
+	u8 sizeShift = GetSizeShift(data);
+	u64 size = baseSize << sizeShift;
 	u8 chunkIndex = startChunk;
 
+	/*
+	 * Page sizes if size shift (exponent) is 4 (0x2000 * 2^4 = 0x20000):
+	 * 0x20000
+	 * 0x10000
+	 * 0x8000
+	 * 0x4000
+	 * 0x2000
+	 * 0x1000
+	 * 0x800
+	 * 0x400
+	 * 0x200
+	 *
+	 * Total amount of chunks in all pages has to be less or equal 128
+	 * (hardcoded limit, see dat.h)
+	 */
 	u32 pageChunks[9]
 	{
 		data >> 4 & 0x1, // 0x10 & 0x1
@@ -47,7 +63,7 @@ u8 rage::datResourceInfo::GenerateChunks(u32 data, u64 baseSize, datResourceMap&
 			baseAddr += size;
 			chunkIndex++;
 		}
-		size >>= 1;
+		size >>= 1; // Pages are ordered descending by size
 	}
 
 	return chunkIndex;
@@ -72,6 +88,6 @@ void rage::datResourceInfo::GenerateMap(datResourceMap& map) const
 	map.MainPage = nullptr;
 	map.qwordC10 = 0;
 
-	u8 vChunks = GenerateChunks(VirtualData, DAT_BASE_SIZE, map, 0, DAT_VIRTUAL_BASE);
-	GenerateChunks(PhysicalData, DAT_BASE_SIZE, map, vChunks, DAT_PHYSICAL_BASE);
+	u8 vChunks = GenerateChunks(VirtualData, DAT_MIN_CHUNK_SIZE, map, 0, DAT_VIRTUAL_BASE);
+	GenerateChunks(PhysicalData, DAT_MIN_CHUNK_SIZE, map, vChunks, DAT_PHYSICAL_BASE);
 }

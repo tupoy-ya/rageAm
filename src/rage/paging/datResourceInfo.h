@@ -1,5 +1,6 @@
 #pragma once
 #include "datResourceMap.h"
+#include "helpers/align.h"
 
 #ifndef RAGE_STANDALONE
 #include "gmFunc.h"
@@ -25,7 +26,7 @@ namespace rage
 		 * \param map Destination map.
 		 * \param startChunk Number of chunks to skip in map.
 		 * \param baseAddr Chunk address base, see dat.h;
-		 * \return
+		 * \return Count of generated chunks.
 		 */
 		static u8 GenerateChunks(u32 data, u64 baseSize, datResourceMap& map, u8 startChunk, u64 baseAddr);
 
@@ -39,20 +40,22 @@ namespace rage
 		void GenerateMap(datResourceMap& map) const;
 	};
 
-#ifndef RAGE_STANDALONE
 	namespace hooks
 	{
+#ifndef RAGE_STANDALONE
 		inline gm::gmFunc<void, const datResourceInfo*, datResourceMap*> gImpl_datResourceInfo_GenerateMap;
+#endif
 
 		static void RegisterResourceInfo()
 		{
+#ifndef RAGE_STANDALONE
 #ifdef RAGE_HOOK_SWAP_DATRESOURCE
 			gImpl_datResourceInfo_GenerateMap = gm::Hook(
 				"rage::datResourceInfo::GenerateMap",
 				"48 89 5C 24 08 57 48 83 EC 30 44 8B 09",
 				&datResourceInfo::GenerateMap);
 #endif
+#endif
 		}
 	}
-#endif
 }
