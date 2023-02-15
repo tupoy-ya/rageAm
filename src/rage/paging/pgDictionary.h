@@ -3,7 +3,8 @@
 #include "datResource.h"
 #include "pgBase.h"
 #include "pgArray.h"
-#include "pgPtrArray.h"
+#include "pgRscArray.h"
+#include "place.h"
 
 namespace rage
 {
@@ -11,7 +12,7 @@ namespace rage
 	struct pgKeyPair
 	{
 		u32 Key;
-		T Value;
+		T* Value;
 	};
 
 	/**
@@ -27,7 +28,7 @@ namespace rage
 		uint32_t dword18;
 		uint32_t gap1C;
 		pgArray<u32> m_Keys;
-		pgPtrArray<T> m_Items;
+		pgRscArray<T> m_Items;
 
 	public:
 		pgDictionary() = default;
@@ -62,7 +63,7 @@ namespace rage
 		 * \brief Gets pair of key and value at given index.
 		 * \throws std::invalid_argument If given index was negative or greater than size of the dictionary.
 		 */
-		pgKeyPair<T*> GetSlot(u16 index)
+		pgKeyPair<T> GetSlot(u16 index)
 		{
 			if (index < 0 || index == m_Keys.GetSize())
 				throw std::invalid_argument("pgDictionary::GetSlot() -> Index was out of range.");
@@ -156,6 +157,8 @@ namespace rage
 				return m_Items[index];
 			return Add(key, nullptr);
 		}
+
+		IMPLEMENT_PLACE_INLINE(pgDictionary);
 	};
 	static_assert(sizeof(pgDictionary<LPVOID>) == 0x40);
 }
