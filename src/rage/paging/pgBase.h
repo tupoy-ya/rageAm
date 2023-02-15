@@ -1,8 +1,6 @@
 #pragma once
 
-#include "datHelper.h"
 #include "datResourceMap.h"
-#include "fwTypes.h"
 
 namespace rage
 {
@@ -17,7 +15,7 @@ namespace rage
 		/**
 		 * \brief Mini copy of datResourceMap.
 		 * \n Purpose: We have to store allocated chunks to de-allocate them when object is destroyed.
-		 * \n Full datResourceMap contains redundant information so this is a 'mini' version of it.
+		 * \n Full datResourceMap contains redundant information for deallocation so this is a 'mini' version of it.
 		 */
 		struct Map
 		{
@@ -34,11 +32,22 @@ namespace rage
 			u8 PhysicalChunkCount;
 			u8 MainChunkIndex;
 
-			// Always false.
-			// Could be related to metadata / owns map.
-			bool bUnknown;
+			// Whether this map is allocated dynamically or generated from compiled file.
+			// NOTE: This could be wrong name / interpretation because value is never true
+			// and most likely used only in 'compiler' builds of rage, just like metadata.
+			// Name is only assumed from these facts:
+			// - Resource is de-allocated only if value is false;
+			// - 'HasMap' function does check for value being false; (can be seen as resource owning the map)
+			// - It's placed right above the chunks.
+			bool bIsDynamic;
 
+			// In comparison with datResource, contains only destination (allocated) addresses.
 			u64 AddressAndShift[128];
+
+			/**
+			 * \brief Whether this map was built from compiled resource.
+			 */
+			bool IsCompiled() const;
 
 			/**
 			 * \brief Generates mini map from original one.
@@ -57,6 +66,11 @@ namespace rage
 		// Generates mini map from full one.
 		void MakeDefragmentable(const datResourceMap& map) const;
 
+		// Performs de-allocation of all memory chunks that
+		// are owned by this resource.
+		// NOTE: This includes main chunk or 'this';
+		// Which means: after this function is invoked,
+		// accessing 'this' will cause undefined behaviour.
 		void FreeMemory(const datResourceMap& map) const;
 	public:
 		pgBase();

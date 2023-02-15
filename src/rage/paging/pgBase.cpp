@@ -5,13 +5,18 @@
 #include "datResource.h"
 #include "system/assert.h"
 
+bool rage::pgBase::Map::IsCompiled() const
+{
+	return !bIsDynamic;
+}
+
 void rage::pgBase::Map::GenerateFromMap(const datResourceMap& map)
 {
 	VirtualChunkCount = map.VirtualChunkCount;
 	PhysicalChunkCount = map.PhysicalChunkCount;
 	MainChunkIndex = map.MainChunkIndex;
 
-	bUnknown = false;
+	bIsDynamic = false;
 
 	for (u8 i = 0; i < map.GetChunkCount(); i++)
 	{
@@ -51,7 +56,7 @@ void rage::pgBase::MakeDefragmentable(const datResourceMap& map) const
 
 void rage::pgBase::FreeMemory(const datResourceMap& map) const
 {
-	if (m_Map->bUnknown)
+	if (m_Map->bIsDynamic)
 		return;
 
 	// TODO: Virtual allocator (1)
@@ -101,11 +106,16 @@ void rage::pgBase::Destroy() const
 	datResourceMap map;
 	RegenerateMap(map);
 	FreeMemory(map);
+
+	// Nothing must be done after de-allocating memory!
+	// Consider FreeMemory as delete this;
 }
 
 bool rage::pgBase::HasMap() const
 {
-	return m_Map != nullptr && m_Map->bUnknown == false;
+	if (!m_Map)
+		return false;
+	return m_Map->IsCompiled();
 }
 
 void rage::pgBase::RegenerateMap(datResourceMap& map) const
