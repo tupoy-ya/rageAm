@@ -1,5 +1,5 @@
 #pragma once
-#include "../fwTypes.h"
+#include "fwTypes.h"
 
 /*
  * Before exploring code below, make sure to understand page memory management in operating systems.
@@ -29,12 +29,11 @@
  * - Done! Resource is ready to be used.
  */
 
-static constexpr u64 DAT_VIRTUAL_BASE = 0x50000000; // RAM
-static constexpr u64 DAT_PHYSICAL_BASE = 0x60000000; // GPU
-static constexpr u64 DAT_BASE_SIZE = 0x2000;
+namespace rage
+{
+	static constexpr u64 DAT_VIRTUAL_BASE = 0x50000000; // RAM
+	static constexpr u64 DAT_PHYSICAL_BASE = 0x60000000; // GPU
+	static constexpr u64 DAT_MIN_CHUNK_SIZE = 0x2000;
 
-static constexpr u8 DAT_NUM_CHUNKS = 128;
-
-static constexpr u64 DAT_CHUNK_SIZE_MASK = 0x00FF'FFFF'FFFF'FFFF;
-static constexpr u64 DAT_CHUNK_INDEX_SHIFT = 56; // 8 highest bits
-static constexpr u64 DAT_CHUNK_INDEX_MASK = 0xFF;
+	static constexpr u8 DAT_NUM_CHUNKS = 128;
+}
