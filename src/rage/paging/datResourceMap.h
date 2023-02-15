@@ -3,6 +3,7 @@
 
 #include "datResourceChunk.h"
 #include "pgBase.h"
+#include "template/iterator.h"
 
 namespace rage
 {
@@ -47,6 +48,9 @@ namespace rage
 		 * \brief Gets total number of chunks (virtual + physical).
 		 */
 		u8 GetChunkCount() const { return VirtualChunkCount + PhysicalChunkCount; }
+
+		atIterator<datResourceChunk> begin() { return Chunks; }
+		atIterator<datResourceChunk> end() { return Chunks + GetChunkCount(); }
 	};
 	static_assert(sizeof(datResourceMap) == 0xC18);
 	static_assert(offsetof(datResourceMap, Chunks) == 0x10);
