@@ -4,8 +4,8 @@
 namespace rage
 {
 	/**
-	 * \brief Array of pointers (for e.g. rage::grcTexture*) for resource binaries.
-	 * \tparam T Pointer type to store. (without pointer itself). e.g. rage::grcTexture
+	 * \brief Simple array of pointers.
+	 * \tparam T Pointer type to store.
 	 */
 	template <typename T>
 	class pgPtrArray : public pgArray<T*>
@@ -16,7 +16,7 @@ namespace rage
 		pgPtrArray(const datResource& rsc) : pgArray<T*>(rsc)
 		{
 			for (u16 i = 0; i < this->GetSize(); i++)
-				rsc.Place(this->Get(i));
+				rsc.Fixup(this->Get(i));
 		}
 	};
 }
