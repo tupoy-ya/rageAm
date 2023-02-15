@@ -9,7 +9,7 @@
 
 #define AM_TRACE(msg) g_Log.LogT(msg)
 #define AM_TRACEF(fmt, ...) g_Log.LogT(fmt, __VA_ARGS__)
-#define AM_ERR(msg) g_Log.LogE(msg);
+#define AM_ERR(msg) g_Log.LogE(msg)
 #define AM_ERRF(fmt, ...) g_Log.LogE(fmt, __VA_ARGS__)
 
 enum eLoggerLevel
@@ -57,9 +57,13 @@ class Logger
 
 	void Log(const std::string& msg)
 	{
+#ifdef RAGE_STANDALONE
+		printf("%s\n", msg.c_str());
+#else
 		m_fileMutex.lock();
 		m_fs << msg << std::endl;
 		m_fileMutex.unlock();
+#endif
 	}
 public:
 	Logger()
