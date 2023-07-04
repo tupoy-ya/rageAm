@@ -102,6 +102,8 @@ void rageam::Logger::EnsureInitialized()
 	wchar_t folderName[20];
 	String::ToWide(folderName, 20, timeFormatted);
 
+	CreateDirectoryW(DataManager::GetLogsFolder(), NULL);
+
 	sm_LogDirectory = DataManager::GetLogsFolder() / folderName;
 
 	// Note that we can't use assert / verify here because logger is not initialized and it will cause stack overflow...
