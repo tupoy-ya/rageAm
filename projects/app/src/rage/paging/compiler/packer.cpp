@@ -76,8 +76,8 @@ void rage::pgRscPacker::PrintPackedInfo(const datPackedChunks& chunks) const
 	AM_DEBUG("pgRscPacker::PrintPackedInfo() -> Buckets:");
 	AM_DEBUG("(Index, Block Count, Packed Chunk Count, Total Chunk Count, Used / Total, Chunk Size)");
 
-	u32 chunkSize = DAT_MIN_CHUNK_SIZE << chunks.SizeShift;
-	for (u8 i = 0; i < DAT_MAX_BUCKETS; i++)
+	u32 chunkSize = PG_MIN_CHUNK_SIZE << chunks.SizeShift;
+	for (u8 i = 0; i < PG_MAX_BUCKETS; i++)
 	{
 		u16 usedChunks = 0; // Number of chunks with at least one packed block
 		u16 bucketBlockCount = 0; // Total number of blocks in this bucket
@@ -288,7 +288,7 @@ bool rage::pgRscPacker::Pack(datPackedChunks& outPack)
 	GetInitialBucketAndSizeShift(m_LargestBlock, startBucket, startShift);
 
 	AM_DEBUGF("pgRscPacker::Pack() -> Starting at bucket %u with size shift %u (%#x)",
-		startBucket, startShift, DAT_MIN_CHUNK_SIZE << startShift);
+		startBucket, startShift, PG_MIN_CHUNK_SIZE << startShift);
 
 	// Do packing and calculate number of chunks in every bucket
 	u8 resultSizeShift = TryPack(startBucket, startShift);
@@ -301,7 +301,7 @@ bool rage::pgRscPacker::Pack(datPackedChunks& outPack)
 	CalculateChunkCountInBuckets(outPack);
 
 	AM_DEBUGF("pgRscPacker::Pack() -> Packed with size shift: %u (%x)",
-		outPack.SizeShift, DAT_MIN_CHUNK_SIZE << outPack.SizeShift);
+		outPack.SizeShift, PG_MIN_CHUNK_SIZE << outPack.SizeShift);
 
 	PrintPackedInfo(outPack);
 	return true;
