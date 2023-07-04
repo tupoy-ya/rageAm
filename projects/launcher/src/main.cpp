@@ -8,9 +8,6 @@
 #include <tchar.h>
 #include <psapi.h>
 
-typedef void (*Shutdown)();
-typedef void (*Init)();
-
 const char* exe = "GTA5.exe";
 const char* amDllName = "rageAm.dll";
 const char* amDllPath = nullptr;
@@ -201,12 +198,23 @@ BOOL UnloadDLL(HANDLE hProc, LPCSTR dllPath)
 		return false;
 	}
 
-	CreateRemoteThread(hProc, nullptr, 0,
-		(PTHREAD_START_ROUTINE)FreeLibraryAndExitThread,  // NOLINT(clang-diagnostic-cast-function-type)
-		hModule, 0, nullptr);
+	constexpr int maxAttempts = 100;
+	int attempts = 0;
+	while (GetModule(hProc, dllPath) != nullptr && attempts++ < maxAttempts)
+	{
+		CreateRemoteThread(hProc, nullptr, 0,
+			(PTHREAD_START_ROUTINE)FreeLibraryAndExitThread, // NOLINT(clang-diagnostic-cast-function-type)
+			hModule, 0, nullptr);
+	}
 
-	printf("DLL %s was unloaded with status OK.\n", dllPath);
-	return true;
+	bool unloaded = GetModule(hProc, dllPath) == nullptr;
+	if (unloaded && attempts == 1)
+		printf("DLL %s was unloaded with status OK\n", dllPath);
+	else if (unloaded)
+		printf("DLL %s was unloaded with status OK, but took several attempts... %i unreleased refs.\n", dllPath, attempts - 1);
+	else
+		printf("DLL %s failed to unload, possible deadlock or unreleased module refs.\n", dllPath);
+	return unloaded;
 }
 
 void InitRageAm()
@@ -220,8 +228,10 @@ void InitRageAm()
 	if (!LoadDLL(hGtaProc, amDllPath))
 		return;
 
-	RemoteLibraryFunction(hGtaProc, amDllPath, "Init");
-	printf("rageAm loaded.\n");
+	if (RemoteLibraryFunction(hGtaProc, amDllPath, "Init"))
+		printf("rageAm loaded.\n");
+	else
+		printf("rageAm failed to load.\n");
 }
 
 void ShutdownRageAm()
@@ -235,10 +245,14 @@ void ShutdownRageAm()
 		return;
 	}
 
-	RemoteLibraryFunction(hGtaProc, amDllPath, "Shutdown");
-	UnloadDLL(hGtaProc, amDllPath);
+	printf("calling !rageam.dll::Shutdown\n");
 
-	printf("rageAm unloaded.\n");
+	RemoteLibraryFunction(hGtaProc, amDllPath, "Shutdown");
+
+	if (UnloadDLL(hGtaProc, amDllPath))
+		printf("rageAm unloaded.\n");
+	else
+		printf("rageAm failed to unload.\n");
 }
 
 // NOTE: Argument order is preserved.
