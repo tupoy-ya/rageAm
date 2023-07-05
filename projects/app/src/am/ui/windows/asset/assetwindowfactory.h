@@ -24,7 +24,7 @@ namespace rageam::ui::assetview
 			WindowPtr existing = windows->FindByTitle(title);
 			if (existing)
 			{
-				existing->Focus();
+				windows->Focus(existing);
 				return existing;
 			}
 

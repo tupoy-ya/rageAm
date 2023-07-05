@@ -8,8 +8,8 @@
 #pragma once
 
 #include "common/types.h"
-#include "imgui.h"
 #include "am/task/undo.h"
+#include "imgui.h"
 
 namespace rageam::ui
 {
@@ -28,8 +28,6 @@ namespace rageam::ui
 		virtual bool ShowUnsavedChangesInTitle() const { return false; }
 		virtual ConstString GetTitle() const = 0;
 		virtual ImVec2 GetDefaultSize() { return { 0, 0 }; }
-
-		void Focus() const { ImGui::SetWindowFocus(GetTitle()); }
 
 		UndoStack Undo;
 	};

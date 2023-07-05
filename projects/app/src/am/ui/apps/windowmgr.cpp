@@ -40,7 +40,7 @@ void rageam::ui::WindowManager::OnRender()
 
 		// Format window title with optional '*' for unsaved documents
 		bool unsaved = window->ShowUnsavedChangesInTitle() && window->Undo.HasChanges();
-		ConstString title = ImGui::FormatTemp("%s%s##%s",
+		ConstString title = ImGui::FormatTemp("%s%s###%s",
 			window->GetTitle(), unsaved ? "*" : "", window->GetTitle());
 
 		if (SlGui::Begin(title, &isOpen, windowFlags))
@@ -99,4 +99,11 @@ rageam::ui::WindowPtr rageam::ui::WindowManager::FindByTitle(ConstString title) 
 	if (ppWindow)
 		return *ppWindow;
 	return nullptr;
+}
+
+void rageam::ui::WindowManager::Focus(const WindowPtr& window) const
+{
+	// ### are required by ImGui
+	ConstString title = ImGui::FormatTemp("###%s", window->GetTitle());
+	ImGui::SetWindowFocus(title);
 }

@@ -30,6 +30,8 @@ namespace rageam::ui
 		void Close(const WindowPtr& ptr);
 		WindowPtr FindByTitle(ConstString title) const;
 
+		void Focus(const WindowPtr& window) const;
+
 		template<typename T>
 		WindowPtr FindByType() const
 		{
