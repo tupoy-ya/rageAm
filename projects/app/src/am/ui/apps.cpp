@@ -37,7 +37,10 @@ bool rageam::ui::Apps::UpdateAll()
 	static ConstString ABOUT_POPUP_ID = "About##ABOUT_POPUP_ID";
 	bool openAbout = false;
 
+	// Dock space in integration mode will cover all game viewport, we don't want that
+#ifdef AM_STANDALONE
 	ImGui::BeginDockSpace();
+#endif
 	if (ImGui::BeginMenuBar())
 	{
 		static WindowManager* windowMgr = FindAppByType<WindowManager>();
@@ -106,7 +109,10 @@ bool rageam::ui::Apps::UpdateAll()
 			return false;
 		}
 	}
+
+#ifdef AM_STANDALONE
 	ImGui::End(); // DockSpace
+#endif
 
 	if (disabled) ImGui::PopItemFlag();
 
