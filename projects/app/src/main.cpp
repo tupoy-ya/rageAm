@@ -105,6 +105,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	// We don't do anything in here, nothing must be done here.
 	// Launcher will call ::Init / ::Shutdown once DLL is loaded.
+	
+	s_System.InitCore();
+	s_System.InitRender(true);
+	s_System.InitUI();
+	s_System.Finalize();
 
 	return TRUE;
 }
