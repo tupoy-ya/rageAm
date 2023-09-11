@@ -1,0 +1,39 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  ci:
+    runs-on: windows-latest
+    name: CI
+    steps:
+      - uses: actions/checkout@v2.4.0
+        with:
+          submodules: recursive
+
+      - name: Setup premake
+        uses: abel0b/setup-premake@v2
+        with:
+          version: "5.0.0-beta2"
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Generate premake5 project
+        run: premake5 --file=main.lua vs2022
+        shell: bash
+
+      - name: Build 64bit release DLL
+        run: |
+          msbuild /p:Configuration=Release /p:Platform=x64 rageAm.sln
+        working-directory: projects/
+
+      - name: Check if DLL got built
+        run: if (-Not (Test-Path -path "bin/Release/rageAm.dll")) {throw 1}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: binary
+          path: |
+            bin/Release/rageAm.dll
