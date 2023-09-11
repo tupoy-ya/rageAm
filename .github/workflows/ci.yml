@@ -54,7 +54,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
 
       - name: Generate premake5 project
-        run: premake5 --file=main.lua vs2022 --standalone
+        run: premake5 --file=main.lua vs2022 --standalone --nostacksymbols
         shell: bash
 
       - name: Build 64bit release DLL
@@ -66,5 +66,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: binary-dll
-          path: bin/Release/
+          path: bin/Release/rageAm.exe
 
