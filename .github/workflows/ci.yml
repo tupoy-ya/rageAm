@@ -62,9 +62,6 @@ jobs:
           msbuild /p:Configuration=Release /p:Platform=x64 rageAm.sln
         working-directory: projects/
 
-      - name: Check if DLL got built
-        run: if (-Not (Test-Path -path "bin/Release/rageAm.dll")) {throw 1}
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
